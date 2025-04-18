@@ -8,7 +8,8 @@ import {
   DEFAULT_MAP_CONFIG, 
   createLocationFromCoordinates,
   formatCoordinates,
-  reverseGeocode
+  reverseGeocode,
+  geocodeAddress
 } from "@/lib/mapUtils";
 
 interface MapViewProps {

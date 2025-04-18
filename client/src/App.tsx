@@ -8,7 +8,7 @@ import { useAuth, AuthProvider } from "./hooks/use-auth";
 import { AdminAuthProvider } from "./hooks/use-admin-auth";
 import { ProtectedRoute } from "./lib/protected-route";
 import { AdminProtectedRoute } from "@/lib/admin-protected-route";
-import { FuelOptionsProvider } from "@/components/fuel/FuelOptionsProvider";
+import { FuelOptionsProvider } from "@/providers/FuelOptionsProvider";
 
 // Lazily load components for better performance
 const NotFound = lazy(() => import("@/pages/not-found"));
@@ -120,7 +120,9 @@ function App() {
       <Toaster />
       <AuthProvider>
         <AdminAuthProvider>
-          <AppRouter />
+          <FuelOptionsProvider>
+            <AppRouter />
+          </FuelOptionsProvider>
         </AdminAuthProvider>
       </AuthProvider>
     </TooltipProvider>
