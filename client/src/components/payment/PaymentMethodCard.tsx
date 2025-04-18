@@ -1,68 +1,80 @@
-import { Card, CardContent } from "@/components/ui/card";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Trash2, CreditCard } from "lucide-react";
-import { 
-  FaCcVisa, 
-  FaCcMastercard, 
-  FaCcAmex, 
-  FaCreditCard 
-} from "react-icons/fa";
+import { Card, CardContent } from "@/components/ui/card";
+import { PaymentMethod } from "@shared/schema";
+import { CreditCard, Trash2 } from "lucide-react";
+import { AlertDialog, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 
 interface PaymentMethodCardProps {
-  paymentMethod: any;
-  onDelete: () => void;
-  isDefault?: boolean;
+  paymentMethod: PaymentMethod;
+  onDelete: (id: number) => void;
 }
 
-export default function PaymentMethodCard({ 
-  paymentMethod, 
-  onDelete,
-  isDefault = false
-}: PaymentMethodCardProps) {
-  const getCardIcon = (type: string) => {
+export default function PaymentMethodCard({ paymentMethod, onDelete }: PaymentMethodCardProps) {
+  const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
+  
+  // Get card logo based on type
+  const getCardLogo = (type: string) => {
     switch (type.toLowerCase()) {
       case 'visa':
-        return <FaCcVisa className="h-6 w-6 text-blue-600" />;
+        return "bg-blue-600 text-white";
       case 'mastercard':
-        return <FaCcMastercard className="h-6 w-6 text-red-600" />;
+        return "bg-orange-600 text-white";
       case 'amex':
-      case 'american express':
-        return <FaCcAmex className="h-6 w-6 text-blue-800" />;
+        return "bg-indigo-600 text-white";
       default:
-        return <FaCreditCard className="h-6 w-6 text-neutral-600" />;
+        return "bg-gray-600 text-white";
     }
   };
-
+  
+  const cardLogoClass = getCardLogo(paymentMethod.type);
+  
+  const handleDelete = () => {
+    onDelete(paymentMethod.id);
+    setIsConfirmingDelete(false);
+  };
+  
   return (
     <Card className="overflow-hidden">
-      <CardContent className="p-4">
-        <div className="flex items-start justify-between">
-          <div className="flex items-center space-x-3">
-            {getCardIcon(paymentMethod.type)}
-            <div>
-              <p className="font-medium">
-                •••• •••• •••• {paymentMethod.last4}
-                {isDefault && (
-                  <Badge variant="outline" className="ml-2 bg-primary/10">
-                    Default
-                  </Badge>
-                )}
-              </p>
-              <p className="text-sm text-muted-foreground">
-                Expires {paymentMethod.expiry}
-              </p>
+      <CardContent className="p-0">
+        <div className="flex items-center">
+          <div className={`p-4 ${cardLogoClass}`}>
+            <CreditCard className="h-6 w-6" />
+          </div>
+          <div className="flex-1 p-4">
+            <div className="text-sm font-medium capitalize">{paymentMethod.type}</div>
+            <div className="text-sm text-muted-foreground">
+              •••• •••• •••• {paymentMethod.last4}
+            </div>
+            <div className="text-xs text-muted-foreground mt-1">
+              Expires: {paymentMethod.expiry}
             </div>
           </div>
-          
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            onClick={onDelete}
-            aria-label="Delete payment method"
-          >
-            <Trash2 className="h-4 w-4 text-destructive" />
-          </Button>
+          <AlertDialog open={isConfirmingDelete} onOpenChange={setIsConfirmingDelete}>
+            <AlertDialogTrigger asChild>
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="mr-2 text-destructive hover:text-destructive/80 hover:bg-destructive/10"
+              >
+                <Trash2 className="h-5 w-5" />
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This action cannot be undone. This will permanently delete your payment method.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <Button variant="destructive" onClick={handleDelete}>
+                  Delete
+                </Button>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </div>
       </CardContent>
     </Card>

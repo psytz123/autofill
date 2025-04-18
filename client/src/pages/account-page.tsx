@@ -95,7 +95,17 @@ export default function AccountPage() {
         {/* Payment Methods */}
         <Card className="mb-4">
           <CardContent className="p-4">
-            <h2 className="font-semibold text-lg mb-3">Payment Methods</h2>
+            <div className="flex justify-between items-center mb-3">
+              <h2 className="font-semibold text-lg">Payment Methods</h2>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="text-sm text-autofill-navy"
+                onClick={() => setLocation('/payment-methods')}
+              >
+                View All
+              </Button>
+            </div>
             
             {paymentsLoading ? (
               <div className="text-center py-4">
@@ -104,44 +114,35 @@ export default function AccountPage() {
             ) : paymentMethods.length === 0 ? (
               <div className="text-center py-4">
                 <p className="text-neutral-500 mb-3">You don't have any payment methods yet</p>
-              </div>
-            ) : (
-              <div className="space-y-3 mb-3">
-                {paymentMethods.map((method: any) => (
-                  <PaymentMethodCard
-                    key={method.id}
-                    paymentMethod={method}
-                    onDelete={() => deletePaymentMutation.mutate(method.id)}
-                  />
-                ))}
-              </div>
-            )}
-            
-            <Dialog open={addingPayment} onOpenChange={setAddingPayment}>
-              <DialogTrigger asChild>
-                <Button variant="outline" className="w-full">
+                <Button 
+                  variant="outline" 
+                  className="w-full"
+                  onClick={() => setLocation('/payment-methods')}
+                >
                   Add Payment Method
                 </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Add Payment Method</DialogTitle>
-                  <DialogDescription>
-                    Enter your card details to add a new payment method.
-                  </DialogDescription>
-                </DialogHeader>
-                
-                <AddPaymentMethodForm 
-                  onSuccess={() => {
-                    setAddingPayment(false);
-                    toast({
-                      title: "Payment method added",
-                      description: "Your new payment method has been saved",
-                    });
-                  }}
-                />
-              </DialogContent>
-            </Dialog>
+              </div>
+            ) : (
+              <>
+                <div className="space-y-3 mb-3">
+                  {/* Show only the first payment method on the account page */}
+                  {paymentMethods.slice(0, 1).map((method) => (
+                    <PaymentMethodCard
+                      key={method.id}
+                      paymentMethod={method}
+                      onDelete={() => deletePaymentMutation.mutate(method.id)}
+                    />
+                  ))}
+                </div>
+                <Button 
+                  variant="outline" 
+                  className="w-full"
+                  onClick={() => setLocation('/payment-methods')}
+                >
+                  Manage Payment Methods
+                </Button>
+              </>
+            )}
           </CardContent>
         </Card>
         
