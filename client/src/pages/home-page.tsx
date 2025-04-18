@@ -7,6 +7,7 @@ import { Order, Vehicle, FuelType } from "@shared/schema";
 import VehicleCard from "@/components/vehicles/VehicleCard";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
+import { Logo } from "@/components/ui/logo";
 
 export default function HomePage() {
   const { user } = useAuth();

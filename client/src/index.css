@@ -4,26 +4,33 @@
 
 @layer base {
   :root {
-    --background: 210 20% 98%;
-    --foreground: 215 25% 27%;
+    /* AutoFill brand colors */
+    /* Navy Blue: #002B5B */
+    /* Vibrant Orange: #FF6B00 */
+    /* White: #FFFFFF */
     
-    --primary: 210 100% 40%;
+    --background: 0 0% 100%;
+    --foreground: 210 70% 18%;
+    
+    /* Navy Blue as primary */
+    --primary: 210 100% 18%;
     --primary-foreground: 0 0% 100%;
     
-    --secondary: 30 100% 50%;
-    --secondary-foreground: 215 25% 27%;
+    /* Vibrant Orange as secondary */
+    --secondary: 25 100% 50%;
+    --secondary-foreground: 0 0% 100%;
 
     --card: 0 0% 100%;
-    --card-foreground: 215 25% 27%;
+    --card-foreground: 210 70% 18%;
     
     --popover: 0 0% 100%;
-    --popover-foreground: 215 25% 27%;
+    --popover-foreground: 210 70% 18%;
     
     --muted: 210 20% 97%;
-    --muted-foreground: 215 25% 40%;
+    --muted-foreground: 210 40% 40%;
     
     --accent: 210 20% 96%;
-    --accent-foreground: 215 25% 27%;
+    --accent-foreground: 210 70% 18%;
     
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 100%;
@@ -31,16 +38,16 @@
     --success: 160 84% 39%;
     --success-foreground: 0 0% 100%;
     
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 215 25% 27%;
+    --border: 210 20% 90%;
+    --input: 210 20% 90%;
+    --ring: 210 70% 18%;
     
     --radius: 0.5rem;
 
     /* Chart colors */
-    --chart-1: 210 100% 40%;
-    --chart-2: 30 100% 50%;
-    --chart-3: 160 84% 39%;
+    --chart-1: 210 100% 18%;
+    --chart-2: 25 100% 50%;
+    --chart-3: 200 80% 50%;
     --chart-4: 0 84.2% 60.2%;
     --chart-5: 262.1 83.3% 57.8%;
   }
@@ -67,5 +74,31 @@
 
   .tab-inactive {
     @apply text-neutral-500;
+  }
+  
+  /* AutoFill Brand Specific Classes */
+  .autofill-navy {
+    color: #002B5B;
+  }
+  
+  .autofill-orange {
+    color: #FF6B00;
+  }
+  
+  .bg-autofill-navy {
+    background-color: #002B5B;
+  }
+  
+  .bg-autofill-orange {
+    background-color: #FF6B00;
+  }
+
+  /* AutoFill Brand Button Variants */
+  .btn-autofill-primary {
+    @apply bg-primary text-white hover:bg-primary/90;
+  }
+  
+  .btn-autofill-secondary {
+    @apply bg-secondary text-white hover:bg-secondary/90;
   }
 }
