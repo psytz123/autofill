@@ -20,17 +20,23 @@ interface PriceCache {
   prices: Record<FuelType, number>;
   lastUpdated: number;
   stateCode: string;
+  rateLimited?: boolean;
+  rateLimitExpiry?: number; // When to try API again after rate limit
 }
 
-// Default prices if API fails (fallback)
+// Updated default prices (April 2025)
 const DEFAULT_PRICES = {
-  [FuelType.REGULAR_UNLEADED]: 3.49,
-  [FuelType.PREMIUM_UNLEADED]: 3.99,
-  [FuelType.DIESEL]: 3.79
+  [FuelType.REGULAR_UNLEADED]: 3.75,
+  [FuelType.PREMIUM_UNLEADED]: 4.35,
+  [FuelType.DIESEL]: 4.10
 };
 
-// Cache expires after 1 hour (in milliseconds)
-const CACHE_EXPIRY = 60 * 60 * 1000; 
+// Cache expires after 24 hours (in milliseconds)
+const CACHE_EXPIRY = 24 * 60 * 60 * 1000; // Once per day
+
+// Rate limit backoff in ms (15 minutes)
+// If we hit rate limits, don't try again for this amount of time
+const RATE_LIMIT_BACKOFF = 15 * 60 * 1000;
 
 // In-memory cache
 let priceCache: PriceCache = {
@@ -48,12 +54,13 @@ let priceCache: PriceCache = {
 async function retry<T>(fn: () => Promise<T>, retries: number, delay: number): Promise<T> {
   try {
     return await fn();
-  } catch (error) {
+  } catch (error: any) {
     if (retries <= 0) {
       throw error;
     }
     
-    log(`Retrying after error: ${error}. Attempts left: ${retries}`, "fuel-api");
+    const errorMessage = error.message || String(error);
+    log(`Retrying after error: ${errorMessage}. Attempts left: ${retries}`, "fuel-api");
     
     // Wait for the delay before retrying
     await new Promise(resolve => setTimeout(resolve, delay));
@@ -76,8 +83,18 @@ export async function getFuelPrices(stateCode = "FL"): Promise<Record<FuelType, 
     stateCode = "FL";
   }
 
-  // Use cached pricing if it's not expired and for the same state
+  // Use cached pricing if:
+  // 1. It's not expired and for the same state OR
+  // 2. We're currently rate limited
   const now = Date.now();
+  
+  // Check if we're currently rate limited
+  if (priceCache.rateLimited && priceCache.rateLimitExpiry && now < priceCache.rateLimitExpiry) {
+    log(`API currently rate limited, using cached prices until ${new Date(priceCache.rateLimitExpiry).toLocaleTimeString()}`, "fuel-api");
+    return priceCache.prices;
+  }
+  
+  // Check for valid cache
   if (
     priceCache.lastUpdated > 0 && 
     now - priceCache.lastUpdated < CACHE_EXPIRY && 
@@ -122,7 +139,7 @@ export async function getFuelPrices(stateCode = "FL"): Promise<Record<FuelType, 
         
         const data = await response.json();
         return data;
-      } catch (error) {
+      } catch (error: any) {
         clearTimeout(timeoutId);
         
         // Handle timeout explicitly
@@ -177,12 +194,26 @@ export async function getFuelPrices(stateCode = "FL"): Promise<Record<FuelType, 
 
     log(`Successfully updated fuel prices: ${JSON.stringify(prices)}`, "fuel-api");
     return prices;
-  } catch (error) {
+  } catch (error: any) {
     log(`Error fetching fuel prices: ${error.message || error}`, "fuel-api");
+    
+    // Handle rate limiting specially
+    if (error.message && error.message.includes('429')) {
+      log("Rate limit detected, backing off for a while", "fuel-api");
+      
+      // Update cache with rate limit info
+      priceCache = {
+        ...priceCache,
+        rateLimited: true,
+        rateLimitExpiry: Date.now() + RATE_LIMIT_BACKOFF
+      };
+      
+      log(`Rate limit set, will not try again until ${new Date(priceCache.rateLimitExpiry!).toLocaleTimeString()}`, "fuel-api");
+    }
     
     // If we have cached data, return it even if expired
     if (priceCache.lastUpdated > 0) {
-      log("Using expired cached prices", "fuel-api");
+      log("Using existing cached prices", "fuel-api");
       return priceCache.prices;
     }
     
