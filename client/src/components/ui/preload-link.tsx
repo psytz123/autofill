@@ -38,7 +38,7 @@ export function PreloadLink({
   }, [href, prefetch, hasPrefetched]);
   
   // Handle click with analytics tracking capability
-  const handleClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+  const handleClick = () => {
     if (onClick) {
       onClick();
     }

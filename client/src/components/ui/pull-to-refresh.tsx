@@ -1,117 +1,165 @@
-import React, { ReactNode, useState, useRef } from "react";
-import { motion } from "framer-motion";
-import { useDrag } from "@use-gesture/react";
-import { Loader2 } from "lucide-react";
+import { useRef, useState, useEffect, ReactNode } from 'react';
+import { Loader2 } from 'lucide-react';
+import { motion } from 'framer-motion';
 
-export interface PullToRefreshProps {
-  onRefresh: () => Promise<void>;
+interface PullToRefreshProps {
+  onRefresh: () => Promise<any>;
   children: ReactNode;
   className?: string;
-  pullDownThreshold?: number;
+  pullDistance?: number;
   loadingIndicator?: ReactNode;
 }
 
+/**
+ * Pull to refresh component for mobile interfaces
+ * Provides a native-like pull to refresh experience
+ */
 export function PullToRefresh({
   onRefresh,
   children,
-  className = "",
-  pullDownThreshold = 80, // pixels to pull down before triggering refresh
+  className = '',
+  pullDistance = 80,
   loadingIndicator,
 }: PullToRefreshProps) {
-  const [refreshing, setRefreshing] = useState(false);
-  const [pullDistance, setPullDistance] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
+  const startY = useRef(0);
+  const currentY = useRef(0);
+  const [pulling, setPulling] = useState(false);
+  const [pullProgress, setPullProgress] = useState(0);
+  const [refreshing, setRefreshing] = useState(false);
   
-  const bind = useDrag(
-    async ({ down, movement: [_, my], cancel, direction: [__, yDir], velocity: [___, vy] }) => {
-      // Only allow pull down when at the top of the content
-      const isAtTop = window.scrollY <= 0;
-      if (!isAtTop) return;
+  // Get scroll position helper
+  const getScrollTop = () => {
+    if (!containerRef.current) return 0;
+    return containerRef.current.scrollTop;
+  };
+
+  // Handle touch start
+  const handleTouchStart = (e: TouchEvent) => {
+    // Only allow pull refresh when at the top of the content
+    if (getScrollTop() > 0) return;
+    
+    startY.current = e.touches[0].clientY;
+    currentY.current = startY.current;
+    setPulling(true);
+  };
+
+  // Handle touch move
+  const handleTouchMove = (e: TouchEvent) => {
+    if (!pulling) return;
+    
+    currentY.current = e.touches[0].clientY;
+    const deltaY = Math.max(0, currentY.current - startY.current);
+    
+    // Apply resistance to the pull (gets harder the further you pull)
+    const progress = Math.min(1, deltaY / pullDistance);
+    setPullProgress(progress);
+    
+    // Prevent default when pulling to avoid scroll interference
+    if (deltaY > 5 && getScrollTop() <= 0) {
+      e.preventDefault();
+    }
+  };
+
+  // Handle touch end
+  const handleTouchEnd = async () => {
+    if (!pulling) return;
+    
+    setPulling(false);
+    
+    // If pulled enough, trigger refresh
+    if (pullProgress >= 0.8 && !refreshing) {
+      setRefreshing(true);
+      setPullProgress(0);
       
-      // Only allow pulling down, not up
-      if (my < 0) {
-        setPullDistance(0);
-        return;
+      try {
+        await onRefresh();
+      } finally {
+        // Small delay to show completion
+        setTimeout(() => {
+          setRefreshing(false);
+        }, 500);
       }
-      
-      // Update position while dragging
-      if (down) {
-        setPullDistance(my);
-      } else {
-        // If pulling exceeds threshold and released, trigger refresh
-        if (my > pullDownThreshold) {
-          setRefreshing(true);
-          setPullDistance(pullDownThreshold / 2); // Show partial pull state during refresh
-          
-          try {
-            await onRefresh();
-          } catch (error) {
-            console.error("Refresh failed:", error);
-          } finally {
-            setRefreshing(false);
-            setPullDistance(0); // Animate back after refresh
-          }
-        } else {
-          // If released before threshold, snap back
-          setPullDistance(0);
-        }
-      }
-      
-      // If pull exceeds maximum distance, cancel the gesture
-      if (my > pullDownThreshold * 2) {
-        cancel();
-      }
-    },
-    { filterTaps: true, axis: "y" }
-  );
-  
-  // Calculate progress for the refresh indicator (0-1)
-  const progress = Math.min(pullDistance / pullDownThreshold, 1);
-  
-  const defaultLoadingIndicator = (
-    <div className="w-full flex justify-center items-center h-12">
-      <div className="relative">
-        <div 
-          className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2"
-          style={{ opacity: refreshing ? 1 : 0 }}
-        >
-          <div className="animate-spin h-6 w-6 border-2 border-primary border-t-transparent rounded-full" />
-        </div>
-        
-        <div 
-          className="h-6 w-6 border-2 border-primary border-t-transparent rounded-full"
-          style={{ 
-            opacity: refreshing ? 0 : 1,
-            transform: `rotate(${progress * 360}deg)`,
-          }}
-        />
-      </div>
-    </div>
-  );
-  
+    } else {
+      // Reset pull progress with animation
+      setPullProgress(0);
+    }
+  };
+
+  // Setup event listeners
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+    
+    container.addEventListener('touchstart', handleTouchStart, { passive: false });
+    container.addEventListener('touchmove', handleTouchMove, { passive: false });
+    container.addEventListener('touchend', handleTouchEnd);
+    
+    return () => {
+      container.removeEventListener('touchstart', handleTouchStart);
+      container.removeEventListener('touchmove', handleTouchMove);
+      container.removeEventListener('touchend', handleTouchEnd);
+    };
+  }, [pulling, refreshing, pullProgress]);
+
   return (
-    <div className={`${className} overflow-hidden`} ref={containerRef}>
-      <div
-        {...bind()}
-        style={{ 
-          transform: `translateY(${pullDistance}px)`,
-          transition: pullDistance === 0 ? 'transform 0.3s ease' : 'none',
-          touchAction: 'pan-y',
+    <div
+      ref={containerRef}
+      className={`relative overflow-auto ${className}`}
+    >
+      {/* Pull Indicator */}
+      <motion.div 
+        className="absolute left-0 right-0 flex justify-center items-center overflow-hidden z-10 pointer-events-none"
+        initial={{ height: 0, opacity: 0 }}
+        animate={{ 
+          height: pulling ? `${pullProgress * pullDistance}px` : refreshing ? '60px' : '0px',
+          opacity: pulling || refreshing ? 1 : 0
         }}
-        className="w-full min-h-full"
+        transition={{ 
+          type: 'spring', 
+          stiffness: 400, 
+          damping: 40
+        }}
       >
-        <div
-          style={{ 
-            opacity: progress,
-            height: `${progress * 60}px`,
-            overflow: 'hidden',
-          }}
-        >
-          {loadingIndicator || defaultLoadingIndicator}
-        </div>
-        
+        {refreshing ? (
+          loadingIndicator || (
+            <div className="flex flex-col items-center">
+              <Loader2 className="h-6 w-6 animate-spin text-primary" />
+              <span className="text-xs text-muted-foreground mt-1">Refreshing...</span>
+            </div>
+          )
+        ) : (
+          <div className="flex flex-col items-center transform transition-transform">
+            <motion.div
+              animate={{ 
+                rotate: pulling ? pullProgress * 360 : 0,
+                scale: pulling ? Math.min(1, 0.5 + pullProgress * 0.5) : 0.5
+              }}
+              transition={{ type: 'spring' }}
+            >
+              <Loader2 className="h-6 w-6 text-primary" />
+            </motion.div>
+            <span className="text-xs text-muted-foreground mt-1">
+              {pullProgress > 0.8 ? 'Release to refresh' : 'Pull to refresh'}
+            </span>
+          </div>
+        )}
+      </motion.div>
+      
+      {/* Content Container */}
+      <motion.div
+        className="relative z-0"
+        animate={{ 
+          y: pulling ? pullProgress * pullDistance * 0.5 : refreshing ? 60 : 0,
+        }}
+        transition={{ 
+          type: 'spring', 
+          stiffness: 400, 
+          damping: 40
+        }}
+      >
         {children}
-      </div>
+      </motion.div>
     </div>
   );
 }
