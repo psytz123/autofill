@@ -63,6 +63,8 @@ const AdminDashboardPage = importWithPriority("@/pages/admin/admin-dashboard");
 const AdminOrdersPage = importWithPriority("@/pages/admin/admin-orders");
 const AdminDriversPage = importWithPriority("@/pages/admin/admin-drivers");
 const AdminProfilePage = importWithPriority("@/pages/admin/admin-profile");
+const AdminCustomersPage = importWithPriority("@/pages/admin/admin-customers");
+const AdminAnalyticsPage = importWithPriority("@/pages/admin/admin-analytics");
 
 // Loading fallback component
 const PageLoader = () => (
@@ -220,6 +222,14 @@ function AdminRouter() {
       <AdminSuspenseRoute 
         path="/admin/drivers" 
         component={AdminDriversPage} 
+      />
+      <AdminSuspenseRoute 
+        path="/admin/customers" 
+        component={AdminCustomersPage} 
+      />
+      <AdminSuspenseRoute 
+        path="/admin/analytics" 
+        component={AdminAnalyticsPage} 
       />
       <AdminSuspenseRoute 
         path="/admin/profile" 

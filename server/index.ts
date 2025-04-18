@@ -37,8 +37,8 @@ app.use((req, res, next) => {
   if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method) && req.path.startsWith('/api')) {
     const csrfToken = req.headers['x-csrf-token'] as string;
     
-    // Skip CSRF for auth routes but enforce for others
-    if (!req.path.includes('/auth') && (!csrfToken || !csrfTokens.has(csrfToken))) {
+    // Skip CSRF for auth routes and admin routes but enforce for others
+    if (!req.path.includes('/auth') && !req.path.startsWith('/admin') && (!csrfToken || !csrfTokens.has(csrfToken))) {
       res.set('X-CSRF-Valid', 'false');
       return res.status(403).json({ message: 'CSRF token validation failed' });
     }
