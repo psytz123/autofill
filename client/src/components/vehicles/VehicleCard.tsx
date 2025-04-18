@@ -45,14 +45,18 @@ export default function VehicleCard({
     return bgMap[fuelType] || "bg-neutral-100 text-neutral-700";
   };
   
+  const getBorderColor = (isSelected: boolean) => {
+    return isSelected ? 'border-autofill-orange' : 'border-gray-200';
+  };
+  
   return (
     <Card 
-      className={`mb-3 overflow-hidden cursor-pointer transition-all ${isSelected ? 'border-orange-500' : 'border-gray-200'}`}
+      className={`mb-3 overflow-hidden cursor-pointer transition-all ${getBorderColor(isSelected)}`}
       onClick={onSelect}
     >
       <CardContent className="p-0">
         {isSelected && (
-          <div className="w-3 bg-orange-500 absolute top-0 bottom-0 left-0"></div>
+          <div className="w-3 bg-autofill-orange absolute top-0 bottom-0 left-0"></div>
         )}
         <div className={`flex items-center p-4 ${isSelected ? 'pl-6' : ''}`}>
           <div className="flex-grow">
@@ -97,11 +101,11 @@ export default function VehicleCard({
               }}
             >
               {isSelected ? (
-                <div className="w-6 h-6 rounded-sm bg-orange-500 flex items-center justify-center">
+                <div className="w-6 h-6 rounded-sm bg-autofill-orange flex items-center justify-center">
                   <Check className="h-4 w-4 text-white" />
                 </div>
               ) : (
-                <Checkbox className="h-6 w-6 rounded-sm" />
+                <Checkbox className="h-6 w-6 rounded-sm border-autofill-navy" />
               )}
             </div>
           )}

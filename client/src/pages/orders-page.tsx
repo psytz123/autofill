@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { OrderStatus, Order } from "@shared/schema";
 import { getQueryFn } from "@/lib/queryClient";
+import { Logo } from "@/components/ui/logo";
+import { Link } from "wouter";
 
 export default function OrdersPage() {
   const [filter, setFilter] = useState<OrderStatus | "ALL">("ALL");
@@ -21,8 +23,12 @@ export default function OrdersPage() {
   return (
     <div className="h-screen-minus-tab overflow-y-auto">
       <header className="bg-white shadow-sm">
-        <div className="px-4 py-6">
-          <h1 className="text-2xl font-bold font-heading text-neutral-800">My Orders</h1>
+        <div className="px-4 py-6 flex items-center">
+          <Logo size="sm" className="mr-3" />
+          <div>
+            <h1 className="text-2xl font-bold autofill-navy">My Orders</h1>
+            <p className="text-sm text-neutral-500">Track your fuel deliveries</p>
+          </div>
         </div>
       </header>
       
@@ -76,9 +82,14 @@ function renderOrdersList(orders: Order[], isLoading: boolean) {
   
   if (orders.length === 0) {
     return (
-      <div className="bg-white rounded-xl shadow-sm overflow-hidden border border-neutral-100 mb-4 py-8 text-center">
-        <p className="text-neutral-500 mb-3">No orders found</p>
-        <Button variant="outline" className="mx-auto">Order Fuel Now</Button>
+      <div className="bg-white rounded-xl shadow-sm overflow-hidden border border-neutral-100 mb-4 py-10 text-center">
+        <Logo size="sm" className="mx-auto mb-4" />
+        <p className="text-neutral-500 mb-4">You haven't placed any fuel orders yet</p>
+        <Link href="/order">
+          <Button className="mx-auto bg-autofill-orange text-white hover:bg-orange-500">
+            Order Fuel Now
+          </Button>
+        </Link>
       </div>
     );
   }
