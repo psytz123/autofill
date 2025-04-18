@@ -1,5 +1,5 @@
 import { Switch, Route } from "wouter";
-import { Suspense, lazy, ComponentType } from "react";
+import { Suspense, lazy, ComponentType, useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Loader2 } from "lucide-react";
@@ -278,12 +278,29 @@ function App() {
       <AuthProvider>
         <AdminAuthProvider>
           <FuelOptionsProvider>
-            <AppRouter />
+            <DataPrefetcher>
+              <AppRouter />
+            </DataPrefetcher>
           </FuelOptionsProvider>
         </AdminAuthProvider>
       </AuthProvider>
     </TooltipProvider>
   );
+}
+
+// Component to handle prefetching critical data
+function DataPrefetcher({ children }: { children: React.ReactNode }) {
+  const { user } = useAuth();
+  
+  // Prefetch critical data on initial load
+  useEffect(() => {
+    // Import dynamically to avoid circular dependencies
+    import("./lib/prefetch").then(({ prefetchCriticalData }) => {
+      prefetchCriticalData(!!user);
+    });
+  }, [user]);
+  
+  return <>{children}</>;
 }
 
 export default App;

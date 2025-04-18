@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import OrderCard from "@/components/orders/OrderCard";
 import { Button } from "@/components/ui/button";
 import { OrderStatus, Order } from "@shared/schema";
-import { getQueryFn } from "@/lib/queryClient";
+import { getQueryFn, QUERY_CATEGORIES } from "@/lib/queryClient";
 import { Logo } from "@/components/ui/logo";
 import { Link } from "wouter";
 import { SwipeableTabs } from "@/components/ui/swipeable-tabs";

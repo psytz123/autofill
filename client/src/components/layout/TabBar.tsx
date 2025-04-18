@@ -1,11 +1,13 @@
 import { Home, FileText, User, Droplet, CreditCard } from "lucide-react";
-import { useLocation, Link } from "wouter";
+import { useLocation } from "wouter";
 import { 
   preloadComponent,
   preloadMainNav,
   preloadAccountRelated,
   preloadOrderRelated,
 } from "@/lib/preload";
+import { prefetchRouteData } from "@/lib/prefetch";
+import { PreloadLink } from "@/components/ui/preload-link";
 import { useEffect, memo, useCallback, useMemo } from "react";
 
 // TabButton component with memo for preventing re-renders
@@ -24,11 +26,21 @@ const TabButton = memo(({
   isActive: boolean; 
   onHover: () => void;
 }) => {
+  // When hover, we both preload component and prefetch data
+  const handleHover = useCallback(() => {
+    onHover();
+    prefetchRouteData(path);
+  }, [onHover, path]);
+  
   return (
-    <Link href={path}>
+    <PreloadLink 
+      href={path}
+      prefetch={true}
+      className="h-full w-full"
+    >
       <div 
         className={`h-full w-full flex flex-col items-center justify-center cursor-pointer transition-colors ${isActive ? color : 'text-neutral-500 hover:text-neutral-800'}`}
-        onMouseEnter={onHover}
+        onMouseEnter={handleHover}
       >
         <div className={`relative ${isActive ? 
           `after:content-[""] after:absolute after:w-1.5 after:h-1.5 after:rounded-full after:-bottom-1 after:left-1/2 after:-translate-x-1/2 ${color === 'autofill-navy' ? 'after:bg-autofill-navy' : 'after:bg-autofill-orange'}` 
@@ -37,7 +49,7 @@ const TabButton = memo(({
         </div>
         <span className="text-xs mt-1.5 font-medium text-center w-full px-1 truncate">{label}</span>
       </div>
-    </Link>
+    </PreloadLink>
   );
 });
 
