@@ -2,19 +2,18 @@ import React, { useState } from 'react';
 import { FuelSelector } from '@/components/order/FuelSelector';
 import { FuelTypeSelector } from '@/components/order/FuelTypeSelector';
 import { FuelQuantitySelector } from '@/components/order/FuelQuantitySelector';
-import { FuelType } from '@shared/schema';
+import { FuelType, Vehicle } from '@shared/schema';
 import { Button } from '@/components/ui/button';
 import { useLocation } from 'wouter';
 
-// Sample vehicle data for testing
-const SAMPLE_VEHICLE = {
+// Sample vehicle data for testing with correct typing
+const SAMPLE_VEHICLE: Vehicle = {
   id: 1,
   userId: 1,
   make: 'Toyota',
   model: 'Camry',
   year: '2022', // Using string as per schema
   licensePlate: 'ABC-123',
-  color: 'Blue',
   fuelType: FuelType.REGULAR_UNLEADED,
   fuelLevel: 30,
   createdAt: new Date(),

@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from "react";
-import { Slider } from "@/components/ui/slider";
 import { Card, CardContent } from "@/components/ui/card";
 import { FuelType } from "@shared/schema";
-import { GaugeCircle, DollarSign } from "lucide-react";
+import { GaugeCircle, DollarSign, Plus, Minus } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
 interface FuelQuantitySelectorProps {
   amount: number;
@@ -52,6 +53,18 @@ export function FuelQuantitySelector({
     return "bg-green-500";
   };
 
+  // Handle increment/decrement
+  const incrementAmount = () => onChange(Math.min(amount + 1, maxAmount));
+  const decrementAmount = () => onChange(Math.max(amount - 1, 1));
+  
+  // Handle direct input change
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = parseInt(e.target.value);
+    if (!isNaN(value)) {
+      onChange(Math.max(1, Math.min(value, maxAmount)));
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="font-medium text-lg">Select Fuel Amount</div>
@@ -83,7 +96,7 @@ export function FuelQuantitySelector({
           </CardContent>
         </Card>
         
-        {/* Price calculator and slider */}
+        {/* Price calculator and quantity controls */}
         <Card>
           <CardContent className="p-6">
             <div className="flex flex-col">
@@ -99,21 +112,51 @@ export function FuelQuantitySelector({
                 </div>
               </div>
               
+              {/* Quantity selector with increment/decrement buttons */}
               <div className="mb-8">
-                <Slider
-                  value={[amount]}
-                  min={1}
-                  max={maxAmount}
-                  step={1}
-                  onValueChange={(values) => onChange(values[0])}
-                  className="py-4"
-                />
+                <div className="flex items-center gap-4 mb-4">
+                  <Button 
+                    variant="outline" 
+                    size="icon"
+                    onClick={decrementAmount}
+                    disabled={amount <= 1}
+                  >
+                    <Minus className="h-4 w-4" />
+                  </Button>
+                  
+                  <Input 
+                    type="number" 
+                    min={1} 
+                    max={maxAmount}
+                    value={amount}
+                    onChange={handleInputChange}
+                    className="text-center"
+                  />
+                  
+                  <Button 
+                    variant="outline" 
+                    size="icon"
+                    onClick={incrementAmount}
+                    disabled={amount >= maxAmount}
+                  >
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                </div>
+                
+                {/* Range indicator */}
+                <div className="w-full bg-gray-200 rounded-full h-2.5 mb-2">
+                  <div 
+                    className={`h-2.5 rounded-full ${getFillColor()}`}
+                    style={{ width: `${fillPercentage}%` }}
+                  ></div>
+                </div>
                 <div className="flex justify-between text-sm text-muted-foreground">
                   <span>1 gal</span>
                   <span>{maxAmount} gal</span>
                 </div>
               </div>
               
+              {/* Quick selection buttons */}
               <div className="flex flex-wrap gap-2 mt-2">
                 {suggestedAmounts.map((amt) => (
                   <button
