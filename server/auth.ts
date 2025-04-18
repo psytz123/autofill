@@ -63,8 +63,7 @@ async function comparePasswords(supplied: string, stored: string) {
     const suppliedBuf = (await scryptAsync(
       pepperedPassword, 
       salt, 
-      64, 
-      { N: Math.pow(2, iterations) }
+      64
     )) as Buffer;
     
     const hashedBuf = Buffer.from(hashed, "hex");

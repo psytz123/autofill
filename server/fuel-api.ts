@@ -40,11 +40,42 @@ let priceCache: PriceCache = {
 };
 
 /**
- * Fetch current fuel prices from CollectAPI
+ * Retry a function multiple times with exponential backoff
+ * @param fn Function to retry
+ * @param retries Number of retries
+ * @param delay Initial delay in ms
+ */
+async function retry<T>(fn: () => Promise<T>, retries: number, delay: number): Promise<T> {
+  try {
+    return await fn();
+  } catch (error) {
+    if (retries <= 0) {
+      throw error;
+    }
+    
+    log(`Retrying after error: ${error}. Attempts left: ${retries}`, "fuel-api");
+    
+    // Wait for the delay before retrying
+    await new Promise(resolve => setTimeout(resolve, delay));
+    
+    // Retry with exponential backoff (double the delay each time)
+    return retry(fn, retries - 1, delay * 2);
+  }
+}
+
+/**
+ * Enhanced fuel price fetching with retries, validation, and robust error handling
  * @param stateCode The US state code to get prices for (e.g., 'FL')
  * @returns Object with price per gallon for each fuel type
  */
 export async function getFuelPrices(stateCode = "FL"): Promise<Record<FuelType, number>> {
+  // Validate state code to prevent injection
+  const stateCodePattern = /^[A-Z]{2}$/;
+  if (!stateCodePattern.test(stateCode)) {
+    log(`Invalid state code: ${stateCode}, using default state`, "fuel-api");
+    stateCode = "FL";
+  }
+
   // Use cached pricing if it's not expired and for the same state
   const now = Date.now();
   if (
@@ -59,43 +90,85 @@ export async function getFuelPrices(stateCode = "FL"): Promise<Record<FuelType, 
   try {
     // Validate API key
     if (!process.env.COLLECTAPI_KEY) {
-      throw new Error("Missing COLLECTAPI_KEY environment variable");
+      log("Missing COLLECTAPI_KEY environment variable", "fuel-api");
+      throw new Error("API key not configured");
     }
 
     log(`Fetching fuel prices for ${stateCode} from CollectAPI`, "fuel-api");
     
-    const response = await fetch(`https://api.collectapi.com/gasPrice/stateUsaPrice?state=${stateCode}`, {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `apikey ${process.env.COLLECTAPI_KEY}`
+    // Use retry pattern for resilience against transient failures
+    const data = await retry(async () => {
+      // Set timeout for request
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+      
+      try {
+        const response = await fetch(`https://api.collectapi.com/gasPrice/stateUsaPrice?state=${stateCode}`, {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `apikey ${process.env.COLLECTAPI_KEY}`
+          },
+          signal: controller.signal
+        });
+        
+        clearTimeout(timeoutId);
+        
+        if (!response.ok) {
+          const responseText = await response.text();
+          log(`API returned status ${response.status}: ${responseText}`, "fuel-api");
+          throw new Error(`API request failed with status ${response.status}`);
+        }
+        
+        const data = await response.json();
+        return data;
+      } catch (error) {
+        clearTimeout(timeoutId);
+        
+        // Handle timeout explicitly
+        if (error.name === 'AbortError') {
+          throw new Error('API request timed out');
+        }
+        
+        throw error;
       }
-    });
-
-    if (!response.ok) {
-      throw new Error(`API request failed with status ${response.status}`);
+    }, 3, 1000); // Try up to 3 times with 1s initial delay
+    
+    // Detailed validation of API response
+    if (!data) {
+      log("API returned null or undefined response", "fuel-api");
+      throw new Error("Invalid API response");
     }
-
-    const data = await response.json();
     
-    // Log the actual response for debugging
-    log(`API Response: ${JSON.stringify(data)}`, "fuel-api");
-    
-    // Handle different response formats or errors
-    if (!data.success) {
+    // Validate success flag
+    if (data.success !== true) {
+      log(`API returned failure status: ${JSON.stringify(data)}`, "fuel-api");
       throw new Error("API returned failure status");
     }
     
-    // Use default prices if the API doesn't return expected format
+    // Validate result array
     if (!data.result || !Array.isArray(data.result) || data.result.length === 0) {
-      log("API returned unexpected format or empty result", "fuel-api");
-      return DEFAULT_PRICES;
+      log("API returned empty or invalid result array", "fuel-api");
+      throw new Error("Invalid result format");
     }
-
-    // Get average prices, handling the specific API response format
+    
+    // Get average prices with validation
     const prices = calculateAveragePrices(data.result);
     
-    // Update cache
+    // Validate calculated prices before caching
+    const hasValidPrices = Object.values(prices).every(price => 
+      typeof price === 'number' && 
+      !isNaN(price) && 
+      price > 0 && 
+      price < 10 // Sanity check - fuel likely won't be >$10/gallon
+    );
+    
+    if (!hasValidPrices) {
+      log(`Calculated invalid prices: ${JSON.stringify(prices)}`, "fuel-api");
+      throw new Error("Calculated invalid fuel prices");
+    }
+    
+    // Update cache with validated prices
     priceCache = {
       prices,
       lastUpdated: now,
@@ -105,7 +178,7 @@ export async function getFuelPrices(stateCode = "FL"): Promise<Record<FuelType, 
     log(`Successfully updated fuel prices: ${JSON.stringify(prices)}`, "fuel-api");
     return prices;
   } catch (error) {
-    log(`Error fetching fuel prices: ${error}`, "fuel-api");
+    log(`Error fetching fuel prices: ${error.message || error}`, "fuel-api");
     
     // If we have cached data, return it even if expired
     if (priceCache.lastUpdated > 0) {
