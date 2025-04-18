@@ -1,6 +1,7 @@
-import { ReactNode } from "react";
+import { ReactNode, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useAdminAuth } from "@/hooks/use-admin-auth";
+import { useAdminPreload } from "@/hooks/use-admin-preload";
 import { 
   LayoutDashboard, 
   Truck, 
@@ -14,6 +15,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useState } from "react";
+import { preloadComponent } from "@/lib/preload";
 
 interface AdminLayoutProps {
   children: ReactNode;
@@ -24,6 +26,30 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
   const [location, setLocation] = useLocation();
   const { adminUser, logoutMutation } = useAdminAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  
+  // Use the admin preload hook to preload admin pages
+  useAdminPreload();
+  
+  // Preload components on navigation
+  useEffect(() => {
+    const preloadComponentBasedOnLocation = () => {
+      switch(location) {
+        case '/admin/dashboard':
+          preloadComponent(() => import('@/pages/admin/admin-orders'));
+          break;
+        case '/admin/orders':
+          preloadComponent(() => import('@/pages/admin/admin-drivers'));
+          break;
+        case '/admin/drivers':
+          preloadComponent(() => import('@/pages/admin/admin-profile'));
+          break;
+        default:
+          // No specific preloading needed
+      }
+    };
+    
+    preloadComponentBasedOnLocation();
+  }, [location]);
   
   const handleLogout = () => {
     logoutMutation.mutate(undefined, {
@@ -64,6 +90,26 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
   const NavItem = ({ item }: { item: typeof navItems[0] }) => {
     const isActive = location === item.href;
     
+    // Preload the appropriate component when hovering over a nav item
+    const handleMouseEnter = () => {
+      switch(item.href) {
+        case '/admin/dashboard':
+          preloadComponent(() => import('@/pages/admin/admin-dashboard'));
+          break;
+        case '/admin/orders':
+          preloadComponent(() => import('@/pages/admin/admin-orders'));
+          break;
+        case '/admin/drivers':
+          preloadComponent(() => import('@/pages/admin/admin-drivers'));
+          break;
+        case '/admin/profile':
+          preloadComponent(() => import('@/pages/admin/admin-profile'));
+          break;
+        default:
+          // No specific preloading needed
+      }
+    };
+    
     return (
       <Button
         variant={isActive ? "default" : "ghost"}
@@ -72,6 +118,7 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
           setLocation(item.href);
           setIsMobileMenuOpen(false);
         }}
+        onMouseEnter={handleMouseEnter}
       >
         {item.icon}
         <span className="ml-2">{item.label}</span>
