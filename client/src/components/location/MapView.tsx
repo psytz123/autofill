@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { MapPin } from "lucide-react";
+import { Card } from "@/components/ui/card";
+import { MapPin, Loader2 } from "lucide-react";
 
 interface MapViewProps {
   selectedLocation: any;
@@ -10,52 +11,70 @@ interface MapViewProps {
 export default function MapView({ 
   selectedLocation, 
   onLocationSelect,
-  className = ""
+  className = "" 
 }: MapViewProps) {
-  const [mapLoaded, setMapLoaded] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [currentLocation, setCurrentLocation] = useState<{ lat: number, lng: number } | null>(null);
   
-  // Simulated map loading
+  // Simulate fetching user's current location
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setMapLoaded(true);
-      
-      // Simulate getting current location if no location is selected
-      if (!selectedLocation) {
-        onLocationSelect({
-          id: "current",
-          name: "Current Location",
-          address: "123 Main Street, Anytown, CA 91234",
-          coordinates: { lat: 37.785834, lng: -122.406417 },
-          type: "other"
-        });
-      }
+    setIsLoading(true);
+    // In a real app, we would use the Geolocation API
+    setTimeout(() => {
+      // Using San Francisco as a default location
+      setCurrentLocation({ lat: 37.7749, lng: -122.4194 });
+      setIsLoading(false);
     }, 1000);
-    
-    return () => clearTimeout(timer);
   }, []);
   
+  const handleMapClick = () => {
+    if (currentLocation) {
+      // In a real implementation, this would be the selected point on the map
+      const newLocation = {
+        id: 'current-location',
+        name: 'Current Location',
+        address: '123 Market St, San Francisco, CA 94105',
+        type: 'other',
+        coordinates: currentLocation
+      };
+      onLocationSelect(newLocation);
+    }
+  };
+  
   return (
-    <div 
-      className={`relative overflow-hidden rounded-lg ${className}`}
-      style={{
-        backgroundImage: "url('https://images.unsplash.com/photo-1569336415962-a4bd9f69c07a?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80')",
-        backgroundPosition: 'center',
-        backgroundSize: 'cover'
-      }}
+    <Card 
+      className={`relative overflow-hidden ${className}`}
+      onClick={handleMapClick}
     >
-      <div className="absolute inset-0 bg-black/20"></div>
-      
-      {!mapLoaded ? (
-        <div className="absolute inset-0 flex items-center justify-center">
-          <div className="text-white text-center">
-            <p>Loading map...</p>
-          </div>
+      {isLoading ? (
+        <div className="absolute inset-0 flex items-center justify-center bg-neutral-100">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
       ) : (
-        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
-          <MapPin className="h-8 w-8 text-red-500" />
-        </div>
+        <>
+          {/* Map Placeholder - Would be replaced with actual map in production */}
+          <div className="absolute inset-0 bg-neutral-100">
+            <div className="p-2 text-xs bg-white absolute bottom-2 left-2 rounded shadow-sm">
+              Map view (simulated)
+            </div>
+            
+            {/* Location pin */}
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="relative">
+                <MapPin className="h-8 w-8 text-primary" />
+                <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 translate-y-1/2 w-4 h-4 bg-primary rounded-full border-2 border-white" />
+              </div>
+            </div>
+            
+            {selectedLocation && (
+              <div className="absolute bottom-4 right-4 bg-white p-2 rounded-lg shadow-md">
+                <p className="text-sm font-medium">{selectedLocation.name}</p>
+                <p className="text-xs text-neutral-500 truncate max-w-[150px]">{selectedLocation.address}</p>
+              </div>
+            )}
+          </div>
+        </>
       )}
-    </div>
+    </Card>
   );
 }

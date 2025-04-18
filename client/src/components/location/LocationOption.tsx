@@ -1,5 +1,6 @@
-import { Card, CardContent } from "@/components/ui/card";
-import { Home, Briefcase, MapPin } from "lucide-react";
+import { Card } from "@/components/ui/card";
+import { MapPin, Home, Briefcase, Check } from "lucide-react";
+import { LocationType } from "@shared/schema";
 
 interface LocationOptionProps {
   location: {
@@ -13,31 +14,34 @@ interface LocationOptionProps {
 }
 
 export default function LocationOption({ location, onSelect, isSelected = false }: LocationOptionProps) {
-  const getIcon = () => {
-    switch (location.type) {
-      case "home":
-        return <Home className="h-4 w-4 text-neutral-500" />;
-      case "work":
-        return <Briefcase className="h-4 w-4 text-neutral-500" />;
+  const getLocationIcon = (type: LocationType) => {
+    switch (type) {
+      case LocationType.HOME:
+        return <Home className="h-5 w-5 text-primary" />;
+      case LocationType.WORK:
+        return <Briefcase className="h-5 w-5 text-primary" />;
+      case LocationType.OTHER:
+        return <MapPin className="h-5 w-5 text-primary" />;
       default:
-        return <MapPin className="h-4 w-4 text-neutral-500" />;
+        return <MapPin className="h-5 w-5 text-primary" />;
     }
   };
-  
+
   return (
     <Card 
-      className={`mb-2 cursor-pointer hover:border-primary transition-colors ${isSelected ? 'border-primary' : ''}`}
+      className={`mb-2 cursor-pointer hover:bg-neutral-50 transition ${isSelected ? 'border-primary' : ''}`}
       onClick={onSelect}
     >
-      <CardContent className="p-3 flex items-center">
-        <div className="h-8 w-8 rounded-full bg-neutral-100 flex items-center justify-center mr-3">
-          {getIcon()}
+      <div className="p-3 flex items-center space-x-3">
+        <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+          {getLocationIcon(location.type as LocationType)}
         </div>
-        <div>
-          <p className="font-medium text-neutral-700">{location.name}</p>
-          <p className="text-sm text-neutral-500">{location.address}</p>
+        <div className="flex-1">
+          <p className="font-medium text-neutral-800">{location.name}</p>
+          <p className="text-sm text-neutral-500 truncate">{location.address}</p>
         </div>
-      </CardContent>
+        {isSelected && <Check className="h-5 w-5 text-primary" />}
+      </div>
     </Card>
   );
 }

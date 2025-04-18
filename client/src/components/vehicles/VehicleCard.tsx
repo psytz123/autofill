@@ -10,6 +10,7 @@ interface VehicleCardProps {
   onDelete?: () => void;
   isSelected?: boolean;
   showActions?: boolean;
+  actionButtons?: React.ReactNode;
 }
 
 export default function VehicleCard({
@@ -18,7 +19,8 @@ export default function VehicleCard({
   onEdit,
   onDelete,
   isSelected = false,
-  showActions = false
+  showActions = false,
+  actionButtons
 }: VehicleCardProps) {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   
@@ -43,6 +45,8 @@ export default function VehicleCard({
         
         {showActions && (
           <div className="flex justify-end space-x-2">
+            {actionButtons}
+            
             {onEdit && (
               <Button
                 variant="outline"

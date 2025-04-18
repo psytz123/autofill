@@ -13,41 +13,52 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useMutation } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 
-const locationFormSchema = insertLocationSchema.extend({
+// Extend the location schema but adjust the coordinates to match our form needs
+const locationFormSchema = z.object({
+  name: z.string().min(1, "Name is required"),
   address: z.string().min(5, "Address is too short"),
+  type: z.nativeEnum(LocationType),
+  userId: z.number().optional(),
+  // In the form, coordinates is a string that will be parsed to/from JSON
+  coordinatesStr: z.string().optional(),
 });
 
 type LocationFormValues = z.infer<typeof locationFormSchema>;
 
 interface AddLocationFormProps {
   onSuccess?: () => void;
-  initialData?: LocationFormValues;
+  initialData?: Partial<LocationFormValues>;
 }
 
 export default function AddLocationForm({ onSuccess, initialData }: AddLocationFormProps) {
   const { toast } = useToast();
-  const [mapCoordinates, setMapCoordinates] = useState<{ lat: number; lng: number } | null>(
-    initialData?.coordinates ? JSON.parse(initialData.coordinates as string) : null
+  const [mapCoordinates, setMapCoordinates] = useState<{ lat: number; lng: number }>(
+    initialData?.coordinatesStr 
+      ? JSON.parse(initialData.coordinatesStr) 
+      : { lat: 37.7749, lng: -122.4194 } // Default to San Francisco
   );
 
   const form = useForm<LocationFormValues>({
     resolver: zodResolver(locationFormSchema),
-    defaultValues: initialData || {
-      name: "",
-      address: "",
-      type: LocationType.HOME,
-      coordinates: "",
+    defaultValues: {
+      name: initialData?.name || "",
+      address: initialData?.address || "",
+      type: initialData?.type || LocationType.HOME,
+      coordinatesStr: initialData?.coordinatesStr || JSON.stringify(mapCoordinates),
     },
   });
 
   const addLocationMutation = useMutation({
     mutationFn: async (data: LocationFormValues) => {
-      // Ensure coordinates are in the correct format
-      const formattedData = {
-        ...data,
-        coordinates: JSON.stringify(mapCoordinates || { lat: 0, lng: 0 }),
+      // Convert from our form schema to the API schema
+      const apiData = {
+        name: data.name,
+        address: data.address,
+        type: data.type,
+        // Convert the coordinatesStr to the coordinates object expected by the API
+        coordinates: JSON.stringify(mapCoordinates),
       };
-      const res = await apiRequest("POST", "/api/locations", formattedData);
+      const res = await apiRequest("POST", "/api/locations", apiData);
       return await res.json();
     },
     onSuccess: () => {

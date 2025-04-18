@@ -11,11 +11,12 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
-import { FuelType } from "@shared/schema";
+import { FuelType, Vehicle, Location, PaymentMethod } from "@shared/schema";
 import StripePayment from "@/components/payment/StripePayment";
 import SavedLocationList from "@/components/location/SavedLocationList";
 import AddLocationForm from "@/components/location/AddLocationForm";
 import FuelLevelSelector from "@/components/vehicles/FuelLevelSelector";
+import LocationOption from "@/components/location/LocationOption";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 
 const STEPS = [
@@ -38,19 +39,19 @@ export default function OrderPage() {
   });
   
   // Fetch user's vehicles
-  const { data: vehicles = [], isLoading: vehiclesLoading } = useQuery({
+  const { data: vehicles = [], isLoading: vehiclesLoading } = useQuery<Vehicle[]>({
     queryKey: ['/api/vehicles'],
     queryFn: getQueryFn({ on401: "throw" }),
   });
   
   // Fetch user's saved locations
-  const { data: savedLocations = [], isLoading: locationsLoading } = useQuery({
+  const { data: savedLocations = [], isLoading: locationsLoading } = useQuery<Location[]>({
     queryKey: ['/api/locations'],
     queryFn: getQueryFn({ on401: "throw" }),
   });
   
   // Fetch user's payment methods
-  const { data: paymentMethods = [], isLoading: paymentsLoading } = useQuery({
+  const { data: paymentMethods = [], isLoading: paymentsLoading } = useQuery<PaymentMethod[]>({
     queryKey: ['/api/payment-methods'],
     queryFn: getQueryFn({ on401: "throw" }),
   });
