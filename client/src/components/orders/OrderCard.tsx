@@ -2,11 +2,11 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
 import { Badge } from "@/components/ui/badge";
-import { OrderStatus } from "@shared/schema";
+import { Order, OrderStatus } from "@shared/schema";
 import { formatDistanceToNow } from "date-fns";
 
 interface OrderCardProps {
-  order: any;
+  order: Order;
   showViewDetails?: boolean;
 }
 

@@ -5,11 +5,13 @@ import QuickActionCard from "@/components/home/QuickActionCard";
 import OrderCard from "@/components/orders/OrderCard";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
+import { getQueryFn } from "@/lib/queryClient";
+import { Order } from "@shared/schema";
 
 export default function HomePage() {
   const { user } = useAuth();
   
-  const { data: recentOrders = [], isLoading: ordersLoading } = useQuery({
+  const { data: recentOrders = [], isLoading: ordersLoading } = useQuery<Order[]>({
     queryKey: ['/api/orders/recent'],
     queryFn: getQueryFn({ on401: "throw" }),
   });
