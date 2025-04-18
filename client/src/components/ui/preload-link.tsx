@@ -1,6 +1,7 @@
-import { Link, useLocation } from "wouter";
-import { prefetchRouteData } from "@/lib/prefetch";
-import { useCallback } from "react";
+import { useState, useEffect, useCallback } from 'react';
+import { Link, useLocation } from 'wouter';
+import { prefetchRouteData } from '@/lib/prefetch';
+import { cn } from '@/lib/utils';
 
 interface PreloadLinkProps {
   href: string;
@@ -18,32 +19,57 @@ interface PreloadLinkProps {
 export function PreloadLink({
   href,
   children,
-  className = "",
-  activeClassName = "text-primary font-medium",
-  prefetch = true,
+  className = '',
+  activeClassName = '',
+  prefetch = false,
   onClick,
   ...props
-}: PreloadLinkProps & Omit<React.AnchorHTMLAttributes<HTMLAnchorElement>, 'href'>) {
+}: PreloadLinkProps) {
   const [location] = useLocation();
+  const [hasPrefetched, setHasPrefetched] = useState(false);
   const isActive = location === href;
   
-  // Handle mouse enter for prefetching
-  const handleMouseEnter = useCallback(() => {
-    if (prefetch) {
+  // Prefetch data for the route
+  const handlePrefetch = useCallback(() => {
+    if (prefetch && !hasPrefetched) {
       prefetchRouteData(href);
+      setHasPrefetched(true);
     }
-  }, [href, prefetch]);
+  }, [href, prefetch, hasPrefetched]);
+  
+  // Handle click with analytics tracking capability
+  const handleClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    if (onClick) {
+      onClick();
+    }
+  };
+  
+  // Prefetch when component mounts if prefetch is set to true
+  useEffect(() => {
+    if (prefetch && !hasPrefetched) {
+      // Small delay to prioritize visible content first
+      const timer = setTimeout(() => {
+        handlePrefetch();
+      }, 300);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [prefetch, hasPrefetched, handlePrefetch]);
   
   return (
     <Link href={href}>
-      <a 
-        className={`${className} ${isActive ? activeClassName : ""}`}
-        onMouseEnter={handleMouseEnter}
-        onClick={onClick}
+      <div
+        className={cn(
+          className,
+          isActive && activeClassName
+        )}
+        onMouseEnter={handlePrefetch}
+        onTouchStart={handlePrefetch}
+        onClick={handleClick}
         {...props}
       >
         {children}
-      </a>
+      </div>
     </Link>
   );
 }

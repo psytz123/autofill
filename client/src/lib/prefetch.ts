@@ -1,110 +1,129 @@
-import { queryClient, QUERY_CATEGORIES } from "./queryClient";
+import { queryClient, QUERY_CATEGORIES } from './queryClient';
 
 /**
- * Prefetch critical data for the application to improve perceived performance
- * @param isAuthenticated Boolean indicating if user is authenticated
+ * Prefetch data for a specific route
+ * Maps routes to prefetch functions for data-dependent pages
  */
-export async function prefetchCriticalData(isAuthenticated: boolean = false) {
-  // Only fetch user-specific data if authenticated
-  if (isAuthenticated) {
-    // Prefetch user details
-    queryClient.prefetchQuery({
-      queryKey: ['/api/user'],
-      staleTime: QUERY_CATEGORIES.USER.staleTime
-    });
-    
-    // Prefetch vehicles list (needed on dashboard)
-    queryClient.prefetchQuery({
-      queryKey: ['/api/vehicles'],
-      staleTime: QUERY_CATEGORIES.VEHICLES.staleTime
-    });
-    
-    // Prefetch recent orders (needed on dashboard)
-    queryClient.prefetchQuery({
-      queryKey: ['/api/orders/recent'],
-      staleTime: QUERY_CATEGORIES.RECENT_ORDERS.staleTime
-    });
+export function prefetchRouteData(route: string): void {
+  const prefetchMap: Record<string, () => void> = {
+    '/': prefetchHomeData,
+    '/order': prefetchOrderData,
+    '/orders': prefetchOrdersData,
+    '/vehicles': prefetchVehiclesData,
+    '/account': prefetchAccountData,
+    '/payment-methods': prefetchPaymentMethodsData,
+    '/subscription': prefetchSubscriptionData,
+  };
+
+  const prefetchFn = prefetchMap[route];
+  if (prefetchFn) {
+    prefetchFn();
   }
-  
-  // Prefetch fuel prices (needed for all users)
-  queryClient.prefetchQuery({
-    queryKey: ['fuelPrices'],
-    staleTime: QUERY_CATEGORIES.FUEL_PRICES.staleTime
-  });
 }
 
 /**
- * Prefetch data specifically needed for the orders page
+ * Prefetch critical data when the application loads
+ * This improves perceived performance for the most commonly accessed data
  */
-export function prefetchOrdersData() {
-  queryClient.prefetchQuery({
-    queryKey: ['/api/orders'],
-    staleTime: QUERY_CATEGORIES.ORDERS.staleTime
-  });
+export function prefetchCriticalData(isAuthenticated: boolean): void {
+  if (!isAuthenticated) return;
+
+  // Stagger prefetches to avoid network contention
+  setTimeout(() => prefetchHomeData(), 300);
+  setTimeout(() => prefetchVehiclesData(), 800);
+  setTimeout(() => prefetchOrdersData(), 1300);
 }
 
 /**
- * Prefetch data specifically needed for vehicle management
+ * Helper to add prefetch options based on query category
  */
-export function prefetchVehiclesData() {
+function getOptionsForCategory(category: keyof typeof QUERY_CATEGORIES) {
+  return {
+    staleTime: QUERY_CATEGORIES[category].staleTime,
+    cacheTime: QUERY_CATEGORIES[category].gcTime
+  };
+}
+
+/**
+ * Prefetch functions for specific routes
+ * Each function prefetches data needed for that route
+ */
+function prefetchHomeData(): void {
+  queryClient.prefetchQuery({
+    queryKey: ['/api/fuel-prices'],
+    queryFn: () => fetch('/api/fuel-prices').then(res => res.json()),
+    ...getOptionsForCategory('FUEL_PRICES')
+  });
+
   queryClient.prefetchQuery({
     queryKey: ['/api/vehicles'],
-    staleTime: QUERY_CATEGORIES.VEHICLES.staleTime
+    queryFn: () => fetch('/api/vehicles').then(res => res.json()),
+    ...getOptionsForCategory('VEHICLES')
   });
-}
 
-/**
- * Prefetch data needed for payment methods management
- */
-export function prefetchPaymentMethodsData() {
   queryClient.prefetchQuery({
-    queryKey: ['/api/payment-methods'],
-    staleTime: QUERY_CATEGORIES.PAYMENT_METHODS.staleTime
+    queryKey: ['/api/recent-orders'],
+    queryFn: () => fetch('/api/recent-orders').then(res => res.json()),
+    ...getOptionsForCategory('ORDERS')
   });
 }
 
-/**
- * Prefetch saved locations data
- */
-export function prefetchLocationsData() {
+function prefetchOrderData(): void {
+  queryClient.prefetchQuery({
+    queryKey: ['/api/vehicles'],
+    queryFn: () => fetch('/api/vehicles').then(res => res.json()),
+    ...getOptionsForCategory('VEHICLES')
+  });
+
+  queryClient.prefetchQuery({
+    queryKey: ['/api/fuel-prices'],
+    queryFn: () => fetch('/api/fuel-prices').then(res => res.json()),
+    ...getOptionsForCategory('FUEL_PRICES')
+  });
+
   queryClient.prefetchQuery({
     queryKey: ['/api/locations'],
-    staleTime: QUERY_CATEGORIES.LOCATIONS.staleTime
+    queryFn: () => fetch('/api/locations').then(res => res.json()),
+    ...getOptionsForCategory('LOCATIONS')
   });
 }
 
-/**
- * Call this function when hovering over a link or button to prefetch data for the upcoming page
- * @param route The route that the user might navigate to
- */
-export function prefetchRouteData(route: string) {
-  // Determine which data to prefetch based on the route
-  switch (route) {
-    case '/orders':
-      prefetchOrdersData();
-      break;
-    case '/vehicles':
-      prefetchVehiclesData();
-      break;
-    case '/payment-methods':
-      prefetchPaymentMethodsData();
-      break;
-    case '/order':
-      // For new orders, we need vehicles, locations, and payment methods
-      prefetchVehiclesData();
-      prefetchLocationsData();
-      prefetchPaymentMethodsData();
-      break;
-    case '/subscription':
-      // For subscription page, prefetch payment methods and user subscription status
-      prefetchPaymentMethodsData();
-      queryClient.prefetchQuery({
-        queryKey: ['/api/subscription/status'],
-        staleTime: QUERY_CATEGORIES.DEFAULT.staleTime
-      });
-      break;
-    default:
-      // For unknown routes, don't prefetch anything
-      break;
-  }
+function prefetchOrdersData(): void {
+  queryClient.prefetchQuery({
+    queryKey: ['/api/orders'],
+    queryFn: () => fetch('/api/orders').then(res => res.json()),
+    ...getOptionsForCategory('ORDERS')
+  });
+}
+
+function prefetchVehiclesData(): void {
+  queryClient.prefetchQuery({
+    queryKey: ['/api/vehicles'],
+    queryFn: () => fetch('/api/vehicles').then(res => res.json()),
+    ...getOptionsForCategory('VEHICLES')
+  });
+}
+
+function prefetchAccountData(): void {
+  queryClient.prefetchQuery({
+    queryKey: ['/api/user'],
+    queryFn: () => fetch('/api/user').then(res => res.json()),
+    ...getOptionsForCategory('USER')
+  });
+}
+
+function prefetchPaymentMethodsData(): void {
+  queryClient.prefetchQuery({
+    queryKey: ['/api/payment-methods'],
+    queryFn: () => fetch('/api/payment-methods').then(res => res.json()),
+    ...getOptionsForCategory('PAYMENT_METHODS')
+  });
+}
+
+function prefetchSubscriptionData(): void {
+  queryClient.prefetchQuery({
+    queryKey: ['/api/subscription-plans'],
+    queryFn: () => fetch('/api/subscription-plans').then(res => res.json()),
+    ...getOptionsForCategory('DEFAULT')
+  });
 }

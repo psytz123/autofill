@@ -44,10 +44,6 @@ export default function OrdersPage() {
     await refetch();
   };
   
-  // Cast status strings explicitly to satisfy TypeScript
-  const asOrderStatus = (status: string): OrderStatus => status as OrderStatus;
-  const asFilter = (status: string): (OrderStatus | "ALL") => status as (OrderStatus | "ALL");
-  
   // Define tabs for swipeable interface
   const tabs = [
     {
@@ -72,7 +68,7 @@ export default function OrdersPage() {
             exit={{ opacity: 0, y: -10 }}
             transition={{ duration: 0.3 }}
           >
-            {renderOrdersList(getFilteredOrders(asFilter("ALL")), isLoading)}
+            {renderOrdersList(getFilteredOrders("ALL"), isLoading)}
           </motion.div>
         </PullToRefresh>
       )
@@ -91,7 +87,7 @@ export default function OrdersPage() {
             exit={{ opacity: 0, y: -10 }}
             transition={{ duration: 0.3 }}
           >
-            {renderOrdersList(getFilteredOrders(asFilter("IN_PROGRESS")), isLoading)}
+            {renderOrdersList(getFilteredOrders(OrderStatus.IN_PROGRESS), isLoading)}
           </motion.div>
         </PullToRefresh>
       )
@@ -110,7 +106,7 @@ export default function OrdersPage() {
             exit={{ opacity: 0, y: -10 }}
             transition={{ duration: 0.3 }}
           >
-            {renderOrdersList(getFilteredOrders(asFilter("COMPLETED")), isLoading)}
+            {renderOrdersList(getFilteredOrders(OrderStatus.COMPLETED), isLoading)}
           </motion.div>
         </PullToRefresh>
       )
@@ -129,7 +125,7 @@ export default function OrdersPage() {
             exit={{ opacity: 0, y: -10 }}
             transition={{ duration: 0.3 }}
           >
-            {renderOrdersList(getFilteredOrders(asFilter("CANCELLED")), isLoading)}
+            {renderOrdersList(getFilteredOrders(OrderStatus.CANCELLED), isLoading)}
           </motion.div>
         </PullToRefresh>
       )
@@ -139,12 +135,12 @@ export default function OrdersPage() {
   // Map filter string to tab index for two-way state binding
   const filterToTabIndex: Record<OrderStatus | "ALL", number> = {
     "ALL": 0,
-    "IN_PROGRESS": 1,
-    "COMPLETED": 2,
-    "CANCELLED": 3
+    [OrderStatus.IN_PROGRESS]: 1,
+    [OrderStatus.COMPLETED]: 2,
+    [OrderStatus.CANCELLED]: 3
   };
   
-  const tabIndexToFilter: ReadonlyArray<OrderStatus | "ALL"> = ["ALL", "IN_PROGRESS", "COMPLETED", "CANCELLED"];
+  const tabIndexToFilter = ["ALL", OrderStatus.IN_PROGRESS, OrderStatus.COMPLETED, OrderStatus.CANCELLED] as const;
   
   return (
     <div className="h-screen-minus-tab overflow-y-auto flex flex-col">
