@@ -122,7 +122,7 @@ export async function getFuelPrices(stateCode = "FL"): Promise<Record<FuelType, 
 /**
  * Calculate average prices across multiple cities
  */
-function calculateAveragePrices(results: FuelPriceResult[]): Record<FuelType, number> {
+function calculateAveragePrices(results: any[]): Record<FuelType, number> {
   let totals = {
     [FuelType.REGULAR_UNLEADED]: 0,
     [FuelType.PREMIUM_UNLEADED]: 0,
@@ -137,25 +137,34 @@ function calculateAveragePrices(results: FuelPriceResult[]): Record<FuelType, nu
 
   // Sum up all prices
   for (const result of results) {
+    // Check if this is a valid result object with price data
+    if (!result || typeof result !== 'object') continue;
+    
     // Parse regular gasoline price
-    const regularPrice = parseFloat(result.gasoline.replace('$', ''));
-    if (!isNaN(regularPrice)) {
-      totals[FuelType.REGULAR_UNLEADED] += regularPrice;
-      counts[FuelType.REGULAR_UNLEADED]++;
+    if (result.gasoline && typeof result.gasoline === 'string') {
+      const regularPrice = parseFloat(result.gasoline.replace('$', ''));
+      if (!isNaN(regularPrice)) {
+        totals[FuelType.REGULAR_UNLEADED] += regularPrice;
+        counts[FuelType.REGULAR_UNLEADED]++;
+      }
     }
     
     // Parse premium gasoline price
-    const premiumPrice = parseFloat(result.premium.replace('$', ''));
-    if (!isNaN(premiumPrice)) {
-      totals[FuelType.PREMIUM_UNLEADED] += premiumPrice;
-      counts[FuelType.PREMIUM_UNLEADED]++;
+    if (result.premium && typeof result.premium === 'string') {
+      const premiumPrice = parseFloat(result.premium.replace('$', ''));
+      if (!isNaN(premiumPrice)) {
+        totals[FuelType.PREMIUM_UNLEADED] += premiumPrice;
+        counts[FuelType.PREMIUM_UNLEADED]++;
+      }
     }
     
     // Parse diesel price
-    const dieselPrice = parseFloat(result.diesel.replace('$', ''));
-    if (!isNaN(dieselPrice)) {
-      totals[FuelType.DIESEL] += dieselPrice;
-      counts[FuelType.DIESEL]++;
+    if (result.diesel && typeof result.diesel === 'string') {
+      const dieselPrice = parseFloat(result.diesel.replace('$', ''));
+      if (!isNaN(dieselPrice)) {
+        totals[FuelType.DIESEL] += dieselPrice;
+        counts[FuelType.DIESEL]++;
+      }
     }
   }
 
