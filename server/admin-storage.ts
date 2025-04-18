@@ -1,9 +1,23 @@
 import { db } from "./db";
-import { adminUsers, drivers, orderAssignments, InsertDriver, InsertOrderAssignment } from "../shared/admin-schema";
+import { adminUsers, drivers, orderAssignments, InsertDriver, InsertOrderAssignment, AdminUser } from "../shared/admin-schema";
 import { orders, Order, FuelType, OrderStatus } from "../shared/schema";
 import { eq, desc, and, sql } from "drizzle-orm";
 
 export class AdminStorage {
+  // Admin users management
+  async getAdminUserById(id: number): Promise<AdminUser | undefined> {
+    const [user] = await db.select().from(adminUsers).where(eq(adminUsers.id, id));
+    return user;
+  }
+  
+  async updateAdminUser(id: number, data: Partial<AdminUser>): Promise<AdminUser> {
+    const [updatedUser] = await db
+      .update(adminUsers)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(adminUsers.id, id))
+      .returning();
+    return updatedUser;
+  }
   // Order operations for admin
   async getAllOrders(): Promise<any[]> {
     const allOrders = await db.select().from(orders).orderBy(desc(orders.createdAt));
