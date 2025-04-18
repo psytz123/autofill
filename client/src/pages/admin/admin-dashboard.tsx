@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, UseQueryOptions } from "@tanstack/react-query";
 import { getQueryFn } from "@/lib/queryClient";
 import AdminLayout from "@/components/admin/admin-layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,7 +11,7 @@ import {
   XAxis,
   YAxis,
   CartesianGrid,
-  Tooltip,
+  Tooltip as RechartsTooltip,
   ResponsiveContainer,
   PieChart,
   Pie,
@@ -19,6 +19,7 @@ import {
   Legend
 } from "recharts";
 import { Package, Truck, DollarSign, Users } from "lucide-react";
+import { AdminDashboardStats, AdminOrder } from "@/types/admin";
 
 export default function AdminDashboardPage() {
   const { toast } = useToast();
@@ -176,7 +177,7 @@ export default function AdminDashboardPage() {
                   ))}
                 </Pie>
                 <Legend />
-                <Tooltip />
+                <RechartsTooltip />
               </PieChart>
             </ResponsiveContainer>
           </CardContent>
@@ -200,7 +201,7 @@ export default function AdminDashboardPage() {
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="day" />
                 <YAxis />
-                <Tooltip />
+                <RechartsTooltip />
                 <Bar dataKey="deliveries" fill="#002B5B" />
               </BarChart>
             </ResponsiveContainer>
