@@ -1,6 +1,7 @@
 import { pgTable, text, serial, integer, boolean, jsonb, timestamp, varchar } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
+import { relations } from "drizzle-orm";
 
 // Enums
 export enum FuelType {
@@ -185,3 +186,75 @@ export type SubscriptionPlan = typeof subscriptionPlans.$inferSelect & {
   type: SubscriptionPlanType,
   features: string[]
 };
+
+// Push Notification Subscriptions
+export const pushSubscriptions = pgTable("push_subscriptions", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  endpoint: text("endpoint").notNull().unique(),
+  p256dh: text("p256dh").notNull(),
+  auth: text("auth").notNull(),
+  userAgent: text("user_agent"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertPushSubscriptionSchema = createInsertSchema(pushSubscriptions);
+
+export type InsertPushSubscription = z.infer<typeof insertPushSubscriptionSchema>;
+export type PushSubscription = typeof pushSubscriptions.$inferSelect;
+
+// Set up table relations
+export const usersRelations = relations(users, ({ many }) => ({
+  vehicles: many(vehicles),
+  orders: many(orders),
+  paymentMethods: many(paymentMethods),
+  locations: many(locations),
+  pushSubscriptions: many(pushSubscriptions)
+}));
+
+export const vehiclesRelations = relations(vehicles, ({ one }) => ({
+  user: one(users, {
+    fields: [vehicles.userId],
+    references: [users.id]
+  })
+}));
+
+export const ordersRelations = relations(orders, ({ one }) => ({
+  user: one(users, {
+    fields: [orders.userId],
+    references: [users.id]
+  }),
+  vehicle: one(vehicles, {
+    fields: [orders.vehicleId],
+    references: [vehicles.id]
+  }),
+  location: one(locations, {
+    fields: [orders.locationId],
+    references: [locations.id]
+  }),
+  paymentMethod: one(paymentMethods, {
+    fields: [orders.paymentMethodId],
+    references: [paymentMethods.id]
+  })
+}));
+
+export const paymentMethodsRelations = relations(paymentMethods, ({ one }) => ({
+  user: one(users, {
+    fields: [paymentMethods.userId],
+    references: [users.id]
+  })
+}));
+
+export const locationsRelations = relations(locations, ({ one }) => ({
+  user: one(users, {
+    fields: [locations.userId],
+    references: [users.id]
+  })
+}));
+
+export const pushSubscriptionsRelations = relations(pushSubscriptions, ({ one }) => ({
+  user: one(users, {
+    fields: [pushSubscriptions.userId],
+    references: [users.id]
+  })
+}));
