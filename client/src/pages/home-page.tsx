@@ -73,9 +73,11 @@ export default function HomePage() {
         ) : vehicles.length === 0 ? (
           <div className="text-center py-6">
             <p className="text-neutral-500 mb-4">You haven't added any vehicles yet</p>
-            <Link href="/vehicles">
-              <Button className="bg-autofill-orange text-white hover:bg-orange-500">Add Your Vehicle</Button>
-            </Link>
+            <div className="flex justify-center">
+              <Link href="/vehicles">
+                <Button className="bg-[#FF7433] text-white hover:bg-orange-500 rounded-md py-3 px-5">Add Your Vehicle</Button>
+              </Link>
+            </div>
           </div>
         ) : (
           <div>
@@ -88,28 +90,32 @@ export default function HomePage() {
               />
             ))}
             
-            <Link href="/vehicles">
-              <Button
-                variant="outline"
-                className="w-full my-3 border-secondary autofill-navy hover:bg-slate-50 font-medium py-6"
-              >
-                + Add Vehicle/Boat
-              </Button>
-            </Link>
+            <div className="flex justify-center my-3">
+              <Link href="/vehicles" className="w-full">
+                <Button
+                  variant="outline"
+                  className="border-[#FF7433] text-[#FF7433] hover:bg-orange-50 font-medium py-3 px-5 rounded-md"
+                >
+                  + Add Vehicle/Boat
+                </Button>
+              </Link>
+            </div>
           </div>
         )}
       </section>
       
       {/* Order Button - Fixed at Bottom */}
       <div className="px-4 py-5 bg-white border-t border-gray-100 mt-auto">
-        <Link href="/order" className="block w-full">
-          <Button 
-            className="w-full bg-autofill-orange text-white hover:bg-orange-500 font-bold py-6 text-lg shadow-md"
-            disabled={!selectedVehicleId}
-          >
-            ORDER FUEL NOW
-          </Button>
-        </Link>
+        <div className="flex justify-center">
+          <Link href="/order" className="block w-full">
+            <Button 
+              className="w-full bg-[#FF7433] text-white hover:bg-orange-500 font-bold py-6 text-lg shadow-md rounded-md"
+              disabled={!selectedVehicleId}
+            >
+              ORDER FUEL NOW
+            </Button>
+          </Link>
+        </div>
       </div>
     </div>
   );
