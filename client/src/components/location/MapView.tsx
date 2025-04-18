@@ -33,7 +33,7 @@ export default function MapView({
   // Load Google Maps API
   const { isLoaded, loadError } = useJsApiLoader({
     id: 'google-map-script',
-    googleMapsApiKey: process.env.GOOGLE_MAPS_API_KEY || "",
+    googleMapsApiKey: import.meta.env.GOOGLE_MAPS_API_KEY || "",
   });
 
   // Initialize geocoder when map is loaded
@@ -75,7 +75,7 @@ export default function MapView({
                   address: newAddress,
                   type: LocationType.OTHER,
                   coordinates: currentLocation,
-                  createdAt: new Date().toISOString()
+                  createdAt: new Date()
                 };
                 onLocationSelect(newLocation);
               }
