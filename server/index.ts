@@ -33,14 +33,46 @@ app.use(express.urlencoded({ extended: false, limit: '1mb' }));
 // CSRF Protection middleware
 const csrfTokens = new Set<string>();
 app.use((req, res, next) => {
-  // Only check CSRF for mutating operations
-  if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method) && req.path.startsWith('/api')) {
+  // Paths that should be excluded from CSRF protection
+  const excludedPaths = [
+    // Auth routes
+    '/api/login',
+    '/api/register',
+    '/api/auth',
+    // Admin routes - ensure we match all admin paths
+    '/admin/'
+  ];
+  
+  // Helper function to check if the path should be excluded
+  const isExcludedPath = (path: string) => {
+    return excludedPaths.some(excludedPath => path.startsWith(excludedPath));
+  };
+  
+  // For GET requests, just store the token if provided
+  if (req.method === 'GET' && req.headers['x-csrf-token']) {
+    csrfTokens.add(req.headers['x-csrf-token'] as string);
+    return next();
+  }
+  
+  // Skip CSRF checks for excluded paths
+  if (isExcludedPath(req.path)) {
+    return next();
+  }
+  
+  // Check CSRF for all other mutating operations
+  if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
     const csrfToken = req.headers['x-csrf-token'] as string;
     
-    // Skip CSRF for auth routes and admin routes but enforce for others
-    if (!req.path.includes('/auth') && !req.path.startsWith('/admin') && (!csrfToken || !csrfTokens.has(csrfToken))) {
-      res.set('X-CSRF-Valid', 'false');
-      return res.status(403).json({ message: 'CSRF token validation failed' });
+    if (!csrfToken || !csrfTokens.has(csrfToken)) {
+      // For API routes, return a JSON error
+      if (req.path.startsWith('/api')) {
+        res.set('X-CSRF-Valid', 'false');
+        return res.status(403).json({ message: 'CSRF token validation failed' });
+      }
+      // For other routes, redirect to homepage
+      else {
+        return res.redirect('/');
+      }
     }
     
     // For valid tokens, add header and continue
@@ -48,16 +80,12 @@ app.use((req, res, next) => {
     
     // Clean up old tokens periodically (keep set size manageable)
     if (csrfTokens.size > 1000) {
-      // Convert to array, remove oldest tokens, convert back to set
       const tokensArray = Array.from(csrfTokens);
       csrfTokens.clear();
       tokensArray.slice(Math.max(0, tokensArray.length - 500)).forEach(token => {
         csrfTokens.add(token);
       });
     }
-  } else if (req.method === 'GET' && req.headers['x-csrf-token']) {
-    // Store valid tokens from client
-    csrfTokens.add(req.headers['x-csrf-token'] as string);
   }
   
   next();
