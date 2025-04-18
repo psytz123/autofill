@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
-import { ArrowLeft, Plus, MapPin, Clock, FileText, CreditCard, ChevronDown, ChevronUp } from "lucide-react";
+import { ArrowLeft, Plus, MapPin, Clock, FileText, CreditCard, ChevronDown, ChevronUp, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import MapView from "@/components/location/MapView";
 import { useQuery, useMutation } from "@tanstack/react-query";
@@ -22,6 +22,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 import { FuelSelector } from "@/components/order/FuelSelector";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const STEPS = [
   { id: "location", title: "Delivery Location", icon: MapPin },
@@ -50,19 +51,52 @@ export default function OrderPage() {
     leaveGasDoorOpen: boolean;
   }
   
-  // State with proper typing
-  const [orderData, setOrderData] = useState<OrderForm>({
-    location: null,
-    vehicle: null,
-    fuelType: "REGULAR_UNLEADED" as FuelType,
-    amount: 10,
-    paymentMethod: null,
-    deliveryDate: null,
-    deliveryTimeSlot: null,
-    repeatWeekly: false,
-    instructions: "",
-    leaveGasDoorOpen: false
-  });
+  // Form validation errors
+  interface FormErrors {
+    location?: string;
+    vehicle?: string;
+    fuelType?: string;
+    paymentMethod?: string;
+    deliveryDate?: string;
+    deliveryTimeSlot?: string;
+  }
+  
+  // State for validation errors
+  const [formErrors, setFormErrors] = useState<FormErrors>({});
+  
+  // Load saved form data from localStorage
+  const loadSavedForm = (): OrderForm => {
+    const savedData = localStorage.getItem('autofill_order_form');
+    if (savedData) {
+      try {
+        const parsed = JSON.parse(savedData);
+        // Convert string date back to Date object if it exists
+        if (parsed.deliveryDate) {
+          parsed.deliveryDate = new Date(parsed.deliveryDate);
+        }
+        return parsed;
+      } catch (e) {
+        console.error("Error parsing saved form data", e);
+      }
+    }
+    
+    // Default form data
+    return {
+      location: null,
+      vehicle: null,
+      fuelType: "REGULAR_UNLEADED" as FuelType,
+      amount: 10,
+      paymentMethod: null,
+      deliveryDate: null,
+      deliveryTimeSlot: null,
+      repeatWeekly: false,
+      instructions: "",
+      leaveGasDoorOpen: false
+    };
+  };
+  
+  // State with proper typing and saved data
+  const [orderData, setOrderData] = useState<OrderForm>(loadSavedForm);
   
   // Fetch user's vehicles
   const { data: vehicles = [], isLoading: vehiclesLoading } = useQuery<Vehicle[]>({
