@@ -5,12 +5,16 @@ import { eq, desc, and, sql } from "drizzle-orm";
 
 export class AdminStorage {
   // Order operations for admin
-  async getAllOrders(): Promise<Order[]> {
+  async getAllOrders(): Promise<any[]> {
     const allOrders = await db.select().from(orders).orderBy(desc(orders.createdAt));
-    return allOrders;
+    return allOrders.map(order => ({
+      ...order,
+      fuelType: order.fuelType as FuelType,
+      status: order.status as OrderStatus
+    }));
   }
   
-  async getUnassignedOrders(): Promise<Order[]> {
+  async getUnassignedOrders(): Promise<any[]> {
     // Get all orders that don't have an assignment
     const result = await db.execute(sql`
       SELECT o.* FROM orders o
@@ -19,7 +23,11 @@ export class AdminStorage {
       ORDER BY o.created_at DESC
     `);
     
-    return result.rows as Order[];
+    return (result.rows as any[]).map(order => ({
+      ...order,
+      fuelType: order.fuelType as FuelType,
+      status: order.status as OrderStatus
+    }));
   }
 
   async getAssignedOrders(): Promise<any[]> {
