@@ -90,12 +90,7 @@ export const supportRequests = pgTable("support_requests", {
   resolvedAt: timestamp("resolved_at"),
 });
 
-export const insertSupportRequestSchema = createInsertSchema(supportRequests).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
-  resolvedAt: true
-});
+export const insertSupportRequestSchema = createInsertSchema(supportRequests);
 
 export type InsertSupportRequest = z.infer<typeof insertSupportRequestSchema>;
 export type SupportRequest = typeof supportRequests.$inferSelect;

@@ -1,7 +1,13 @@
-import { Express, Request, Response } from "express";
+import { Express, Request, Response, NextFunction } from "express";
 import { adminStorage } from "./admin-storage";
 import { OrderStatus } from "../shared/schema";
-import { insertDriverSchema, insertOrderAssignmentSchema } from "../shared/admin-schema";
+import { 
+  insertDriverSchema, 
+  insertOrderAssignmentSchema, 
+  insertSupportRequestSchema, 
+  insertSupportRequestMessageSchema,
+  SupportRequestStatus
+} from "../shared/admin-schema";
 import { z } from "zod";
 import { storage } from "./storage";
 import { scrypt, randomBytes, timingSafeEqual } from "crypto";
@@ -372,6 +378,193 @@ export function registerAdminRoutes(app: Express) {
     } catch (error) {
       console.error("Error changing admin password:", error);
       res.status(500).json({ message: "Failed to change password" });
+    }
+  });
+
+  // Customer management endpoints
+  app.get("/admin/api/customers", isAdminAuthenticated, async (req, res) => {
+    try {
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : 50;
+      const offset = req.query.offset ? parseInt(req.query.offset as string) : 0;
+      
+      const customers = await adminStorage.getAllCustomers(limit, offset);
+      res.json(customers);
+    } catch (error) {
+      console.error("Error fetching customers:", error);
+      res.status(500).json({ message: "Failed to fetch customers" });
+    }
+  });
+
+  app.get("/admin/api/customers/:id", isAdminAuthenticated, async (req, res) => {
+    try {
+      const customerId = parseInt(req.params.id);
+      const customer = await adminStorage.getCustomerById(customerId);
+      
+      if (!customer) {
+        return res.status(404).json({ message: "Customer not found" });
+      }
+      
+      // Get additional customer data
+      const vehicles = await adminStorage.getCustomerVehicles(customerId);
+      const orders = await adminStorage.getCustomerOrders(customerId);
+      const paymentMethods = await adminStorage.getCustomerPaymentMethods(customerId);
+      const locations = await adminStorage.getCustomerSavedLocations(customerId);
+      
+      res.json({
+        customer,
+        vehicles,
+        orders,
+        paymentMethods,
+        locations
+      });
+    } catch (error) {
+      console.error("Error fetching customer details:", error);
+      res.status(500).json({ message: "Failed to fetch customer details" });
+    }
+  });
+
+  // Support request endpoints
+  app.get("/admin/api/support-requests", isAdminAuthenticated, async (req, res) => {
+    try {
+      const status = req.query.status as SupportRequestStatus | undefined;
+      const requests = await adminStorage.getAllSupportRequests(status);
+      res.json(requests);
+    } catch (error) {
+      console.error("Error fetching support requests:", error);
+      res.status(500).json({ message: "Failed to fetch support requests" });
+    }
+  });
+
+  app.get("/admin/api/support-requests/:id", isAdminAuthenticated, async (req, res) => {
+    try {
+      const requestId = parseInt(req.params.id);
+      const request = await adminStorage.getSupportRequest(requestId);
+      
+      if (!request) {
+        return res.status(404).json({ message: "Support request not found" });
+      }
+      
+      const messages = await adminStorage.getSupportRequestMessages(requestId);
+      
+      res.json({
+        request,
+        messages
+      });
+    } catch (error) {
+      console.error("Error fetching support request details:", error);
+      res.status(500).json({ message: "Failed to fetch support request details" });
+    }
+  });
+
+  app.patch("/admin/api/support-requests/:id", isAdminAuthenticated, async (req, res) => {
+    try {
+      const requestId = parseInt(req.params.id);
+      const request = await adminStorage.getSupportRequest(requestId);
+      
+      if (!request) {
+        return res.status(404).json({ message: "Support request not found" });
+      }
+      
+      const data = req.body;
+      
+      // If status is being updated to resolved, set resolvedAt
+      if (data.status === 'RESOLVED' && request.status !== 'RESOLVED') {
+        data.resolvedAt = new Date();
+      }
+      
+      // If request is being assigned to admin, set assignedToAdminId 
+      if (data.assignedToAdminId === null && request.assignedToAdminId) {
+        // Unassigning
+        data.assignedToAdminId = null;
+      } else if (data.assignedToAdminId === undefined && !request.assignedToAdminId) {
+        // Default to current admin if not previously assigned
+        data.assignedToAdminId = req.adminUser!.id;
+      }
+      
+      const updatedRequest = await adminStorage.updateSupportRequest(requestId, data);
+      res.json(updatedRequest);
+    } catch (error) {
+      console.error("Error updating support request:", error);
+      res.status(500).json({ message: "Failed to update support request" });
+    }
+  });
+
+  app.post("/admin/api/support-requests/:id/messages", isAdminAuthenticated, async (req, res) => {
+    try {
+      const requestId = parseInt(req.params.id);
+      const { message } = req.body;
+      
+      if (!message) {
+        return res.status(400).json({ message: "Message content is required" });
+      }
+      
+      const request = await adminStorage.getSupportRequest(requestId);
+      if (!request) {
+        return res.status(404).json({ message: "Support request not found" });
+      }
+      
+      const newMessage = await adminStorage.createSupportRequestMessage({
+        supportRequestId: requestId,
+        senderId: req.adminUser!.id,
+        isFromAdmin: true,
+        message
+      });
+      
+      // If request is not already in progress, update it
+      if (request.status === 'OPEN') {
+        await adminStorage.updateSupportRequest(requestId, {
+          status: 'IN_PROGRESS',
+          assignedToAdminId: req.adminUser!.id
+        });
+      }
+      
+      res.status(201).json(newMessage);
+    } catch (error) {
+      console.error("Error adding support request message:", error);
+      res.status(500).json({ message: "Failed to add message" });
+    }
+  });
+
+  // Analytics endpoints
+  app.get("/admin/api/analytics/revenue", isAdminAuthenticated, async (req, res) => {
+    try {
+      const period = (req.query.period as 'daily' | 'weekly' | 'monthly') || 'daily';
+      const data = await adminStorage.getRevenueAnalytics(period);
+      res.json(data);
+    } catch (error) {
+      console.error("Error fetching revenue analytics:", error);
+      res.status(500).json({ message: "Failed to fetch revenue analytics" });
+    }
+  });
+
+  app.get("/admin/api/analytics/popular-locations", isAdminAuthenticated, async (req, res) => {
+    try {
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : 10;
+      const data = await adminStorage.getPopularLocations(limit);
+      res.json(data);
+    } catch (error) {
+      console.error("Error fetching popular locations:", error);
+      res.status(500).json({ message: "Failed to fetch popular locations" });
+    }
+  });
+
+  app.get("/admin/api/analytics/peak-times", isAdminAuthenticated, async (req, res) => {
+    try {
+      const data = await adminStorage.getPeakOrderingTimes();
+      res.json(data);
+    } catch (error) {
+      console.error("Error fetching peak ordering times:", error);
+      res.status(500).json({ message: "Failed to fetch peak ordering times" });
+    }
+  });
+
+  app.get("/admin/api/analytics/customer-retention", isAdminAuthenticated, async (req, res) => {
+    try {
+      const data = await adminStorage.getCustomerRetentionMetrics();
+      res.json(data);
+    } catch (error) {
+      console.error("Error fetching customer retention metrics:", error);
+      res.status(500).json({ message: "Failed to fetch customer retention metrics" });
     }
   });
 }
