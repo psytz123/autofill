@@ -58,7 +58,7 @@ export const insertVehicleSchema = createInsertSchema(vehicles).extend({
 });
 
 export type InsertVehicle = z.infer<typeof insertVehicleSchema>;
-export type Vehicle = typeof vehicles.$inferSelect & { fuelType: FuelType };
+export type Vehicle = typeof vehicles.$inferSelect & { fuelType: FuelType, fuelLevel?: number };
 
 // Orders
 export const orders = pgTable("orders", {

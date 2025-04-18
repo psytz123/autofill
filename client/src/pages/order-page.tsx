@@ -30,12 +30,22 @@ export default function OrderPage() {
   const [, navigate] = useLocation();
   const { toast } = useToast();
   const [currentStep, setCurrentStep] = useState(0);
-  const [orderData, setOrderData] = useState({
-    location: null as any,
-    vehicle: null as any,
+  // Define proper type for the orderData
+  interface OrderForm {
+    location: Location | null;
+    vehicle: Vehicle | null;
+    fuelType: FuelType;
+    amount: number;
+    paymentMethod: PaymentMethod | null;
+  }
+  
+  // State with proper typing
+  const [orderData, setOrderData] = useState<OrderForm>({
+    location: null,
+    vehicle: null,
     fuelType: "" as FuelType,
     amount: 10,
-    paymentMethod: null as any
+    paymentMethod: null
   });
   
   // Fetch user's vehicles
@@ -131,11 +141,11 @@ export default function OrderPage() {
     }
   };
   
-  const selectLocation = (location: any) => {
+  const selectLocation = (location: Location) => {
     setOrderData(prev => ({ ...prev, location }));
   };
   
-  const selectVehicle = (vehicle: any) => {
+  const selectVehicle = (vehicle: Vehicle) => {
     setOrderData(prev => ({ ...prev, vehicle }));
   };
   
@@ -147,7 +157,7 @@ export default function OrderPage() {
     setOrderData(prev => ({ ...prev, amount }));
   };
   
-  const selectPaymentMethod = (paymentMethod: any) => {
+  const selectPaymentMethod = (paymentMethod: PaymentMethod) => {
     setOrderData(prev => ({ ...prev, paymentMethod }));
   };
   
@@ -170,7 +180,7 @@ export default function OrderPage() {
             
             <SavedLocationList
               locations={savedLocations}
-              selectedLocationId={orderData.location?.id}
+              selectedLocationId={orderData.location?.id ? String(orderData.location.id) : null}
               onLocationSelect={selectLocation}
               isLoading={locationsLoading}
               className="mb-4"
@@ -259,12 +269,13 @@ export default function OrderPage() {
                   onSave={(level) => {
                     // Update vehicle with new fuel level
                     if (orderData.vehicle) {
+                      const updatedVehicle = {
+                        ...orderData.vehicle,
+                        fuelLevel: level
+                      };
                       setOrderData(prev => ({
                         ...prev,
-                        vehicle: {
-                          ...prev.vehicle,
-                          fuelLevel: level
-                        }
+                        vehicle: updatedVehicle
                       }));
                     }
                     setShowFuelLevel(false);
@@ -369,13 +380,13 @@ export default function OrderPage() {
               <CardContent className="p-4 divide-y">
                 <div className="pb-3">
                   <h3 className="font-medium text-neutral-700 mb-1">Delivery To</h3>
-                  <p className="text-neutral-600">{orderData.location.address}</p>
+                  <p className="text-neutral-600">{orderData.location?.address || 'No location selected'}</p>
                 </div>
                 
                 <div className="py-3">
                   <h3 className="font-medium text-neutral-700 mb-1">Vehicle</h3>
                   <p className="text-neutral-600">
-                    {orderData.vehicle.make} {orderData.vehicle.model} ({orderData.vehicle.year})
+                    {orderData.vehicle ? `${orderData.vehicle.make} ${orderData.vehicle.model} (${orderData.vehicle.year})` : 'No vehicle selected'}
                   </p>
                 </div>
                 
@@ -402,9 +413,9 @@ export default function OrderPage() {
                   <h3 className="font-medium text-neutral-700 mb-3">Saved Payment Methods</h3>
                   
                   <RadioGroup 
-                    value={orderData.paymentMethod?.id} 
+                    value={orderData.paymentMethod?.id ? String(orderData.paymentMethod.id) : undefined} 
                     onValueChange={(value) => {
-                      const method = paymentMethods.find(m => m.id === value);
+                      const method = paymentMethods.find(m => String(m.id) === value);
                       if (method) selectPaymentMethod(method);
                     }}
                     className="space-y-2"
@@ -414,7 +425,7 @@ export default function OrderPage() {
                     ) : (
                       paymentMethods.map(method => (
                         <div key={method.id} className="flex items-center space-x-2 border p-3 rounded-lg">
-                          <RadioGroupItem value={method.id} id={`payment-${method.id}`} />
+                          <RadioGroupItem value={String(method.id)} id={`payment-${method.id}`} />
                           <Label htmlFor={`payment-${method.id}`} className="flex justify-between w-full">
                             <div className="flex items-center">
                               <div className="mr-3">
@@ -442,11 +453,16 @@ export default function OrderPage() {
                 orderId={orderData.vehicle?.id || 1} // Using vehicle ID as a placeholder for now
                 onPaymentSuccess={() => {
                   // Create a dummy payment method object for the order
-                  selectPaymentMethod({
-                    id: 'stripe-payment',
+                  const dummyPaymentMethod: PaymentMethod = {
+                    id: 999, // Use a numeric ID
+                    userId: 1,
                     type: 'credit-card',
-                    last4: '1234'
-                  });
+                    last4: '1234',
+                    expiry: '12/25',
+                    createdAt: new Date(),
+                    updatedAt: new Date()
+                  };
+                  selectPaymentMethod(dummyPaymentMethod);
                   
                   // Move to next step or submit the order
                   setTimeout(() => {
