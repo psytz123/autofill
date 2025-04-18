@@ -4,6 +4,7 @@ import { WebSocketServer, WebSocket } from "ws";
 import { setupAuth } from "./auth";
 import { storage } from "./storage";
 import { z } from "zod";
+import Stripe from "stripe";
 import { 
   insertUserSchema, 
   insertVehicleSchema, 
@@ -12,6 +13,10 @@ import {
   insertLocationSchema,
   OrderStatus
 } from "@shared/schema";
+
+// Initialize Stripe with placeholder key - replace with environment variable later
+const stripeSecretKey = process.env.STRIPE_SECRET_KEY || 'sk_test_placeholder';
+const stripe = new Stripe(stripeSecretKey);
 
 // Middleware to ensure user is authenticated
 function isAuthenticated(req: Request, res: Response, next: Function) {
@@ -377,6 +382,106 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(updatedOrder);
     } catch (error) {
       res.status(500).json({ message: "Failed to update order status" });
+    }
+  });
+  
+  // Stripe Payment Integration
+  
+  // Create a payment intent for a new order
+  app.post("/api/create-payment-intent", isAuthenticated, async (req, res) => {
+    try {
+      const { amount, orderId } = req.body;
+      
+      if (!amount || amount <= 0) {
+        return res.status(400).json({ message: "Invalid amount" });
+      }
+      
+      // Create a PaymentIntent with the order amount and currency
+      try {
+        // If we're using a placeholder key, return a mock payment intent
+        if (stripeSecretKey === 'sk_test_placeholder') {
+          return res.json({
+            clientSecret: 'pi_mock_secret_' + Math.random().toString(36).substring(2, 15),
+            amount: amount,
+            id: 'pi_mock_' + Math.random().toString(36).substring(2, 10),
+          });
+        }
+        
+        const paymentIntent = await stripe.paymentIntents.create({
+          amount: Math.round(amount * 100), // convert to cents
+          currency: 'usd',
+          payment_method_types: ['card'],
+          metadata: {
+            orderId: orderId,
+            userId: req.user!.id.toString()
+          }
+        });
+        
+        // Send the client secret to the client
+        res.json({
+          clientSecret: paymentIntent.client_secret,
+          amount: amount,
+          id: paymentIntent.id
+        });
+      } catch (stripeError) {
+        console.error('Stripe error:', stripeError);
+        res.status(400).json({ message: 'Payment service unavailable. Please try again later.' });
+      }
+    } catch (error) {
+      console.error('Error creating payment intent:', error);
+      res.status(500).json({ message: 'Failed to process payment' });
+    }
+  });
+  
+  // Webhook to handle Stripe events
+  app.post('/api/webhook', async (req, res) => {
+    // This should be properly set up with Stripe webhook signature verification
+    // For testing purposes, we're keeping it simple
+    try {
+      const event = req.body;
+      
+      // Handle the event
+      switch (event.type) {
+        case 'payment_intent.succeeded':
+          const paymentIntent = event.data.object;
+          const orderId = paymentIntent.metadata?.orderId;
+          
+          // Update order status if order ID is provided
+          if (orderId) {
+            const orderIdNum = parseInt(orderId);
+            await storage.updateOrderStatus(orderIdNum, OrderStatus.IN_PROGRESS);
+            
+            // Notify the client via WebSocket if connected
+            const order = await storage.getOrder(orderIdNum);
+            if (order) {
+              const userId = order.userId;
+              const connections = activeConnections.get(userId) || [];
+              connections.forEach(connection => {
+                if (connection.readyState === WebSocket.OPEN) {
+                  connection.send(JSON.stringify({
+                    type: 'payment_succeeded',
+                    orderId: orderIdNum
+                  }));
+                }
+              });
+            }
+          }
+          break;
+          
+        case 'payment_intent.payment_failed':
+          // Handle failed payment
+          break;
+          
+        default:
+          // Unexpected event type
+          console.log(`Unhandled event type ${event.type}`);
+      }
+      
+      // Return a 200 response to acknowledge receipt of the event
+      res.json({ received: true });
+    } catch (error) {
+      console.error('Error handling Stripe webhook:', error);
+      res.status(500).send('Webhook Error');
     }
   });
 
