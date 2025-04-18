@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { FuelType } from "@shared/schema";
+import { FuelType, Vehicle } from "@shared/schema";
 
 // Vehicle form schema
 const vehicleSchema = z.object({
@@ -39,7 +39,7 @@ const models = {
 const years = Array.from({ length: 25 }, (_, i) => (2023 - i).toString());
 
 interface AddVehicleFormProps {
-  vehicle?: any;
+  vehicle?: Vehicle;
   onCancel: () => void;
   onSuccess: () => void;
 }

@@ -4,9 +4,10 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ChevronDown, Edit, Check } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { Vehicle, FuelType } from "@shared/schema";
 
 interface VehicleCardProps {
-  vehicle: any;
+  vehicle: Vehicle;
   onSelect?: () => void;
   onEdit?: () => void;
   onDelete?: () => void;

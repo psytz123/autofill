@@ -3,18 +3,19 @@ import { useLocation } from "wouter";
 import { ArrowLeft, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { queryClient, apiRequest } from "@/lib/queryClient";
+import { queryClient, apiRequest, getQueryFn } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import VehicleCard from "@/components/vehicles/VehicleCard";
 import AddVehicleForm from "@/components/vehicles/AddVehicleForm";
+import { Vehicle } from "@shared/schema";
 
 export default function VehiclesPage() {
   const [, navigate] = useLocation();
   const { toast } = useToast();
   const [showAddForm, setShowAddForm] = useState(false);
-  const [editingVehicle, setEditingVehicle] = useState<any>(null);
+  const [editingVehicle, setEditingVehicle] = useState<Vehicle | null>(null);
   
-  const { data: vehicles = [], isLoading } = useQuery({
+  const { data: vehicles = [], isLoading } = useQuery<Vehicle[]>({
     queryKey: ['/api/vehicles'],
     queryFn: getQueryFn({ on401: "throw" }),
   });
