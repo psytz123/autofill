@@ -4,33 +4,57 @@ import { Link } from "wouter";
 import { Badge } from "@/components/ui/badge";
 import { Order, OrderStatus } from "@shared/schema";
 import { formatDistanceToNow } from "date-fns";
+import { getFuelTypeDisplayName } from "@/lib/fuelUtils";
+import { formatPrice } from "@/lib/fuelUtils";
+import { ReactNode } from "react";
 
 interface OrderCardProps {
   order: Order;
   showViewDetails?: boolean;
+  onViewDetails?: (orderId: number) => void;
+  actions?: ReactNode;
+  className?: string;
 }
 
-export default function OrderCard({ order, showViewDetails = false }: OrderCardProps) {
+// Status badge configuration
+const STATUS_CONFIG = {
+  COMPLETED: { className: "bg-success text-white", label: "Completed" },
+  IN_PROGRESS: { className: "bg-secondary text-white", label: "In Progress" },
+  CANCELLED: { className: "bg-destructive text-white", label: "Cancelled" }
+};
+
+export default function OrderCard({ 
+  order, 
+  showViewDetails = false, 
+  onViewDetails, 
+  actions,
+  className = "" 
+}: OrderCardProps) {
+  // Get the appropriate badge for the order status
   const getStatusBadge = (status: OrderStatus) => {
-    switch (status) {
-      case "COMPLETED":
-        return <Badge className="bg-success text-white">Completed</Badge>;
-      case "IN_PROGRESS":
-        return <Badge className="bg-secondary text-white">In Progress</Badge>;
-      case "CANCELLED":
-        return <Badge className="bg-destructive text-white">Cancelled</Badge>;
-      default:
-        return <Badge>Unknown</Badge>;
-    }
+    const config = STATUS_CONFIG[status] || { className: "", label: "Unknown" };
+    return <Badge className={config.className}>{config.label}</Badge>;
   };
   
+  // Format a date string for display
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return `${date.toLocaleDateString()} - ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
   };
   
+  // Handle view details click
+  const handleViewDetails = () => {
+    if (onViewDetails) {
+      onViewDetails(order.id);
+    }
+  };
+  
+  const vehicleInfo = order.vehicle ? 
+    `${order.vehicle.make} ${order.vehicle.model} (${order.vehicle.year})` : 
+    'No vehicle information';
+  
   return (
-    <Card className="mb-4">
+    <Card className={`mb-4 ${className}`}>
       <CardContent className="p-4">
         <div className="flex justify-between items-start mb-3">
           <div>
@@ -44,9 +68,9 @@ export default function OrderCard({ order, showViewDetails = false }: OrderCardP
         
         <div className="flex items-center text-sm mb-3">
           <span className="font-medium text-neutral-700 mr-2">
-            {order.vehicle?.make} {order.vehicle?.model} ({order.vehicle?.year})
+            {vehicleInfo}
           </span>
-          <span className="text-neutral-500">• {order.fuelType.replace('_', ' ')}</span>
+          <span className="text-neutral-500">• {getFuelTypeDisplayName(order.fuelType)}</span>
         </div>
         
         <div className="flex justify-between text-sm mb-3">
@@ -54,12 +78,25 @@ export default function OrderCard({ order, showViewDetails = false }: OrderCardP
           <span className="font-medium">${order.totalPrice}</span>
         </div>
         
-        {showViewDetails && (
-          <Link href={`/orders/${order.id}`}>
-            <Button variant="outline" className="w-full">
+        {/* Custom actions or default view details button */}
+        {actions ? (
+          <div className="mt-3">{actions}</div>
+        ) : showViewDetails && (
+          onViewDetails ? (
+            <Button 
+              variant="outline" 
+              className="w-full" 
+              onClick={handleViewDetails}
+            >
               View Details
             </Button>
-          </Link>
+          ) : (
+            <Link href={`/orders/${order.id}`}>
+              <Button variant="outline" className="w-full">
+                View Details
+              </Button>
+            </Link>
+          )
         )}
       </CardContent>
     </Card>

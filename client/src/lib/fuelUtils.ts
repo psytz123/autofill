@@ -1,5 +1,4 @@
 import { FuelType } from "@shared/schema";
-import { Droplet, Droplets, Truck } from "lucide-react";
 import { ReactNode } from "react";
 
 // Fuel option types used across components
@@ -29,33 +28,8 @@ export const DEFAULT_TANK_CAPACITY = {
   [FuelType.DIESEL]: 20,
 };
 
-// Standardized fuel options used across the application
-export const FUEL_OPTIONS: FuelOption[] = [
-  {
-    value: FuelType.REGULAR_UNLEADED,
-    label: "Regular Unleaded",
-    description: "Standard 87 octane gasoline",
-    icon: <Droplet className="h-8 w-8" />,
-    color: "bg-green-100 text-green-700 border-green-300",
-    pricePerGallon: FUEL_PRICES[FuelType.REGULAR_UNLEADED]
-  },
-  {
-    value: FuelType.PREMIUM_UNLEADED,
-    label: "Premium Unleaded",
-    description: "High-performance 91+ octane gasoline",
-    icon: <Droplets className="h-8 w-8" />,
-    color: "bg-blue-100 text-blue-700 border-blue-300",
-    pricePerGallon: FUEL_PRICES[FuelType.PREMIUM_UNLEADED]
-  },
-  {
-    value: FuelType.DIESEL,
-    label: "Diesel",
-    description: "For diesel engines only",
-    icon: <Truck className="h-8 w-8" />,
-    color: "bg-yellow-100 text-yellow-700 border-yellow-300",
-    pricePerGallon: FUEL_PRICES[FuelType.DIESEL]
-  }
-];
+// We'll create the fuel options dynamically in components that use this file
+// to avoid JSX syntax issues in .ts files
 
 // Get the display name with spaces instead of underscores
 export function getFuelTypeDisplayName(fuelType: FuelType): string {

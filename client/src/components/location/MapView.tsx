@@ -99,33 +99,39 @@ export default function MapView({
 
   // Geocode initial address when provided
   useEffect(() => {
-    if (geocoder && initialAddress && initialAddress !== address) {
-      geocoder.geocode({ address: initialAddress }, (results, status) => {
-        if (status === "OK" && results && results[0]) {
-          const location = results[0].geometry.location;
-          const position = { lat: location.lat(), lng: location.lng() };
-          setMarkerPosition(position);
-          setAddress(initialAddress);
-          
-          // Center map on geocoded location
-          if (map) {
-            map.panTo(position);
+    const geocodeAddress = async () => {
+      if (geocoder && initialAddress && initialAddress !== address) {
+        try {
+          const result = await geocodeAddress(geocoder, initialAddress);
+          if (result) {
+            const position = { 
+              lat: result.geometry.location.lat(), 
+              lng: result.geometry.location.lng() 
+            };
+            setMarkerPosition(position);
+            setAddress(initialAddress);
+            
+            // Center map on geocoded location
+            if (map) {
+              map.panTo(position);
+            }
+            
+            // Create a location object and notify parent
+            const newLocation = createLocationFromCoordinates(
+              position,
+              initialAddress,
+              "Selected Location",
+              LocationType.HOME
+            );
+            onLocationSelect(newLocation);
           }
-          
-          // Create a new location and notify parent
-          const newLocation: Partial<Location> = {
-            id: -1, // Temporary ID
-            userId: -1, // Will be set by backend
-            name: "Selected Location",
-            address: initialAddress,
-            type: LocationType.HOME,
-            coordinates: position
-            // createdAt will be set by the server
-          };
-          onLocationSelect(newLocation as Location);
+        } catch (error) {
+          console.error("Geocoding error:", error);
         }
-      });
-    }
+      }
+    };
+    
+    geocodeAddress();
   }, [geocoder, initialAddress, address, map, onLocationSelect]);
 
   // Handle map click
