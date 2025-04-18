@@ -44,6 +44,11 @@ export default {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
+        // AutoFill specific colors
+        "autofill-navy": "#002B5B",
+        "autofill-orange": "#FF6B00",
+        "autofill-light": "#FFFFFF",
+        // Chart colors
         chart: {
           "1": "hsl(var(--chart-1))",
           "2": "hsl(var(--chart-2))",

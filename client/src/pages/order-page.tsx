@@ -21,6 +21,7 @@ import DeliveryTimeSelector from "@/components/order/DeliveryTimeSelector";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
+import { FuelSelector } from "@/components/order/FuelSelector";
 
 const STEPS = [
   { id: "location", title: "Delivery Location", icon: MapPin },

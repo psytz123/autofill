@@ -11,6 +11,7 @@ import AccountPage from "@/pages/account-page";
 import PaymentMethodsPage from "@/pages/payment-methods-page";
 import SubscriptionPage from "@/pages/subscription-page";
 import SubscriptionSuccessPage from "@/pages/subscription-success";
+import FuelSelectorTest from "@/pages/fuel-selector-test";
 import AdminLoginPage from "@/pages/admin/admin-login";
 import AdminDashboardPage from "@/pages/admin/admin-dashboard";
 import AdminOrdersPage from "@/pages/admin/admin-orders";
@@ -37,6 +38,7 @@ function CustomerRouter() {
         <ProtectedRoute path="/payment-methods" component={PaymentMethodsPage} />
         <ProtectedRoute path="/subscription" component={SubscriptionPage} />
         <ProtectedRoute path="/subscription-success" component={SubscriptionSuccessPage} />
+        <Route path="/fuel-selector-test" component={FuelSelectorTest} />
       </Switch>
       
       {user && <TabBar />}
