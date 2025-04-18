@@ -4,6 +4,23 @@ import { OrderStatus } from "../shared/schema";
 import { insertDriverSchema, insertOrderAssignmentSchema } from "../shared/admin-schema";
 import { z } from "zod";
 import { storage } from "./storage";
+import { scrypt, randomBytes, timingSafeEqual } from "crypto";
+import { promisify } from "util";
+
+const scryptAsync = promisify(scrypt);
+
+async function hashPassword(password: string) {
+  const salt = randomBytes(16).toString("hex");
+  const buf = (await scryptAsync(password, salt, 64)) as Buffer;
+  return `${buf.toString("hex")}.${salt}`;
+}
+
+async function comparePasswords(supplied: string, stored: string) {
+  const [hashed, salt] = stored.split(".");
+  const hashedBuf = Buffer.from(hashed, "hex");
+  const suppliedBuf = (await scryptAsync(supplied, salt, 64)) as Buffer;
+  return timingSafeEqual(hashedBuf, suppliedBuf);
+}
 
 // Admin middleware - already added in admin-auth.ts
 function isAdminAuthenticated(req: Request, res: Response, next: Function) {
@@ -324,6 +341,37 @@ export function registerAdminRoutes(app: Express) {
     } catch (error) {
       console.error("Error deleting order assignment:", error);
       res.status(500).json({ message: "Failed to delete assignment" });
+    }
+  });
+  
+  // Admin profile endpoints
+  app.post("/admin/change-password", isAdminAuthenticated, async (req, res) => {
+    try {
+      const { currentPassword, newPassword } = req.body;
+      
+      if (!currentPassword || !newPassword) {
+        return res.status(400).json({ message: "Current password and new password are required" });
+      }
+      
+      // Validate that current password is correct
+      const admin = await adminStorage.getAdminUserById(req.adminUser!.id);
+      if (!admin) {
+        return res.status(404).json({ message: "Admin user not found" });
+      }
+      
+      const passwordCorrect = await comparePasswords(currentPassword, admin.password);
+      if (!passwordCorrect) {
+        return res.status(400).json({ message: "Current password is incorrect" });
+      }
+      
+      // Update to new password
+      const hashedNewPassword = await hashPassword(newPassword);
+      await adminStorage.updateAdminUser(admin.id, { password: hashedNewPassword });
+      
+      res.status(200).json({ message: "Password updated successfully" });
+    } catch (error) {
+      console.error("Error changing admin password:", error);
+      res.status(500).json({ message: "Failed to change password" });
     }
   });
 }

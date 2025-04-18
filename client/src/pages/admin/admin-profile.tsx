@@ -13,7 +13,7 @@ export default function AdminProfilePage() {
   
   if (!adminUser) {
     return (
-      <AdminLayout>
+      <AdminLayout title="Profile">
         <div className="flex justify-center items-center min-h-[calc(100vh-5rem)]">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
@@ -22,7 +22,7 @@ export default function AdminProfilePage() {
   }
 
   return (
-    <AdminLayout>
+    <AdminLayout title="Profile">
       <div className="container py-6">
         <h1 className="text-2xl font-bold mb-6">Admin Profile</h1>
         
