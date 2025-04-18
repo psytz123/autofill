@@ -182,13 +182,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/locations", isAuthenticated, async (req, res) => {
     try {
+      console.log("POST /api/locations request body:", req.body);
+      
       const data = insertLocationSchema.parse({
         ...req.body,
         userId: req.user!.id
       });
+      
+      console.log("Parsed location data:", data);
+      
       const location = await storage.createLocation(data);
       res.status(201).json(location);
     } catch (error) {
+      console.error("Location creation error:", error);
       if (error instanceof z.ZodError) {
         return res.status(400).json({ errors: error.errors });
       }

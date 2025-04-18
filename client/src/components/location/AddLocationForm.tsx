@@ -55,8 +55,8 @@ export default function AddLocationForm({ onSuccess, initialData }: AddLocationF
         name: data.name,
         address: data.address,
         type: data.type,
-        // Convert the coordinatesStr to the coordinates object expected by the API
-        coordinates: JSON.stringify(mapCoordinates),
+        // Pass the coordinates object directly as expected by the API
+        coordinates: mapCoordinates,
       };
       const res = await apiRequest("POST", "/api/locations", apiData);
       return await res.json();
