@@ -14,36 +14,33 @@ export interface FuelOption {
 }
 
 // Default pricing in case API fails
-const DEFAULT_FUEL_PRICES = {
+export const DEFAULT_FUEL_PRICES = {
   [FuelType.REGULAR_UNLEADED]: 3.49, 
   [FuelType.PREMIUM_UNLEADED]: 3.99,
   [FuelType.DIESEL]: 3.79,
 };
 
 // Exported current prices - this will be updated via API
-export const FUEL_PRICES = { ...DEFAULT_FUEL_PRICES };
+export const FUEL_PRICES: Record<FuelType, number> = { ...DEFAULT_FUEL_PRICES };
 
 // Function to fetch current fuel prices from the API
 export async function fetchCurrentFuelPrices(stateCode = "FL"): Promise<Record<FuelType, number>> {
   try {
-    const response = await apiRequest("GET", `/api/fuel-prices?state=${stateCode}`);
+    const response = await apiRequest("GET", `/api/fuel-prices?state=${stateCode}`, undefined, {
+      retries: 2,
+      timeout: 5000 // Shorter timeout to avoid blocking UI
+    });
     const prices = await response.json();
     
     // Update the exported FUEL_PRICES object with current values
     Object.assign(FUEL_PRICES, prices);
     
-    // Invalidate queries that depend on fuel prices
-    queryClient.invalidateQueries({ queryKey: ["fuelPrices"] });
-    
     return prices;
   } catch (error) {
     console.error("Error fetching fuel prices:", error);
-    return DEFAULT_FUEL_PRICES;
+    return { ...DEFAULT_FUEL_PRICES };
   }
 }
-
-// Initialize fuel prices on module load
-fetchCurrentFuelPrices().catch(console.error);
 
 // Delivery fee in dollars
 export const BASE_DELIVERY_FEE = 5.99;
@@ -54,34 +51,6 @@ export const DEFAULT_TANK_CAPACITY = {
   [FuelType.PREMIUM_UNLEADED]: 15,
   [FuelType.DIESEL]: 20,
 };
-
-// Create array of fuel options to use across components
-export const FUEL_OPTIONS = [
-  {
-    value: FuelType.REGULAR_UNLEADED,
-    label: "Regular",
-    description: "87 Octane",
-    icon: null, // Icons will be injected by components
-    color: "bg-blue-100",
-    pricePerGallon: FUEL_PRICES[FuelType.REGULAR_UNLEADED]
-  },
-  {
-    value: FuelType.PREMIUM_UNLEADED,
-    label: "Premium", 
-    description: "93 Octane",
-    icon: null,
-    color: "bg-purple-100",
-    pricePerGallon: FUEL_PRICES[FuelType.PREMIUM_UNLEADED]
-  },
-  {
-    value: FuelType.DIESEL,
-    label: "Diesel",
-    description: "Ultra Low Sulfur",
-    icon: null,
-    color: "bg-yellow-100",
-    pricePerGallon: FUEL_PRICES[FuelType.DIESEL]
-  }
-];
 
 // Get the display name with spaces instead of underscores
 export function getFuelTypeDisplayName(fuelType: FuelType): string {

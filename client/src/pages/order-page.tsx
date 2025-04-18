@@ -176,22 +176,43 @@ export default function OrderPage() {
     setFormErrors(newErrors);
   }, [orderData, currentStep]);
   
-  // Fetch user's vehicles
+  // Fetch user's vehicles with better error handling and retries
   const { data: vehicles = [], isLoading: vehiclesLoading } = useQuery<Vehicle[]>({
     queryKey: ['/api/vehicles'],
-    queryFn: getQueryFn({ on401: "throw" }),
+    queryFn: getQueryFn({ 
+      on401: "throw",
+      retries: 2,
+      timeout: 8000
+    }),
+    retry: 2,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 10000),
+    staleTime: 60 * 1000, // 1 minute
   });
   
   // Fetch user's saved locations
   const { data: savedLocations = [], isLoading: locationsLoading } = useQuery<Location[]>({
     queryKey: ['/api/locations'],
-    queryFn: getQueryFn({ on401: "throw" }),
+    queryFn: getQueryFn({ 
+      on401: "throw",
+      retries: 2,
+      timeout: 8000
+    }),
+    retry: 2,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 10000),
+    staleTime: 60 * 1000, // 1 minute
   });
   
   // Fetch user's payment methods
   const { data: paymentMethods = [], isLoading: paymentsLoading } = useQuery<PaymentMethod[]>({
     queryKey: ['/api/payment-methods'],
-    queryFn: getQueryFn({ on401: "throw" }),
+    queryFn: getQueryFn({ 
+      on401: "throw",
+      retries: 2,
+      timeout: 8000
+    }),
+    retry: 2,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 10000),
+    staleTime: 60 * 1000, // 1 minute
   });
 
   // Create order mutation

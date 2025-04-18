@@ -1,7 +1,7 @@
-import React, { createContext, ReactNode, useContext, useState, useEffect } from "react";
+import { createContext, ReactNode, useContext, useState, useEffect } from "react";
 import { FuelType } from "@shared/schema";
 import { Droplet, Droplets, Truck } from "lucide-react";
-import { FUEL_PRICES, fetchCurrentFuelPrices, type FuelOption } from "@/lib/fuelUtils";
+import { FUEL_PRICES, DEFAULT_FUEL_PRICES, fetchCurrentFuelPrices, type FuelOption } from "@/lib/fuelUtils";
 import { useQuery } from "@tanstack/react-query";
 
 interface FuelOptionsContextType {
@@ -21,7 +21,7 @@ export const DieselFuelIcon = () => <Truck className="h-8 w-8" />;
 const FuelOptionsContext = createContext<FuelOptionsContextType | null>(null);
 
 // Create fuel options with current prices
-function createFuelOptions(prices = FUEL_PRICES): FuelOption[] {
+function createFuelOptions(prices: Record<FuelType, number>): FuelOption[] {
   return [
     {
       value: FuelType.REGULAR_UNLEADED,
@@ -51,20 +51,43 @@ function createFuelOptions(prices = FUEL_PRICES): FuelOption[] {
 }
 
 export function FuelOptionsProvider({ children }: { children: ReactNode }) {
+  // Initialize with default prices to ensure we have values from the start
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
-  const [fuelOptions, setFuelOptions] = useState<FuelOption[]>(createFuelOptions());
+  const [fuelOptions, setFuelOptions] = useState<FuelOption[]>(() => 
+    createFuelOptions({ ...DEFAULT_FUEL_PRICES })
+  );
 
+  // Handle price updates from API
   const { isLoading, refetch } = useQuery({
     queryKey: ['fuelPrices'],
     queryFn: async () => {
-      const prices = await fetchCurrentFuelPrices();
-      setFuelOptions(createFuelOptions(prices));
-      setLastUpdated(new Date());
-      return prices;
+      try {
+        const prices = await fetchCurrentFuelPrices();
+        setFuelOptions(createFuelOptions(prices));
+        setLastUpdated(new Date());
+        return prices;
+      } catch (error) {
+        console.error("Failed to fetch fuel prices:", error);
+        // Keep using existing prices if available
+        return { ...DEFAULT_FUEL_PRICES };
+      }
     },
-    refetchInterval: 30 * 60 * 1000,
-    refetchOnWindowFocus: true
+    // More gentle refetch settings to avoid UI blocking
+    refetchInterval: 30 * 60 * 1000, // 30 minutes
+    refetchOnWindowFocus: true,
+    refetchOnMount: true,
+    retry: 2,
+    retryDelay: 1000,
+    staleTime: 10 * 60 * 1000, // 10 minutes
   });
+
+  // Add effect to ensure prices are always up to date
+  useEffect(() => {
+    // On component mount, ensure we have the latest prices
+    if (!lastUpdated) {
+      refetch();
+    }
+  }, [lastUpdated, refetch]);
 
   const refreshPrices = async () => {
     await refetch();
