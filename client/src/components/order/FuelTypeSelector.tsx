@@ -1,9 +1,10 @@
+
 import React from "react";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { FuelType } from "@shared/schema";
-import { FUEL_OPTIONS } from "@/lib/fuelUtils";
+import { useFuelOptions } from "@/providers/FuelOptionsProvider";
 
 interface FuelTypeSelectorProps {
   selectedType: FuelType;
@@ -11,6 +12,8 @@ interface FuelTypeSelectorProps {
 }
 
 export function FuelTypeSelector({ selectedType, onChange }: FuelTypeSelectorProps) {
+  const { fuelOptions } = useFuelOptions();
+  
   return (
     <div className="space-y-4">
       <div className="font-medium text-lg">Select Fuel Type</div>
@@ -19,7 +22,7 @@ export function FuelTypeSelector({ selectedType, onChange }: FuelTypeSelectorPro
         onValueChange={(value) => onChange(value as FuelType)}
         className="grid grid-cols-1 md:grid-cols-3 gap-4"
       >
-        {FUEL_OPTIONS.map((option) => (
+        {fuelOptions.map((option) => (
           <div key={option.value} className="relative">
             <RadioGroupItem
               value={option.value}
