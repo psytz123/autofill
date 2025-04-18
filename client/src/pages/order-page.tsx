@@ -64,6 +64,9 @@ export default function OrderPage() {
   // State for validation errors
   const [formErrors, setFormErrors] = useState<FormErrors>({});
   
+  // Autosave timer reference
+  const [autosaveTimer, setAutosaveTimer] = useState<number | null>(null);
+  
   // Load saved form data from localStorage
   const loadSavedForm = (): OrderForm => {
     const savedData = localStorage.getItem('autofill_order_form');
@@ -97,6 +100,81 @@ export default function OrderPage() {
   
   // State with proper typing and saved data
   const [orderData, setOrderData] = useState<OrderForm>(loadSavedForm);
+  
+  // Save form data to localStorage
+  const saveFormData = (data: OrderForm) => {
+    try {
+      const dataToSave = {...data};
+      localStorage.setItem('autofill_order_form', JSON.stringify(dataToSave));
+    } catch (e) {
+      console.error("Error saving form data", e);
+    }
+  };
+  
+  // Auto-save functionality
+  useEffect(() => {
+    // Clear any existing timer
+    if (autosaveTimer) {
+      window.clearTimeout(autosaveTimer);
+    }
+    
+    // Set a new timer to save form data
+    const timerId = window.setTimeout(() => {
+      saveFormData(orderData);
+      // Show a brief toast notification
+      toast({
+        title: "Form saved",
+        description: "Your order data is automatically saved",
+        duration: 1500,
+      });
+    }, 2000); // save after 2 seconds of inactivity
+    
+    setAutosaveTimer(timerId);
+    
+    // Clean up on unmount
+    return () => {
+      if (autosaveTimer) {
+        window.clearTimeout(autosaveTimer);
+      }
+    };
+  }, [orderData]);
+  
+  // Validate the form in real-time
+  useEffect(() => {
+    const newErrors: FormErrors = {};
+    
+    // Location validation
+    if (currentStep === 0 && !orderData.location) {
+      newErrors.location = "Please select a delivery location";
+    }
+    
+    // Delivery time validation
+    if (currentStep === 1) {
+      if (!orderData.deliveryDate) {
+        newErrors.deliveryDate = "Please select a delivery date";
+      }
+      if (!orderData.deliveryTimeSlot) {
+        newErrors.deliveryTimeSlot = "Please select a delivery time slot";
+      }
+    }
+    
+    // Vehicle validation
+    if (currentStep === 3 && !orderData.vehicle) {
+      newErrors.vehicle = "Please select a vehicle for delivery";
+    }
+    
+    // Fuel type validation
+    if (currentStep === 4 && !orderData.fuelType) {
+      newErrors.fuelType = "Please select a fuel type";
+    }
+    
+    // Payment validation
+    if (currentStep === 5 && !orderData.paymentMethod) {
+      newErrors.paymentMethod = "Please select a payment method";
+    }
+    
+    setFormErrors(newErrors);
+  }, [orderData, currentStep]);
   
   // Fetch user's vehicles
   const { data: vehicles = [], isLoading: vehiclesLoading } = useQuery<Vehicle[]>({
@@ -280,6 +358,13 @@ export default function OrderPage() {
                   isLoading={locationsLoading}
                   className="mb-4"
                 />
+                
+                {formErrors.location && (
+                  <Alert variant="destructive" className="mb-4">
+                    <AlertCircle className="h-4 w-4 mr-2" />
+                    <AlertDescription>{formErrors.location}</AlertDescription>
+                  </Alert>
+                )}
               </>
             )}
             
@@ -340,12 +425,24 @@ export default function OrderPage() {
                 </CardContent>
               </Card>
             ) : (
-              <Button 
-                className="w-full mt-4 bg-orange-500 hover:bg-orange-600 text-white" 
-                onClick={() => setShowDeliveryTime(true)}
-              >
-                Select Delivery Time
-              </Button>
+              <>
+                <Button 
+                  className="w-full mt-4 bg-orange-500 hover:bg-orange-600 text-white" 
+                  onClick={() => setShowDeliveryTime(true)}
+                >
+                  Select Delivery Time
+                </Button>
+                
+                {/* Show validation errors if they exist */}
+                {(formErrors.deliveryDate || formErrors.deliveryTimeSlot) && (
+                  <Alert variant="destructive" className="mt-4 mb-4">
+                    <AlertCircle className="h-4 w-4 mr-2" />
+                    <AlertDescription>
+                      {formErrors.deliveryDate || formErrors.deliveryTimeSlot}
+                    </AlertDescription>
+                  </Alert>
+                )}
+              </>
             )}
             
             <Dialog open={showDeliveryTime} onOpenChange={setShowDeliveryTime}>
@@ -420,7 +517,11 @@ export default function OrderPage() {
             
             {vehiclesLoading ? (
               <div className="text-center py-4">
-                <p>Loading your vehicles...</p>
+                {/* Content-aware skeleton screen */}
+                <div className="space-y-3 mt-4">
+                  <div className="h-24 bg-gray-100 animate-pulse rounded-lg"></div>
+                  <div className="h-24 bg-gray-100 animate-pulse rounded-lg"></div>
+                </div>
               </div>
             ) : vehicles.length === 0 ? (
               <div className="text-center py-4">
@@ -432,7 +533,10 @@ export default function OrderPage() {
             ) : (
               <div className="mt-4">
                 {vehicles.map(vehicle => (
-                  <div key={vehicle.id} className="mb-3">
+                  <div 
+                    key={vehicle.id} 
+                    className="mb-3 active:scale-[0.98] transition-transform touch-manipulation"
+                  >
                     <VehicleCard
                       vehicle={vehicle}
                       onSelect={() => selectVehicle(vehicle)}
@@ -442,6 +546,7 @@ export default function OrderPage() {
                         <Button 
                           variant="outline" 
                           size="sm" 
+                          className="min-h-[44px] min-w-[44px] px-4" // Larger touch target
                           onClick={(e) => {
                             e.stopPropagation();
                             setOrderData(prev => ({ ...prev, vehicle }));
@@ -454,6 +559,14 @@ export default function OrderPage() {
                     />
                   </div>
                 ))}
+                
+                {/* Real-time validation error */}
+                {formErrors.vehicle && (
+                  <Alert variant="destructive" className="mt-4">
+                    <AlertCircle className="h-4 w-4 mr-2" />
+                    <AlertDescription>{formErrors.vehicle}</AlertDescription>
+                  </Alert>
+                )}
               </div>
             )}
             
@@ -496,7 +609,7 @@ export default function OrderPage() {
             </div>
             
             <div className="mt-4">
-              {/* Use our new enhanced fuel selector component */}
+              {/* Use our enhanced fuel selector component with touch-friendly improvements */}
               <FuelSelector
                 fuelType={orderData.fuelType}
                 amount={orderData.amount}
@@ -504,6 +617,14 @@ export default function OrderPage() {
                 onAmountChange={updateAmount}
                 vehicle={orderData.vehicle || undefined}
               />
+              
+              {/* Real-time validation error */}
+              {formErrors.fuelType && (
+                <Alert variant="destructive" className="mt-4">
+                  <AlertCircle className="h-4 w-4 mr-2" />
+                  <AlertDescription>{formErrors.fuelType}</AlertDescription>
+                </Alert>
+              )}
             </div>
           </div>
         );
@@ -561,10 +682,18 @@ export default function OrderPage() {
                     className="space-y-2"
                   >
                     {paymentsLoading ? (
-                      <p>Loading payment methods...</p>
+                      // Content-aware skeleton loader
+                      <div className="space-y-2">
+                        <div className="h-16 bg-gray-100 animate-pulse rounded-lg"></div>
+                        <div className="h-16 bg-gray-100 animate-pulse rounded-lg"></div>
+                      </div>
                     ) : (
                       paymentMethods.map(method => (
-                        <div key={method.id} className="flex items-center space-x-2 border p-3 rounded-lg">
+                        <div 
+                          key={method.id} 
+                          className="flex items-center space-x-2 border p-3 rounded-lg active:scale-[0.98] transition-transform touch-manipulation"
+                          onClick={() => selectPaymentMethod(method)} // Additional touch target
+                        >
                           <RadioGroupItem value={String(method.id)} id={`payment-${method.id}`} />
                           <Label htmlFor={`payment-${method.id}`} className="flex justify-between w-full">
                             <div className="flex items-center">
@@ -583,6 +712,14 @@ export default function OrderPage() {
                   </RadioGroup>
                 </CardContent>
               </Card>
+            )}
+            
+            {/* Payment validation error */}
+            {formErrors.paymentMethod && (
+              <Alert variant="destructive" className="mb-4">
+                <AlertCircle className="h-4 w-4 mr-2" />
+                <AlertDescription>{formErrors.paymentMethod}</AlertDescription>
+              </Alert>
             )}
             
             {/* Stripe Payment Integration */}
@@ -658,17 +795,29 @@ export default function OrderPage() {
       </div>
       
       {/* Order Process Content */}
-      <div className="p-4">
+      <div className="p-4 animate-in fade-in slide-in-from-bottom-4 duration-300">
         {renderStepContent()}
         
         {/* Action Button */}
         <Button 
-          className="w-full" 
+          className="w-full min-h-[50px] text-base" 
           onClick={nextStep}
-          disabled={createOrderMutation.isPending}
+          disabled={createOrderMutation.isPending || Object.keys(formErrors).length > 0}
         >
-          {createOrderMutation.isPending ? "Processing..." : currentStep === STEPS.length - 1 ? "Place Order" : "Continue"}
+          {createOrderMutation.isPending ? (
+            <div className="flex items-center">
+              <span className="animate-spin mr-2 h-4 w-4 border-2 border-current border-t-transparent rounded-full"></span>
+              Processing...
+            </div>
+          ) : (
+            currentStep === STEPS.length - 1 ? "Place Order" : "Continue"
+          )}
         </Button>
+        
+        {/* Auto-save indicator */}
+        <div className="text-center mt-2">
+          <p className="text-xs text-muted-foreground">Your order details are automatically saved</p>
+        </div>
       </div>
     </div>
   );
