@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
-import { ArrowLeft, Plus } from "lucide-react";
+import { ArrowLeft, Plus, MapPin, Clock, FileText, CreditCard, ChevronDown, ChevronUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import MapView from "@/components/location/MapView";
 import { useQuery, useMutation } from "@tanstack/react-query";
@@ -17,19 +17,24 @@ import SavedLocationList from "@/components/location/SavedLocationList";
 import AddLocationForm from "@/components/location/AddLocationForm";
 import FuelLevelSelector from "@/components/vehicles/FuelLevelSelector";
 import LocationOption from "@/components/location/LocationOption";
+import DeliveryTimeSelector from "@/components/order/DeliveryTimeSelector";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Textarea } from "@/components/ui/textarea";
 
 const STEPS = [
-  { id: "location", title: "Delivery Location" },
-  { id: "vehicle", title: "Select Vehicle" },
-  { id: "fuel", title: "Fuel Type & Amount" },
-  { id: "payment", title: "Payment & Confirm" }
+  { id: "location", title: "Delivery Location", icon: MapPin },
+  { id: "time", title: "Delivery Time", icon: Clock },
+  { id: "instructions", title: "Delivery Instructions", icon: FileText },
+  { id: "vehicle", title: "Vehicles", icon: CreditCard },
+  { id: "payment", title: "Payment Method", icon: CreditCard }
 ];
 
 export default function OrderPage() {
   const [, navigate] = useLocation();
   const { toast } = useToast();
   const [currentStep, setCurrentStep] = useState(0);
+  
   // Define proper type for the orderData
   interface OrderForm {
     location: Location | null;
@@ -37,15 +42,25 @@ export default function OrderPage() {
     fuelType: FuelType;
     amount: number;
     paymentMethod: PaymentMethod | null;
+    deliveryDate: Date | null;
+    deliveryTimeSlot: string | null;
+    repeatWeekly: boolean;
+    instructions: string;
+    leaveGasDoorOpen: boolean;
   }
   
   // State with proper typing
   const [orderData, setOrderData] = useState<OrderForm>({
     location: null,
     vehicle: null,
-    fuelType: "" as FuelType,
+    fuelType: "REGULAR_UNLEADED" as FuelType,
     amount: 10,
-    paymentMethod: null
+    paymentMethod: null,
+    deliveryDate: null,
+    deliveryTimeSlot: null,
+    repeatWeekly: false,
+    instructions: "",
+    leaveGasDoorOpen: false
   });
   
   // Fetch user's vehicles
@@ -100,7 +115,17 @@ export default function OrderPage() {
       });
     }
     
-    if (currentStep === 1 && !orderData.vehicle) {
+    if (currentStep === 1 && (!orderData.deliveryDate || !orderData.deliveryTimeSlot)) {
+      return toast({
+        title: "Please select a delivery time",
+        description: "You need to select when you want your fuel delivered",
+        variant: "destructive",
+      });
+    }
+    
+    // Instructions step doesn't require validation
+    
+    if (currentStep === 3 && !orderData.vehicle) {
       return toast({
         title: "Please select a vehicle",
         description: "You need to select a vehicle to continue",
@@ -108,7 +133,7 @@ export default function OrderPage() {
       });
     }
     
-    if (currentStep === 2 && !orderData.fuelType) {
+    if (currentStep === 4 && !orderData.fuelType) {
       return toast({
         title: "Please select a fuel type",
         description: "You need to select a fuel type to continue",
@@ -116,7 +141,7 @@ export default function OrderPage() {
       });
     }
     
-    if (currentStep === 3) {
+    if (currentStep === 5) {
       if (!orderData.paymentMethod) {
         return toast({
           title: "Please select a payment method",
@@ -161,30 +186,67 @@ export default function OrderPage() {
     setOrderData(prev => ({ ...prev, paymentMethod }));
   };
   
+  const updateDeliveryTime = (data: { date: Date; timeSlot: string; repeat: boolean }) => {
+    setOrderData(prev => ({
+      ...prev,
+      deliveryDate: data.date,
+      deliveryTimeSlot: data.timeSlot,
+      repeatWeekly: data.repeat
+    }));
+  };
+  
+  const updateInstructions = (instructions: string) => {
+    setOrderData(prev => ({ ...prev, instructions }));
+  };
+  
+  const toggleLeaveGasDoorOpen = (checked: boolean) => {
+    setOrderData(prev => ({ ...prev, leaveGasDoorOpen: checked }));
+  };
+  
   // State for dialogs
   const [showAddLocation, setShowAddLocation] = useState(false);
   const [showFuelLevel, setShowFuelLevel] = useState(false);
+  const [showDeliveryTime, setShowDeliveryTime] = useState(false);
   
   const renderStepContent = () => {
     switch (currentStep) {
       case 0:
         return (
           <div id="step-location" className="mb-6">
-            <h2 className="text-lg font-semibold mb-3">Delivery Location</h2>
+            <div className="flex items-center">
+              <MapPin className="h-6 w-6 text-orange-500 mr-2" />
+              <h2 className="text-lg font-semibold">Delivery Location</h2>
+            </div>
             
-            <MapView 
-              selectedLocation={orderData.location}
-              onLocationSelect={selectLocation}
-              className="w-full h-48 rounded-lg mb-4"
-            />
-            
-            <SavedLocationList
-              locations={savedLocations}
-              selectedLocationId={orderData.location?.id ? String(orderData.location.id) : null}
-              onLocationSelect={selectLocation}
-              isLoading={locationsLoading}
-              className="mb-4"
-            />
+            {orderData.location ? (
+              <Card className="mt-4 mb-4">
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="font-semibold">{orderData.location.name || 'Selected Location'}</h3>
+                      <p className="text-neutral-600">{orderData.location.address}</p>
+                    </div>
+                    <ChevronDown className="h-5 w-5 text-neutral-500" />
+                  </div>
+                </CardContent>
+              </Card>
+            ) : (
+              <>
+                <MapView 
+                  selectedLocation={orderData.location}
+                  onLocationSelect={selectLocation}
+                  className="w-full h-48 rounded-lg mt-4 mb-4"
+                />
+                
+                <SavedLocationList
+                  locations={savedLocations}
+                  selectedLocationId={orderData.location?.id ? String(orderData.location.id) : null}
+                  onLocationSelect={selectLocation}
+                  isLoading={locationsLoading}
+                  className="mb-4"
+                />
+              </>
+            )}
             
             <Button 
               variant="outline" 
@@ -219,8 +281,107 @@ export default function OrderPage() {
       
       case 1:
         return (
+          <div id="step-time" className="mb-6">
+            <div className="flex items-center">
+              <Clock className="h-6 w-6 text-orange-500 mr-2" />
+              <h2 className="text-lg font-semibold">Delivery Time</h2>
+            </div>
+            
+            {orderData.deliveryDate && orderData.deliveryTimeSlot ? (
+              <Card className="mt-4 mb-4" onClick={() => setShowDeliveryTime(true)}>
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="font-semibold">
+                        {orderData.deliveryDate.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}
+                      </h3>
+                      <p className="text-neutral-600">{orderData.deliveryTimeSlot}</p>
+                      {orderData.repeatWeekly && (
+                        <p className="text-sm text-orange-500 mt-1">Repeats Weekly</p>
+                      )}
+                    </div>
+                    <ChevronDown className="h-5 w-5 text-neutral-500" />
+                  </div>
+                </CardContent>
+              </Card>
+            ) : (
+              <Button 
+                className="w-full mt-4 bg-orange-500 hover:bg-orange-600 text-white" 
+                onClick={() => setShowDeliveryTime(true)}
+              >
+                Select Delivery Time
+              </Button>
+            )}
+            
+            <Dialog open={showDeliveryTime} onOpenChange={setShowDeliveryTime}>
+              <DialogContent className="sm:max-w-[425px] p-0">
+                <DeliveryTimeSelector
+                  onSelect={(data) => {
+                    updateDeliveryTime(data);
+                    setShowDeliveryTime(false);
+                  }}
+                  onClose={() => setShowDeliveryTime(false)}
+                />
+              </DialogContent>
+            </Dialog>
+          </div>
+        );
+        
+      case 2:
+        return (
+          <div id="step-instructions" className="mb-6">
+            <div className="flex items-center">
+              <FileText className="h-6 w-6 text-orange-500 mr-2" />
+              <h2 className="text-lg font-semibold">Delivery Instructions</h2>
+            </div>
+            
+            <div className="mt-4">
+              <Card className="mb-4">
+                <CardContent className="p-4">
+                  <h3 className="font-medium text-neutral-700 mb-3">Additional Instructions</h3>
+                  
+                  <Textarea
+                    placeholder="Add any special delivery instructions here..."
+                    value={orderData.instructions}
+                    onChange={(e) => updateInstructions(e.target.value)}
+                    className="min-h-[120px]"
+                  />
+                </CardContent>
+              </Card>
+              
+              <Card className="mb-4">
+                <CardContent className="p-4">
+                  <div className="flex items-start space-x-2">
+                    <Checkbox 
+                      id="gas-door" 
+                      checked={orderData.leaveGasDoorOpen}
+                      onCheckedChange={toggleLeaveGasDoorOpen}
+                    />
+                    <div className="grid gap-1.5 leading-none">
+                      <Label 
+                        htmlFor="gas-door" 
+                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                      >
+                        Leave gas door open
+                      </Label>
+                      <p className="text-xs text-muted-foreground">
+                        Our delivery driver will close it after refueling
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        );
+        
+      case 3:
+        return (
           <div id="step-vehicle" className="mb-6">
-            <h2 className="text-lg font-semibold mb-3">Select Vehicle</h2>
+            <div className="flex items-center">
+              <CreditCard className="h-6 w-6 text-orange-500 mr-2" />
+              <h2 className="text-lg font-semibold">Select Vehicle</h2>
+            </div>
             
             {vehiclesLoading ? (
               <div className="text-center py-4">
@@ -234,7 +395,7 @@ export default function OrderPage() {
                 </Button>
               </div>
             ) : (
-              <div>
+              <div className="mt-4">
                 {vehicles.map(vehicle => (
                   <div key={vehicle.id} className="mb-3">
                     <VehicleCard
@@ -291,10 +452,13 @@ export default function OrderPage() {
           </div>
         );
       
-      case 2:
+      case 4:
         return (
           <div id="step-fuel" className="mb-6">
-            <h2 className="text-lg font-semibold mb-3">Fuel Type & Amount</h2>
+            <div className="flex items-center">
+              <CreditCard className="h-6 w-6 text-orange-500 mr-2" />
+              <h2 className="text-lg font-semibold">Fuel Type & Amount</h2>
+            </div>
             
             <Card className="mb-4">
               <CardContent className="p-4">
@@ -371,10 +535,13 @@ export default function OrderPage() {
           </div>
         );
       
-      case 3:
+      case 5:
         return (
           <div id="step-payment" className="mb-6">
-            <h2 className="text-lg font-semibold mb-3">Review & Payment</h2>
+            <div className="flex items-center">
+              <CreditCard className="h-6 w-6 text-orange-500 mr-2" />
+              <h2 className="text-lg font-semibold">Review & Payment</h2>
+            </div>
             
             <Card className="mb-4">
               <CardContent className="p-4 divide-y">
