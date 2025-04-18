@@ -1,41 +1,30 @@
 import { useState } from "react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
-import { 
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage, 
-} from "@/components/ui/form";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { useToast } from "@/hooks/use-toast";
+import { useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
+import { Button } from "@/components/ui/button";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2 } from "lucide-react";
 
-// Form validation schema
-const formSchema = z.object({
+const paymentFormSchema = z.object({
   cardNumber: z.string()
-    .min(13, "Card number must be at least 13 digits")
-    .max(19, "Card number must be at most 19 digits")
-    .regex(/^[0-9]+$/, "Card number must contain only digits"),
-  
-  cardholderName: z.string()
-    .min(2, "Cardholder name is required"),
-  
+    .min(16, "Card number must be at least 16 digits")
+    .max(19, "Card number must be no more than 19 digits")
+    .regex(/^\d+$/, "Card number must contain only digits"),
+  cardholderName: z.string().min(1, "Cardholder name is required"),
   expiryDate: z.string()
     .regex(/^(0[1-9]|1[0-2])\/([0-9]{2})$/, "Expiry date must be in MM/YY format"),
-  
   cvv: z.string()
     .min(3, "CVV must be at least 3 digits")
-    .max(4, "CVV must be at most 4 digits")
-    .regex(/^[0-9]+$/, "CVV must contain only digits"),
+    .max(4, "CVV must be no more than 4 digits")
+    .regex(/^\d+$/, "CVV must contain only digits"),
 });
 
-type FormValues = z.infer<typeof formSchema>;
+type PaymentFormValues = z.infer<typeof paymentFormSchema>;
 
 interface AddPaymentMethodFormProps {
   onSuccess?: () => void;
@@ -45,9 +34,8 @@ export default function AddPaymentMethodForm({ onSuccess }: AddPaymentMethodForm
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   
-  // Initialize form
-  const form = useForm<FormValues>({
-    resolver: zodResolver(formSchema),
+  const form = useForm<PaymentFormValues>({
+    resolver: zodResolver(paymentFormSchema),
     defaultValues: {
       cardNumber: "",
       cardholderName: "",
@@ -56,68 +44,32 @@ export default function AddPaymentMethodForm({ onSuccess }: AddPaymentMethodForm
     },
   });
   
-  // Handle form submission
-  const onSubmit = async (data: FormValues) => {
-    setIsSubmitting(true);
-    try {
-      const response = await apiRequest("POST", "/api/payment-methods", data);
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Failed to add payment method");
-      }
-      
-      // Success! Reset form and show toast
-      form.reset();
+  const addPaymentMutation = useMutation({
+    mutationFn: async (data: PaymentFormValues) => {
+      const res = await apiRequest("POST", "/api/payment-methods", data);
+      return await res.json();
+    },
+    onSuccess: () => {
       toast({
         title: "Payment method added",
-        description: "Your card has been added successfully.",
+        description: "Your new payment method has been saved",
       });
-      
-      // Invalidate payment methods query to refresh the list
-      queryClient.invalidateQueries({ queryKey: ["/api/payment-methods"] });
-      
-      // Call onSuccess callback if provided
-      if (onSuccess) {
-        onSuccess();
-      }
-    } catch (error) {
+      queryClient.invalidateQueries({ queryKey: ['/api/payment-methods'] });
+      if (onSuccess) onSuccess();
+    },
+    onError: (error: Error) => {
       toast({
         title: "Failed to add payment method",
-        description: error instanceof Error ? error.message : "An unexpected error occurred",
+        description: error.message,
         variant: "destructive",
       });
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+    },
+  });
   
-  // Format card number with spaces as the user types
-  const formatCardNumber = (value: string) => {
-    const digits = value.replace(/\D/g, "");
-    const groups = [];
-    
-    for (let i = 0; i < digits.length; i += 4) {
-      groups.push(digits.substring(i, i + 4));
-    }
-    
-    return groups.join(" ");
-  };
-  
-  // Mask CVV with dots
-  const maskCVV = (value: string) => {
-    return "•".repeat(value.length);
-  };
-  
-  // Format expiry date
-  const formatExpiryDate = (value: string) => {
-    const digits = value.replace(/\D/g, "");
-    
-    if (digits.length > 2) {
-      return `${digits.substring(0, 2)}/${digits.substring(2, 4)}`;
-    }
-    
-    return digits;
+  const onSubmit = (data: PaymentFormValues) => {
+    setIsSubmitting(true);
+    addPaymentMutation.mutate(data);
+    setIsSubmitting(false);
   };
   
   return (
@@ -130,16 +82,16 @@ export default function AddPaymentMethodForm({ onSuccess }: AddPaymentMethodForm
             <FormItem>
               <FormLabel>Card Number</FormLabel>
               <FormControl>
-                <Input
-                  placeholder="1234 5678 9012 3456"
-                  {...field}
-                  onChange={(e) => {
-                    const formatted = formatCardNumber(e.target.value);
-                    field.onChange(formatted.replace(/\s/g, ""));  // Store without spaces
-                    e.target.value = formatted;  // Display with spaces
-                  }}
-                  inputMode="numeric"
+                <Input 
+                  placeholder="4242 4242 4242 4242" 
+                  {...field} 
                   maxLength={19}
+                  onChange={(e) => {
+                    // Format card number with spaces
+                    const value = e.target.value.replace(/\s/g, '');
+                    const formatted = value.match(/.{1,4}/g)?.join(' ') || value;
+                    field.onChange(formatted);
+                  }}
                 />
               </FormControl>
               <FormMessage />
@@ -154,10 +106,7 @@ export default function AddPaymentMethodForm({ onSuccess }: AddPaymentMethodForm
             <FormItem>
               <FormLabel>Cardholder Name</FormLabel>
               <FormControl>
-                <Input
-                  placeholder="John Doe"
-                  {...field}
-                />
+                <Input placeholder="John Doe" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -172,15 +121,17 @@ export default function AddPaymentMethodForm({ onSuccess }: AddPaymentMethodForm
               <FormItem>
                 <FormLabel>Expiry Date</FormLabel>
                 <FormControl>
-                  <Input
-                    placeholder="MM/YY"
-                    {...field}
-                    onChange={(e) => {
-                      const formatted = formatExpiryDate(e.target.value);
-                      field.onChange(formatted);
-                      e.target.value = formatted;
-                    }}
+                  <Input 
+                    placeholder="MM/YY" 
+                    {...field} 
                     maxLength={5}
+                    onChange={(e) => {
+                      let value = e.target.value.replace(/\D/g, '');
+                      if (value.length > 2) {
+                        value = value.slice(0, 2) + '/' + value.slice(2, 4);
+                      }
+                      field.onChange(value);
+                    }}
                   />
                 </FormControl>
                 <FormMessage />
@@ -195,12 +146,11 @@ export default function AddPaymentMethodForm({ onSuccess }: AddPaymentMethodForm
               <FormItem>
                 <FormLabel>CVV</FormLabel>
                 <FormControl>
-                  <Input
-                    type="password"
-                    placeholder="123"
+                  <Input 
+                    placeholder="123" 
+                    type="password" 
                     {...field}
-                    inputMode="numeric"
-                    maxLength={4}
+                    maxLength={4} 
                   />
                 </FormControl>
                 <FormMessage />
@@ -209,11 +159,15 @@ export default function AddPaymentMethodForm({ onSuccess }: AddPaymentMethodForm
           />
         </div>
         
-        <Button type="submit" className="w-full" disabled={isSubmitting}>
-          {isSubmitting ? (
+        <Button 
+          type="submit" 
+          className="w-full" 
+          disabled={isSubmitting || addPaymentMutation.isPending}
+        >
+          {(isSubmitting || addPaymentMutation.isPending) ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Adding...
+              Saving...
             </>
           ) : (
             "Add Payment Method"
