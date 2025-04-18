@@ -164,7 +164,7 @@ export default function AddLocationForm({ onSuccess, initialData }: AddLocationF
         <div className="w-full h-48">
           <MapView 
             selectedLocation={null} 
-            onLocationSelect={(location: LocationModel) => {
+            onLocationSelect={(location: Location) => {
               // Update form values with the selected location
               form.setValue("address", location.address);
               setMapCoordinates(location.coordinates);
