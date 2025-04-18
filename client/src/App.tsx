@@ -12,7 +12,7 @@ import { ProtectedRoute } from "./lib/protected-route";
 import TabBar from "./components/layout/TabBar";
 import { useAuth, AuthProvider } from "./hooks/use-auth";
 
-function Router() {
+function AppRouter() {
   const { user } = useAuth();
   
   return (
@@ -37,7 +37,7 @@ function App() {
     <TooltipProvider>
       <Toaster />
       <AuthProvider>
-        <Router />
+        <AppRouter />
       </AuthProvider>
     </TooltipProvider>
   );

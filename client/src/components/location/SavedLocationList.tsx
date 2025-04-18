@@ -2,12 +2,12 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Check, MapPin, Home, Briefcase, Map } from "lucide-react";
-import { LocationType } from "@shared/schema";
+import { LocationType, Location } from "@shared/schema";
 
 interface SavedLocationListProps {
-  locations: any[];
+  locations: Location[];
   selectedLocationId: string | null;
-  onLocationSelect: (location: any) => void;
+  onLocationSelect: (location: Location) => void;
   isLoading?: boolean;
   className?: string;
 }
