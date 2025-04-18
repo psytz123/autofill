@@ -241,7 +241,7 @@ export default function OrderPage() {
                 
                 <SavedLocationList
                   locations={savedLocations}
-                  selectedLocationId={orderData.location?.id ?? null}
+                  selectedLocationId={orderData.location ? orderData.location.id : null}
                   onLocationSelect={selectLocation}
                   isLoading={locationsLoading}
                   className="mb-4"
@@ -565,6 +565,7 @@ export default function OrderPage() {
                     type: 'credit-card',
                     last4: '1234',
                     expiry: '12/25',
+                    cardHolder: null,
                     createdAt: new Date(),
                     updatedAt: new Date()
                   };
