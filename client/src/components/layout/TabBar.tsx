@@ -38,6 +38,15 @@ function TabBar() {
           </div>
         </Link>
         
+        <Link href="/subscription">
+          <div className={`flex-1 flex flex-col items-center justify-center cursor-pointer transition-colors ${isActive('/subscription') ? 'autofill-orange' : 'text-neutral-500 hover:text-neutral-800'}`}>
+            <div className={`relative ${isActive('/subscription') ? 'after:content-[""] after:absolute after:w-1.5 after:h-1.5 after:bg-autofill-orange after:rounded-full after:-bottom-1 after:left-1/2 after:-translate-x-1/2' : ''}`}>
+              <CreditCard className="h-6 w-6" />
+            </div>
+            <span className="text-xs mt-1.5 font-medium">Plans</span>
+          </div>
+        </Link>
+        
         <Link href="/account">
           <div className={`flex-1 flex flex-col items-center justify-center cursor-pointer transition-colors ${isActive('/account') ? 'autofill-navy' : 'text-neutral-500 hover:text-neutral-800'}`}>
             <div className={`relative ${isActive('/account') ? 'after:content-[""] after:absolute after:w-1.5 after:h-1.5 after:bg-autofill-navy after:rounded-full after:-bottom-1 after:left-1/2 after:-translate-x-1/2' : ''}`}>

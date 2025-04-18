@@ -10,11 +10,13 @@ import PaymentMethodCard from "@/components/payment/PaymentMethodCard";
 import AddPaymentMethodForm from "@/components/payment/AddPaymentMethodForm";
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Logo } from "@/components/ui/logo";
+import { useLocation } from "wouter";
 
 export default function AccountPage() {
   const { user, logoutMutation } = useAuth();
   const { toast } = useToast();
   const [addingPayment, setAddingPayment] = useState(false);
+  const [, setLocation] = useLocation();
   
   const { data: paymentMethods = [], isLoading: paymentsLoading } = useQuery<any[]>({
     queryKey: ['/api/payment-methods'],
@@ -72,6 +74,21 @@ export default function AccountPage() {
             <Button variant="outline" className="w-full">
               Edit Profile
             </Button>
+          </CardContent>
+        </Card>
+        
+        {/* Subscription */}
+        <Card className="mb-4">
+          <CardContent className="p-4">
+            <h2 className="font-semibold text-lg mb-3">Subscription</h2>
+            
+            <div className="rounded-lg border border-dashed border-autofill-orange p-4 mb-4">
+              <h3 className="text-md font-medium text-autofill-orange mb-1">Save with AutoFill Subscriptions</h3>
+              <p className="text-sm text-neutral-600 mb-3">Subscribe to a plan and save up to 20% on every fuel delivery!</p>
+              <Button variant="default" className="w-full bg-autofill-orange hover:bg-autofill-orange/90" onClick={() => setLocation('/subscription')}>
+                View Plans
+              </Button>
+            </div>
           </CardContent>
         </Card>
         
