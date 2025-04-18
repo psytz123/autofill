@@ -109,76 +109,15 @@ export default function AccountPage() {
                   </DialogDescription>
                 </DialogHeader>
                 
-                <Form {...form}>
-                  <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                    <FormField
-                      control={form.control}
-                      name="cardNumber"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Card Number</FormLabel>
-                          <FormControl>
-                            <Input placeholder="1234 5678 9012 3456" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <FormField
-                      control={form.control}
-                      name="cardholderName"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Cardholder Name</FormLabel>
-                          <FormControl>
-                            <Input placeholder="John Doe" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <div className="grid grid-cols-2 gap-4">
-                      <FormField
-                        control={form.control}
-                        name="expiryDate"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Expiry Date</FormLabel>
-                            <FormControl>
-                              <Input placeholder="MM/YY" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      
-                      <FormField
-                        control={form.control}
-                        name="cvv"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>CVV</FormLabel>
-                            <FormControl>
-                              <Input placeholder="123" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-                    
-                    <DialogFooter>
-                      <Button type="button" variant="outline" onClick={() => setAddingPayment(false)}>
-                        Cancel
-                      </Button>
-                      <Button type="submit" disabled={addPaymentMutation.isPending}>
-                        {addPaymentMutation.isPending ? "Adding..." : "Add Payment Method"}
-                      </Button>
-                    </DialogFooter>
-                  </form>
-                </Form>
+                <AddPaymentMethodForm 
+                  onSuccess={() => {
+                    setAddingPayment(false);
+                    toast({
+                      title: "Payment method added",
+                      description: "Your new payment method has been saved",
+                    });
+                  }}
+                />
               </DialogContent>
             </Dialog>
           </CardContent>
