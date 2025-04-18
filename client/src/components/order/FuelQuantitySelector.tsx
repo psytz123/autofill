@@ -4,6 +4,12 @@ import { FuelType } from "@shared/schema";
 import { GaugeCircle, DollarSign, Plus, Minus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { 
+  FUEL_PRICES, 
+  BASE_DELIVERY_FEE, 
+  formatPrice,
+  getFillLevelColor
+} from "@/lib/fuelUtils";
 
 interface FuelQuantitySelectorProps {
   amount: number;
@@ -11,16 +17,6 @@ interface FuelQuantitySelectorProps {
   fuelType: FuelType;
   vehicleTankCapacity?: number;
 }
-
-// Pricing per gallon in cents
-const FUEL_PRICES = {
-  [FuelType.REGULAR_UNLEADED]: 349, // $3.49/gallon
-  [FuelType.PREMIUM_UNLEADED]: 419, // $4.19/gallon
-  [FuelType.DIESEL]: 389, // $3.89/gallon
-};
-
-// Delivery fee in cents
-const BASE_DELIVERY_FEE = 599; // $5.99
 
 export function FuelQuantitySelector({ 
   amount, 
@@ -46,12 +42,8 @@ export function FuelQuantitySelector({
   // Calculate fill percentage for visualization
   const fillPercentage = Math.min((amount / maxAmount) * 100, 100);
   
-  // Determine color based on fill level
-  const getFillColor = () => {
-    if (fillPercentage < 30) return "bg-red-500";
-    if (fillPercentage < 70) return "bg-yellow-500";
-    return "bg-green-500";
-  };
+  // Get fill color using the utility function
+  const getFillColor = () => getFillLevelColor(fillPercentage);
 
   // Handle increment/decrement
   const incrementAmount = () => onChange(Math.min(amount + 1, maxAmount));

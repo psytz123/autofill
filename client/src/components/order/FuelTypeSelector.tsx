@@ -3,46 +3,14 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { FuelType } from "@shared/schema";
-import { Droplet, Droplets, Truck } from "lucide-react";
+import { FUEL_OPTIONS } from "@/lib/fuelUtils";
 
 interface FuelTypeSelectorProps {
   selectedType: FuelType;
   onChange: (value: FuelType) => void;
 }
 
-interface FuelOption {
-  value: FuelType;
-  label: string;
-  description: string;
-  icon: React.ReactNode;
-  color: string;
-}
-
 export function FuelTypeSelector({ selectedType, onChange }: FuelTypeSelectorProps) {
-  const fuelOptions: FuelOption[] = [
-    {
-      value: FuelType.REGULAR_UNLEADED,
-      label: "Regular Unleaded",
-      description: "Standard 87 octane gasoline",
-      icon: <Droplet className="h-8 w-8" />,
-      color: "bg-green-100 text-green-700 border-green-300"
-    },
-    {
-      value: FuelType.PREMIUM_UNLEADED,
-      label: "Premium Unleaded",
-      description: "High-performance 91+ octane gasoline",
-      icon: <Droplets className="h-8 w-8" />,
-      color: "bg-blue-100 text-blue-700 border-blue-300"
-    },
-    {
-      value: FuelType.DIESEL,
-      label: "Diesel",
-      description: "For diesel engines only",
-      icon: <Truck className="h-8 w-8" />,
-      color: "bg-yellow-100 text-yellow-700 border-yellow-300"
-    }
-  ];
-
   return (
     <div className="space-y-4">
       <div className="font-medium text-lg">Select Fuel Type</div>
@@ -51,7 +19,7 @@ export function FuelTypeSelector({ selectedType, onChange }: FuelTypeSelectorPro
         onValueChange={(value) => onChange(value as FuelType)}
         className="grid grid-cols-1 md:grid-cols-3 gap-4"
       >
-        {fuelOptions.map((option) => (
+        {FUEL_OPTIONS.map((option) => (
           <div key={option.value} className="relative">
             <RadioGroupItem
               value={option.value}

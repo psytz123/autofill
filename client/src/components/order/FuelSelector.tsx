@@ -7,6 +7,7 @@ import { Vehicle } from "@shared/schema";
 import { Badge } from "@/components/ui/badge";
 import { AlertCircle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { DEFAULT_TANK_CAPACITY, getFuelTypeDisplayName, estimateTankCapacity } from "@/lib/fuelUtils";
 
 interface FuelSelectorProps {
   fuelType: FuelType;
@@ -15,12 +16,6 @@ interface FuelSelectorProps {
   onAmountChange: (value: number) => void;
   vehicle?: Vehicle;
 }
-
-const DEFAULT_TANK_CAPACITY = {
-  [FuelType.REGULAR_UNLEADED]: 15,
-  [FuelType.PREMIUM_UNLEADED]: 15,
-  [FuelType.DIESEL]: 20,
-};
 
 export function FuelSelector({
   fuelType,
@@ -32,21 +27,10 @@ export function FuelSelector({
   // Detect fuel type mismatch between vehicle and selection
   const fuelTypeMismatch = vehicle && vehicle.fuelType !== fuelType;
   
-  // Estimate tank capacity based on vehicle info or use defaults
-  const estimateTankCapacity = () => {
-    if (!vehicle) return DEFAULT_TANK_CAPACITY[fuelType];
-    
-    // Typical capacities based on vehicle type/size (simplified for demo)
-    // In a real app, this might come from a database of vehicle specifications
-    switch (vehicle.fuelType) {
-      case FuelType.DIESEL:
-        return 20; // Diesel vehicles typically have larger tanks
-      default:
-        return 15; // Standard gas tank size
-    }
-  };
-
-  const tankCapacity = estimateTankCapacity();
+  // Get the appropriate tank capacity based on the selected fuel type
+  const tankCapacity = vehicle?.fuelType 
+    ? DEFAULT_TANK_CAPACITY[vehicle.fuelType]
+    : estimateTankCapacity(fuelType);
 
   return (
     <Card className="border-2">
@@ -63,7 +47,7 @@ export function FuelSelector({
               variant={vehicle.fuelType === fuelType ? "default" : "destructive"}
               className="text-xs"
             >
-              {vehicle.fuelType.replace("_", " ")}
+              {getFuelTypeDisplayName(vehicle.fuelType)}
             </Badge>
           </div>
         )}
@@ -72,7 +56,7 @@ export function FuelSelector({
           <Alert variant="destructive" className="mb-4">
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>
-              Warning: The selected fuel type doesn't match your vehicle's recommended fuel type ({vehicle?.fuelType.replace("_", " ")}).
+              Warning: The selected fuel type doesn't match your vehicle's recommended fuel type ({vehicle ? getFuelTypeDisplayName(vehicle.fuelType) : ''}).
             </AlertDescription>
           </Alert>
         )}
