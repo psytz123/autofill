@@ -10,14 +10,23 @@ import { SwipeableTabs } from "@/components/ui/swipeable-tabs";
 import { PullToRefresh } from "@/components/ui/pull-to-refresh";
 import { motion } from "framer-motion";
 import { Loader2 } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { AlertCircle } from "lucide-react";
 
 export default function OrdersPage() {
   const queryClient = useQueryClient();
   const [filter, setFilter] = useState<OrderStatus | "ALL">("ALL");
   
-  const { data: orders = [], isLoading, refetch } = useQuery<Order[]>({
+  const { data: orders = [], isLoading, refetch, isError } = useQuery<Order[]>({
     queryKey: ['/api/orders'],
-    queryFn: getQueryFn({ on401: "throw" }),
+    queryFn: getQueryFn({ 
+      on401: "throw",
+      retries: 2,
+      timeout: 8000
+    }),
+    staleTime: 1000 * 60 * 2, // 2 minutes
+    retry: 2,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 10000),
   });
   
   // Filter orders based on current tab
@@ -170,8 +179,8 @@ export default function OrdersPage() {
 }
 
 function renderOrdersList(orders: Order[], isLoading: boolean) {
+  // Show a nice loading skeleton
   if (isLoading) {
-    // Content-aware skeleton loader for orders
     return (
       <div className="space-y-4">
         {[1, 2, 3].map((i) => (
@@ -201,6 +210,7 @@ function renderOrdersList(orders: Order[], isLoading: boolean) {
     );
   }
   
+  // Show empty state when no orders exist
   if (orders.length === 0) {
     return (
       <div className="bg-white rounded-xl shadow-sm overflow-hidden border border-neutral-100 mb-4 py-10 text-center">
@@ -215,6 +225,7 @@ function renderOrdersList(orders: Order[], isLoading: boolean) {
     );
   }
   
+  // Render the list of orders
   return (
     <div className="space-y-4">
       {orders.map(order => (

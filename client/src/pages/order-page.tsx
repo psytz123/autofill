@@ -37,9 +37,9 @@ export default function OrderPage() {
   const { toast } = useToast();
   const [currentStep, setCurrentStep] = useState(0);
   
-  // Define proper type for the orderData
+  // Define proper type for the orderData with explicit Location type
   interface OrderForm {
-    location: (Location & { id: number }) | null;
+    location: Location | null;  // Location type is already defined in shared schema
     vehicle: Vehicle | null;
     fuelType: FuelType;
     amount: number;
