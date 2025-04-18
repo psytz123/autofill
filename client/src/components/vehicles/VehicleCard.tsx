@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, memo } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -16,7 +16,7 @@ interface VehicleCardProps {
   actionButtons?: React.ReactNode;
 }
 
-export default function VehicleCard({
+function VehicleCard({
   vehicle,
   onSelect,
   onEdit,
@@ -173,3 +173,17 @@ export default function VehicleCard({
     </Card>
   );
 }
+
+// Use React.memo to prevent unnecessary re-renders when props don't change
+export default memo(VehicleCard, (prevProps, nextProps) => {
+  // Custom comparison function for memoization
+  return (
+    prevProps.isSelected === nextProps.isSelected &&
+    prevProps.vehicle.id === nextProps.vehicle.id &&
+    prevProps.vehicle.make === nextProps.vehicle.make &&
+    prevProps.vehicle.model === nextProps.vehicle.model &&
+    prevProps.vehicle.licensePlate === nextProps.vehicle.licensePlate &&
+    prevProps.vehicle.fuelType === nextProps.vehicle.fuelType &&
+    prevProps.showActions === nextProps.showActions
+  );
+});

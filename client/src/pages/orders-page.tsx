@@ -22,9 +22,11 @@ export default function OrdersPage() {
     queryFn: getQueryFn({ 
       on401: "throw",
       retries: 2,
-      timeout: 8000
+      timeout: 8000,
+      category: "ORDERS"
     }),
-    staleTime: 1000 * 60 * 2, // 2 minutes
+    staleTime: QUERY_CATEGORIES.ORDERS.staleTime,
+    gcTime: QUERY_CATEGORIES.ORDERS.gcTime,
     retry: 2,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 10000),
   });

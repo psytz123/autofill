@@ -191,6 +191,11 @@ export const QUERY_CATEGORIES = {
     staleTime: 60 * 1000, // 1 minute
     gcTime: 10 * 60 * 1000, // 10 minutes
   },
+  // Recent orders (for dashboard) need to be up to date
+  RECENT_ORDERS: {
+    staleTime: 30 * 1000, // 30 seconds
+    gcTime: 5 * 60 * 1000, // 5 minutes
+  },
   // Vehicle data changes infrequently
   VEHICLES: {
     staleTime: 10 * 60 * 1000, // 10 minutes
@@ -200,6 +205,16 @@ export const QUERY_CATEGORIES = {
   LOCATIONS: {
     staleTime: 30 * 60 * 1000, // 30 minutes
     gcTime: 24 * 60 * 60 * 1000, // 24 hours
+  },
+  // Fuel prices need to update occasionally
+  FUEL_PRICES: {
+    staleTime: 15 * 60 * 1000, // 15 minutes
+    gcTime: 60 * 60 * 1000, // 1 hour
+  },
+  // Home dashboard data
+  DASHBOARD: {
+    staleTime: 60 * 1000, // 1 minute
+    gcTime: 5 * 60 * 1000, // 5 minutes
   },
   // Payment methods change rarely
   PAYMENT_METHODS: {

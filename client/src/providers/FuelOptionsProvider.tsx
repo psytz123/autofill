@@ -4,6 +4,7 @@ import { FuelType } from "@shared/schema";
 import { Droplet, Droplets, Truck } from "lucide-react";
 import { DEFAULT_FUEL_PRICES, fetchCurrentFuelPrices, type FuelOption } from "@/lib/fuelUtils";
 import { useQuery } from "@tanstack/react-query";
+import { QUERY_CATEGORIES } from "@/lib/queryClient";
 
 interface FuelOptionsContextType {
   fuelOptions: FuelOption[];
@@ -64,6 +65,13 @@ export function FuelOptionsProvider({ children }: { children: ReactNode }) {
         const prices = await fetchCurrentFuelPrices();
         setFuelOptions(createFuelOptions(prices));
         setLastUpdated(new Date());
+        
+        // Save to localStorage with timestamp for faster initial loads on subsequent visits
+        localStorage.setItem('fuelPrices', JSON.stringify({
+          prices,
+          timestamp: Date.now()
+        }));
+        
         return prices;
       } catch (error) {
         console.error("Failed to fetch fuel prices:", error);
@@ -71,11 +79,12 @@ export function FuelOptionsProvider({ children }: { children: ReactNode }) {
       }
     },
     refetchInterval: 30 * 60 * 1000,
-    refetchOnWindowFocus: true,
+    refetchOnWindowFocus: false, // Prevent unnecessary refetches
     refetchOnMount: true,
     retry: 2,
     retryDelay: 1000,
-    staleTime: 10 * 60 * 1000,
+    staleTime: QUERY_CATEGORIES.FUEL_PRICES.staleTime,
+    gcTime: QUERY_CATEGORIES.FUEL_PRICES.gcTime,
   });
 
   useEffect(() => {

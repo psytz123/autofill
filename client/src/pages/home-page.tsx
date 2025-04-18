@@ -2,7 +2,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { MapPin, DollarSign } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useLocation } from "wouter";
-import { getQueryFn } from "@/lib/queryClient";
+import { getQueryFn, QUERY_CATEGORIES } from "@/lib/queryClient";
 import { Order, Vehicle, FuelType } from "@shared/schema";
 import VehicleCard from "@/components/vehicles/VehicleCard";
 import { Button } from "@/components/ui/button";
@@ -17,12 +17,24 @@ export default function HomePage() {
   
   const { data: recentOrders = [], isLoading: ordersLoading } = useQuery<Order[]>({
     queryKey: ['/api/orders/recent'],
-    queryFn: getQueryFn({ on401: "throw" }),
+    queryFn: getQueryFn({ 
+      on401: "throw",
+      category: "RECENT_ORDERS",
+      retries: 2
+    }),
+    staleTime: QUERY_CATEGORIES.RECENT_ORDERS.staleTime,
+    gcTime: QUERY_CATEGORIES.RECENT_ORDERS.gcTime,
   });
   
   const { data: vehicles = [], isLoading: vehiclesLoading } = useQuery<Vehicle[]>({
     queryKey: ['/api/vehicles'],
-    queryFn: getQueryFn({ on401: "throw" }),
+    queryFn: getQueryFn({ 
+      on401: "throw",
+      category: "VEHICLES",
+      retries: 1
+    }),
+    staleTime: QUERY_CATEGORIES.VEHICLES.staleTime,
+    gcTime: QUERY_CATEGORIES.VEHICLES.gcTime,
   });
   
   const toggleVehicleSelection = (id: number) => {
