@@ -1,13 +1,16 @@
 import { useAdminAuth } from "@/hooks/use-admin-auth";
 import { Loader2 } from "lucide-react";
+import { ComponentType, LazyExoticComponent } from "react";
 import { Redirect, Route } from "wouter";
+
+type ComponentProp = LazyExoticComponent<() => JSX.Element> | (() => JSX.Element);
 
 export function AdminProtectedRoute({
   path,
   component: Component,
 }: {
   path: string;
-  component: () => React.JSX.Element;
+  component: ComponentProp;
 }) {
   const { adminUser, isLoading } = useAdminAuth();
 
@@ -29,5 +32,9 @@ export function AdminProtectedRoute({
     );
   }
 
-  return <Route path={path} component={Component} />;
+  return (
+    <Route path={path}>
+      {() => <Component />}
+    </Route>
+  );
 }

@@ -7,6 +7,7 @@ export interface AdminDashboardStats {
   totalDrivers: number;
   revenue: number;
   customers: number;
+  recentOrders?: AdminOrder[];
   ordersByStatus: Array<{
     name: string;
     value: number;

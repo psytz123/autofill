@@ -28,41 +28,27 @@ export default function AdminDashboardPage() {
   const { 
     data: stats,
     isLoading: isLoadingStats 
-  } = useQuery({
+  } = useQuery<AdminDashboardStats>({
     queryKey: ['/admin/api/stats'],
     queryFn: getQueryFn({ on401: "throw" }),
-    onError: (error) => {
-      toast({
-        title: "Error loading dashboard data",
-        description: error.message,
-        variant: "destructive",
-      });
-    }
   });
   
   // Fetch unassigned orders
   const { 
-    data: unassignedOrders = [],
+    data: unassignedOrders = [] as AdminOrder[],
     isLoading: isLoadingUnassigned 
-  } = useQuery({
+  } = useQuery<AdminOrder[]>({
     queryKey: ['/admin/api/orders/unassigned'],
     queryFn: getQueryFn({ on401: "throw" }),
-    onError: (error) => {
-      toast({
-        title: "Error loading unassigned orders",
-        description: error.message,
-        variant: "destructive",
-      });
-    }
   });
   
-  // Use dummy data for now
-  const [dashboardData, setDashboardData] = useState({
+  // Define the dashboard data state
+  const [dashboardData, setDashboardData] = useState<AdminDashboardStats>({
     totalOrders: 0,
     activeDrivers: 0,
+    totalDrivers: 0,
     revenue: 0,
     customers: 0,
-    recentOrders: [],
     ordersByStatus: [
       { name: "In Progress", value: 5 },
       { name: "Completed", value: 25 },
@@ -85,14 +71,14 @@ export default function AdminDashboardPage() {
         ...dashboardData,
         totalOrders: stats.totalOrders || 0,
         activeDrivers: stats.activeDrivers || 0,
+        totalDrivers: stats.totalDrivers || 0,
         revenue: stats.revenue || 0,
         customers: stats.customers || 0,
-        recentOrders: stats.recentOrders || [],
         ordersByStatus: stats.ordersByStatus || dashboardData.ordersByStatus,
         deliveriesByDay: stats.deliveriesByDay || dashboardData.deliveriesByDay,
       });
     }
-  }, [stats]);
+  }, [stats, dashboardData]);
   
   // Pie chart colors
   const COLORS = ['#0088FE', '#00C49F', '#FF8042'];
@@ -235,7 +221,7 @@ export default function AdminDashboardPage() {
                       <div>Amount</div>
                       <div className="text-right">Actions</div>
                     </div>
-                    {unassignedOrders.map((order: any) => (
+                    {unassignedOrders.map((order) => (
                       <div key={order.id} className="grid grid-cols-6 gap-4 p-4 border-b last:border-b-0">
                         <div>#{order.id}</div>
                         <div>{order.userId}</div>
