@@ -7,7 +7,7 @@ import { getQueryFn } from "@/lib/queryClient";
 import { Logo } from "@/components/ui/logo";
 import { Link } from "wouter";
 import { SwipeableTabs } from "@/components/ui/swipeable-tabs";
-import { PullToRefresh } from "@/components/ui/swipeable";
+import { PullToRefresh } from "@/components/ui/pull-to-refresh";
 import { motion } from "framer-motion";
 import { Loader2 } from "lucide-react";
 
