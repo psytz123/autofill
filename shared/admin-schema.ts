@@ -1,6 +1,8 @@
-import { pgTable, serial, text, timestamp, boolean, integer, jsonb } from "drizzle-orm/pg-core";
+import { pgTable, serial, text, timestamp, boolean, integer, jsonb, varchar } from "drizzle-orm/pg-core";
+import { pgEnum } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
+import { relations } from "drizzle-orm";
 
 // Define admin users table
 export const adminUsers = pgTable("admin_users", {
@@ -65,3 +67,65 @@ export const insertOrderAssignmentSchema = createInsertSchema(orderAssignments);
 
 export type InsertOrderAssignment = z.infer<typeof insertOrderAssignmentSchema>;
 export type OrderAssignment = typeof orderAssignments.$inferSelect;
+
+// Support request status enum - using strings for simplicity instead of pgEnum
+export type SupportRequestStatus = 'OPEN' | 'IN_PROGRESS' | 'RESOLVED' | 'CLOSED';
+
+// Support request types enum - using strings for simplicity instead of pgEnum
+export type SupportRequestType = 'BILLING' | 'DELIVERY' | 'TECHNICAL' | 'ACCOUNT' | 'OTHER';
+
+// Define support requests table
+export const supportRequests = pgTable("support_requests", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  type: text("type").notNull(),  // Will contain one of SupportRequestType values
+  subject: varchar("subject", { length: 255 }).notNull(),
+  description: text("description").notNull(),
+  status: text("status").notNull().default('OPEN'),  // Will contain one of SupportRequestStatus values
+  priority: integer("priority").notNull().default(1), // 1=low, 2=medium, 3=high
+  assignedToAdminId: integer("assigned_to_admin_id"),
+  orderId: integer("order_id"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  resolvedAt: timestamp("resolved_at"),
+});
+
+export const insertSupportRequestSchema = createInsertSchema(supportRequests).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  resolvedAt: true
+});
+
+export type InsertSupportRequest = z.infer<typeof insertSupportRequestSchema>;
+export type SupportRequest = typeof supportRequests.$inferSelect;
+
+// Define support request messages
+export const supportRequestMessages = pgTable("support_request_messages", {
+  id: serial("id").primaryKey(),
+  supportRequestId: integer("support_request_id").notNull(),
+  senderId: integer("sender_id").notNull(), // User or Admin ID
+  isFromAdmin: boolean("is_from_admin").notNull().default(false),
+  message: text("message").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertSupportRequestMessageSchema = createInsertSchema(supportRequestMessages).omit({
+  id: true,
+  createdAt: true
+});
+
+export type InsertSupportRequestMessage = z.infer<typeof insertSupportRequestMessageSchema>;
+export type SupportRequestMessage = typeof supportRequestMessages.$inferSelect;
+
+// Define relations
+export const supportRequestsRelations = relations(supportRequests, ({ many }) => ({
+  messages: many(supportRequestMessages)
+}));
+
+export const supportRequestMessagesRelations = relations(supportRequestMessages, ({ one }) => ({
+  supportRequest: one(supportRequests, {
+    fields: [supportRequestMessages.supportRequestId],
+    references: [supportRequests.id]
+  })
+}));
