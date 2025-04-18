@@ -9,7 +9,8 @@ import {
   Settings,
   LogOut,
   Menu,
-  X
+  X,
+  UserCircle
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -53,6 +54,11 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
       label: "Customers",
       icon: <Users className="h-5 w-5" />,
       href: "/admin/customers",
+    },
+    {
+      label: "Profile",
+      icon: <UserCircle className="h-5 w-5" />,
+      href: "/admin/profile",
     },
     {
       label: "Settings",

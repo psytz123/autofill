@@ -15,6 +15,7 @@ import AdminLoginPage from "@/pages/admin/admin-login";
 import AdminDashboardPage from "@/pages/admin/admin-dashboard";
 import AdminOrdersPage from "@/pages/admin/admin-orders";
 import AdminDriversPage from "@/pages/admin/admin-drivers";
+import AdminProfilePage from "@/pages/admin/admin-profile";
 import { ProtectedRoute } from "./lib/protected-route";
 import { AdminProtectedRoute } from "./lib/admin-protected-route";
 import TabBar from "./components/layout/TabBar";
