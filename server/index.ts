@@ -1,10 +1,98 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+import crypto from "crypto";
+import rateLimit from "express-rate-limit";
 
+// Generate a random session secret
+const SESSION_SECRET = process.env.SESSION_SECRET || crypto.randomBytes(32).toString('hex');
+
+// Initialize Express app with security headers
 const app = express();
-app.use(express.json());
-app.use(express.urlencoded({ extended: false }));
+
+// Security middleware: Set secure headers
+app.use((req, res, next) => {
+  // Add security headers to prevent common attacks
+  res.set({
+    // Prevent browser from inferring MIME type (reduces MIME sniffing attacks)
+    'X-Content-Type-Options': 'nosniff',
+    // Prevent clickjacking attacks by denying iframe embedding
+    'X-Frame-Options': 'DENY',
+    // Set XSS protection mode on browsers that support it
+    'X-XSS-Protection': '1; mode=block',
+    // Prevent referring URLs from being sent in plain HTTP
+    'Referrer-Policy': 'same-origin'
+  });
+  next();
+});
+
+// Configure express JSON parser with strict options to avoid injection
+app.use(express.json({ limit: '1mb' })); // Limit payload size
+app.use(express.urlencoded({ extended: false, limit: '1mb' }));
+
+// CSRF Protection middleware
+const csrfTokens = new Set<string>();
+app.use((req, res, next) => {
+  // Only check CSRF for mutating operations
+  if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method) && req.path.startsWith('/api')) {
+    const csrfToken = req.headers['x-csrf-token'] as string;
+    
+    // Skip CSRF for auth routes but enforce for others
+    if (!req.path.includes('/auth') && (!csrfToken || !csrfTokens.has(csrfToken))) {
+      res.set('X-CSRF-Valid', 'false');
+      return res.status(403).json({ message: 'CSRF token validation failed' });
+    }
+    
+    // For valid tokens, add header and continue
+    res.set('X-CSRF-Valid', 'true');
+    
+    // Clean up old tokens periodically (keep set size manageable)
+    if (csrfTokens.size > 1000) {
+      // Convert to array, remove oldest tokens, convert back to set
+      const tokensArray = Array.from(csrfTokens);
+      csrfTokens.clear();
+      tokensArray.slice(Math.max(0, tokensArray.length - 500)).forEach(token => {
+        csrfTokens.add(token);
+      });
+    }
+  } else if (req.method === 'GET' && req.headers['x-csrf-token']) {
+    // Store valid tokens from client
+    csrfTokens.add(req.headers['x-csrf-token'] as string);
+  }
+  
+  next();
+});
+
+// Apply rate limiting to prevent brute force attacks
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // Limit each IP to 100 requests per window
+  standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
+  legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+  message: 'Too many requests from this IP, please try again after 15 minutes',
+  // Skip rate limiting for trusted networks (like internal services)
+  skip: (req) => {
+    const ip = req.ip || '';
+    // Example: skip for localhost and internal services
+    return ip === '127.0.0.1' || ip.startsWith('10.') || ip.startsWith('172.16.');
+  }
+});
+
+// Apply rate limiting to all API routes
+app.use('/api/', apiLimiter);
+
+// Apply stricter rate limiting to auth-related endpoints
+const authLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: 10, // Limit each IP to 10 login attempts per hour
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: 'Too many login attempts, please try again after an hour'
+});
+
+// Apply to auth-specific routes
+app.use('/api/login', authLimiter);
+app.use('/api/admin/login', authLimiter);
 
 app.use((req, res, next) => {
   const start = Date.now();

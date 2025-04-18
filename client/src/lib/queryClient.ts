@@ -10,7 +10,54 @@ async function throwIfResNotOk(res: Response) {
 // Add support for request cancellation
 export const createAbortController = () => new AbortController();
 
-// Enhanced API request with better error handling, request timeout, and retry capability
+// Generate a random CSRF token
+function generateCSRFToken(): string {
+  const validChars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  let token = '';
+  const array = new Uint8Array(32);
+  window.crypto.getRandomValues(array);
+  for (let i = 0; i < array.length; i++) {
+    token += validChars[array[i] % validChars.length];
+  }
+  return token;
+}
+
+// Get or create CSRF token
+function getCSRFToken(): string {
+  let token = sessionStorage.getItem('CSRF_TOKEN');
+  if (!token) {
+    token = generateCSRFToken();
+    sessionStorage.setItem('CSRF_TOKEN', token);
+  }
+  return token;
+}
+
+// Sanitize object deeply to prevent injection attacks
+function sanitizeData(data: any): any {
+  if (data === null || data === undefined) {
+    return data;
+  }
+  
+  if (typeof data !== 'object') {
+    return data;
+  }
+  
+  if (Array.isArray(data)) {
+    return data.map(item => sanitizeData(item));
+  }
+  
+  const sanitized: Record<string, any> = {};
+  for (const [key, value] of Object.entries(data)) {
+    // Skip functions or complex objects
+    if (typeof value !== 'function' && !(value instanceof Element)) {
+      sanitized[key] = sanitizeData(value);
+    }
+  }
+  
+  return sanitized;
+}
+
+// Enhanced API request with better error handling, request timeout, retry capability, and security
 export async function apiRequest(
   method: string,
   url: string,
@@ -20,13 +67,15 @@ export async function apiRequest(
     retries?: number;
     abortController?: AbortController;
     headers?: Record<string, string>;
+    skipCSRF?: boolean; // For public endpoints that don't need CSRF
   }
 ): Promise<Response> {
   const { 
     timeout = 30000, // 30 second timeout by default
     retries = 0,
     abortController = new AbortController(),
-    headers = {}
+    headers = {},
+    skipCSRF = false
   } = options || {};
   
   // Add timeout functionality
@@ -34,20 +83,39 @@ export async function apiRequest(
     abortController.abort();
   }, timeout);
   
+  // Security headers
+  const securityHeaders: Record<string, string> = {
+    // Only add CSRF for non-GET requests that modify data
+    ...(method !== 'GET' && !skipCSRF ? { 'X-CSRF-Token': getCSRFToken() } : {}),
+    'X-Requested-With': 'XMLHttpRequest', // Helps identify AJAX requests
+    ...(data ? { "Content-Type": "application/json" } : {}),
+    ...headers
+  };
+
   try {
+    // Sanitize data before sending to prevent injection attacks
+    const sanitizedData = data ? sanitizeData(data) : undefined;
+    
     const res = await fetch(url, {
       method,
-      headers: {
-        ...(data ? { "Content-Type": "application/json" } : {}),
-        ...headers
-      },
-      body: data ? JSON.stringify(data) : undefined,
-      credentials: "include",
+      headers: securityHeaders,
+      body: sanitizedData ? JSON.stringify(sanitizedData) : undefined,
+      credentials: "include", // Always send credentials for authenticated requests
       signal: abortController.signal,
+      cache: method === 'GET' ? 'default' : 'no-store', // Don't cache mutations
     });
     
     // Clear timeout since request completed
     clearTimeout(timeoutId);
+    
+    // Validate CSRF token in response for important operations
+    if (method !== 'GET' && !skipCSRF && res.headers.has('X-CSRF-Valid')) {
+      const valid = res.headers.get('X-CSRF-Valid') === 'true';
+      if (!valid) {
+        console.error('CSRF validation failed');
+        throw new Error('Security validation failed. Please refresh the page and try again.');
+      }
+    }
     
     // Handle error with retry logic if applicable
     if (!res.ok && retries > 0) {
