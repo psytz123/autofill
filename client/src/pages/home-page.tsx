@@ -36,32 +36,27 @@ export default function HomePage() {
     <div className="h-screen-minus-tab overflow-y-auto bg-slate-50">
       {/* Top Logo Navigation */}
       <header className="bg-white shadow-sm p-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center">
-            <div className="w-10 h-10 rounded-full bg-gradient-to-r from-orange-400 to-orange-500 flex items-center justify-center mr-2">
-              <div className="w-6 h-6 rounded-full bg-white flex items-center justify-center">
-                <div className="w-4 h-4 rounded-full bg-gradient-to-r from-orange-400 to-orange-500"></div>
-              </div>
-            </div>
-            <div className="ml-1">
-              <div className="text-xs text-neutral-500">NASDAQ: NXXT</div>
-            </div>
-          </div>
-          <div className="flex-1 mx-6">
-            <h1 className="text-2xl font-extrabold text-neutral-800 text-center">
-              HI, {user?.name?.toUpperCase() || user?.username?.toUpperCase() || 'USER'}
+        <div className="flex flex-col items-center mb-2">
+          <Logo size="md" className="mb-1" />
+          <div className="text-xs text-neutral-500 text-center">ON-DEMAND GASOLINE</div>
+        </div>
+        
+        <div className="flex items-center justify-between mt-4">
+          <div className="flex-1">
+            <h1 className="text-xl font-bold autofill-navy">
+              Hi, {user?.name?.split(' ')[0] || user?.username?.split('@')[0] || 'User'}
             </h1>
-            <div className="flex items-center justify-center text-sm text-orange-500">
+            <div className="flex items-center text-sm autofill-orange">
               <MapPin className="h-4 w-4 mr-1" />
-              <span>Main Highway</span>
+              <span>Current Location</span>
               <svg className="h-4 w-4 ml-1" viewBox="0 0 24 24" fill="none">
                 <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
             </div>
           </div>
           <div>
-            <Button variant="ghost" size="icon" className="rounded-full bg-neutral-100 shadow-sm">
-              <DollarSign className="h-5 w-5 text-neutral-800" />
+            <Button variant="ghost" size="icon" className="rounded-full bg-autofill-navy text-white shadow-sm">
+              <DollarSign className="h-5 w-5" />
             </Button>
           </div>
         </div>
@@ -96,7 +91,7 @@ export default function HomePage() {
             <Link href="/vehicles">
               <Button
                 variant="outline"
-                className="w-full my-3 border-orange-500 text-orange-500 hover:bg-orange-50 font-medium py-6"
+                className="w-full my-3 border-secondary autofill-navy hover:bg-slate-50 font-medium py-6"
               >
                 + Add Vehicle/Boat
               </Button>
@@ -109,10 +104,10 @@ export default function HomePage() {
       <div className="px-4 py-6">
         <Link href="/order">
           <Button 
-            className="w-full bg-neutral-200 text-neutral-700 hover:bg-neutral-300 font-bold py-6 text-lg"
+            className="w-full bg-autofill-orange text-white hover:bg-orange-500 font-bold py-6 text-lg shadow-md"
             disabled={!selectedVehicleId}
           >
-            GET YOUR EZFILL
+            ORDER FUEL NOW
           </Button>
         </Link>
       </div>

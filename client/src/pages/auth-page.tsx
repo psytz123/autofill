@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { useAuth } from "@/hooks/use-auth";
 import { Redirect } from "wouter";
 import { Loader2 } from "lucide-react";
+import { Logo } from "@/components/ui/logo";
 import {
   Form,
   FormControl,
@@ -81,8 +82,8 @@ export default function AuthPage() {
       <div className="bg-white p-8 flex items-center justify-center">
         <div className="w-full max-w-md">
           <div className="mb-8 text-center">
-            <h1 className="text-3xl font-bold font-heading text-neutral-800 mb-2">AutoFill</h1>
-            <p className="text-neutral-500">Fuel delivered to your door</p>
+            <Logo size="lg" className="mx-auto mb-3" />
+            <p className="text-neutral-500 text-sm mt-2">ON-DEMAND FUEL DELIVERY</p>
           </div>
 
           <Tabs defaultValue="login" value={activeTab} onValueChange={setActiveTab}>
@@ -124,7 +125,7 @@ export default function AuthPage() {
 
                   <Button 
                     type="submit" 
-                    className="w-full" 
+                    className="w-full bg-autofill-orange text-white hover:bg-orange-500 font-medium shadow-sm" 
                     disabled={loginMutation.isPending}
                   >
                     {loginMutation.isPending ? (
@@ -134,7 +135,7 @@ export default function AuthPage() {
                   </Button>
 
                   <div className="mt-4 text-center">
-                    <Button variant="link" className="text-primary text-sm font-medium">
+                    <Button variant="link" className="autofill-navy text-sm font-medium">
                       Forgot password?
                     </Button>
                   </div>
@@ -203,7 +204,7 @@ export default function AuthPage() {
 
                   <Button 
                     type="submit" 
-                    className="w-full" 
+                    className="w-full bg-autofill-navy text-white hover:bg-blue-900 font-medium shadow-sm" 
                     disabled={registerMutation.isPending}
                   >
                     {registerMutation.isPending ? (
@@ -218,29 +219,30 @@ export default function AuthPage() {
         </div>
       </div>
 
-      <div className="bg-primary-100 hidden md:flex flex-col items-center justify-center p-8 text-center">
+      <div className="bg-autofill-navy hidden md:flex flex-col items-center justify-center p-8 text-center">
         <div className="max-w-md">
-          <h2 className="text-3xl font-bold font-heading mb-4 text-primary-700">Fuel delivery, simplified</h2>
-          <p className="text-primary-600 mb-6">
+          <Logo size="lg" className="mx-auto mb-8" />
+          <h2 className="text-3xl font-bold mb-4 text-white">Fuel delivery, simplified</h2>
+          <p className="text-slate-200 mb-8">
             AutoFill brings the gas station to you. Order fuel directly to your vehicle, 
             anytime, anywhere. Save time and never worry about empty tanks again.
           </p>
           <div className="grid grid-cols-2 gap-4 text-left">
-            <div className="bg-white p-4 rounded-lg shadow-sm">
-              <h3 className="font-medium mb-2">On-demand delivery</h3>
-              <p className="text-sm text-neutral-600">Get fuel delivered to your location in minutes</p>
+            <div className="bg-white/10 backdrop-blur-sm p-4 rounded-lg border border-white/20">
+              <h3 className="font-medium mb-2 text-white">On-demand delivery</h3>
+              <p className="text-sm text-slate-200">Get fuel delivered to your location in minutes</p>
             </div>
-            <div className="bg-white p-4 rounded-lg shadow-sm">
-              <h3 className="font-medium mb-2">Multiple vehicles</h3>
-              <p className="text-sm text-neutral-600">Manage all your vehicles in one place</p>
+            <div className="bg-white/10 backdrop-blur-sm p-4 rounded-lg border border-white/20">
+              <h3 className="font-medium mb-2 text-white">Multiple vehicles</h3>
+              <p className="text-sm text-slate-200">Manage all your vehicles in one place</p>
             </div>
-            <div className="bg-white p-4 rounded-lg shadow-sm">
-              <h3 className="font-medium mb-2">Secure payments</h3>
-              <p className="text-sm text-neutral-600">Pay securely with saved payment methods</p>
+            <div className="bg-white/10 backdrop-blur-sm p-4 rounded-lg border border-white/20">
+              <h3 className="font-medium mb-2 text-white">Secure payments</h3>
+              <p className="text-sm text-slate-200">Pay securely with saved payment methods</p>
             </div>
-            <div className="bg-white p-4 rounded-lg shadow-sm">
-              <h3 className="font-medium mb-2">Real-time tracking</h3>
-              <p className="text-sm text-neutral-600">Track your delivery in real-time on the map</p>
+            <div className="bg-white/10 backdrop-blur-sm p-4 rounded-lg border border-white/20">
+              <h3 className="font-medium mb-2 text-white">Real-time tracking</h3>
+              <p className="text-sm text-slate-200">Track your delivery in real-time on the map</p>
             </div>
           </div>
         </div>
