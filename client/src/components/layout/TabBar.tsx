@@ -1,4 +1,4 @@
-import { Home, PlusCircle, FileText, User, Droplet } from "lucide-react";
+import { Home, FileText, User, Droplet, CreditCard } from "lucide-react";
 import { useLocation, Link } from "wouter";
 
 function TabBar() {

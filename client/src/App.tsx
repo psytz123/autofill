@@ -8,6 +8,8 @@ import OrderPage from "@/pages/order-page";
 import OrdersPage from "@/pages/orders-page";
 import VehiclesPage from "@/pages/vehicles-page";
 import AccountPage from "@/pages/account-page";
+import SubscriptionPage from "@/pages/subscription-page";
+import SubscriptionSuccessPage from "@/pages/subscription-success";
 import { ProtectedRoute } from "./lib/protected-route";
 import TabBar from "./components/layout/TabBar";
 import { useAuth, AuthProvider } from "./hooks/use-auth";
@@ -24,6 +26,8 @@ function AppRouter() {
         <ProtectedRoute path="/orders" component={OrdersPage} />
         <ProtectedRoute path="/vehicles" component={VehiclesPage} />
         <ProtectedRoute path="/account" component={AccountPage} />
+        <ProtectedRoute path="/subscription" component={SubscriptionPage} />
+        <ProtectedRoute path="/subscription-success" component={SubscriptionSuccessPage} />
         <Route component={NotFound} />
       </Switch>
       
