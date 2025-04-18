@@ -6,12 +6,48 @@ import {
   preloadAccountRelated,
   preloadOrderRelated,
 } from "@/lib/preload";
-import { useEffect } from "react";
+import { useEffect, memo, useCallback, useMemo } from "react";
+
+// TabButton component with memo for preventing re-renders
+const TabButton = memo(({ 
+  path, 
+  label, 
+  icon, 
+  color, 
+  isActive, 
+  onHover 
+}: { 
+  path: string; 
+  label: string; 
+  icon: React.ReactNode; 
+  color: string; 
+  isActive: boolean; 
+  onHover: () => void;
+}) => {
+  return (
+    <Link href={path}>
+      <div 
+        className={`h-full w-full flex flex-col items-center justify-center cursor-pointer transition-colors ${isActive ? color : 'text-neutral-500 hover:text-neutral-800'}`}
+        onMouseEnter={onHover}
+      >
+        <div className={`relative ${isActive ? 
+          `after:content-[""] after:absolute after:w-1.5 after:h-1.5 after:rounded-full after:-bottom-1 after:left-1/2 after:-translate-x-1/2 ${color === 'autofill-navy' ? 'after:bg-autofill-navy' : 'after:bg-autofill-orange'}` 
+          : ''}`}>
+          {icon}
+        </div>
+        <span className="text-xs mt-1.5 font-medium text-center w-full px-1 truncate">{label}</span>
+      </div>
+    </Link>
+  );
+});
+
+// Add display name for debugging
+TabButton.displayName = 'TabButton';
 
 function TabBar() {
   const [location] = useLocation();
 
-  // Preload all main navigation components when the TabBar loads
+  // Preload all main navigation components when the TabBar loads - using useCallback to avoid recreating function
   useEffect(() => {
     // Small delay to let the initial render complete
     const timer = setTimeout(() => {
@@ -21,61 +57,59 @@ function TabBar() {
     return () => clearTimeout(timer);
   }, []);
 
-  const isActive = (path: string) => {
+  // Memoize the isActive function to prevent recreation on each render
+  const isActive = useCallback((path: string) => {
     return location === path;
-  };
+  }, [location]);
   
-  // Preload components on hover for better performance
-  const handleHoverHome = () => {
+  // Memoize hover handlers to prevent recreating functions on each render
+  const handleHoverHome = useCallback(() => {
     preloadComponent(() => import('@/pages/home-page'));
-  };
+  }, []);
   
-  const handleHoverOrder = () => {
+  const handleHoverOrder = useCallback(() => {
     preloadComponent(() => import('@/pages/order-page'));
-  };
+  }, []);
   
-  const handleHoverOrders = () => {
+  const handleHoverOrders = useCallback(() => {
     preloadOrderRelated();
-  };
+  }, []);
   
-  const handleHoverSubscription = () => {
+  const handleHoverSubscription = useCallback(() => {
     preloadComponent(() => import('@/pages/subscription-page'));
-  };
+  }, []);
   
-  const handleHoverAccount = () => {
+  const handleHoverAccount = useCallback(() => {
     preloadAccountRelated();
-  };
+  }, []);
 
-  // Define tab button data for consistency
-  const tabButtons = [
+  // Memoize tab button data so it doesn't get recreated on each render
+  const tabButtons = useMemo(() => [
     { path: '/', label: 'Home', icon: <Home className="h-6 w-6" />, color: 'autofill-navy', onHover: handleHoverHome },
     { path: '/order', label: 'Order', icon: <Droplet className="h-6 w-6" />, color: 'autofill-orange', onHover: handleHoverOrder },
     { path: '/orders', label: 'My Orders', icon: <FileText className="h-6 w-6" />, color: 'autofill-navy', onHover: handleHoverOrders },
     { path: '/subscription', label: 'Plans', icon: <CreditCard className="h-6 w-6" />, color: 'autofill-orange', onHover: handleHoverSubscription },
     { path: '/account', label: 'Account', icon: <User className="h-6 w-6" />, color: 'autofill-navy', onHover: handleHoverAccount }
-  ];
+  ], [handleHoverHome, handleHoverOrder, handleHoverOrders, handleHoverSubscription, handleHoverAccount]);
 
   return (
     <nav className="bg-white border-t border-neutral-200 shadow-lg fixed bottom-0 left-0 right-0 h-20 z-50">
       <div className="grid grid-cols-5 h-full max-w-screen-lg mx-auto">
         {tabButtons.map((tab) => (
-          <Link href={tab.path} key={tab.path}>
-            <div 
-              className={`h-full w-full flex flex-col items-center justify-center cursor-pointer transition-colors ${isActive(tab.path) ? tab.color : 'text-neutral-500 hover:text-neutral-800'}`}
-              onMouseEnter={tab.onHover}
-            >
-              <div className={`relative ${isActive(tab.path) ? 
-                `after:content-[""] after:absolute after:w-1.5 after:h-1.5 after:rounded-full after:-bottom-1 after:left-1/2 after:-translate-x-1/2 ${tab.color === 'autofill-navy' ? 'after:bg-autofill-navy' : 'after:bg-autofill-orange'}` 
-                : ''}`}>
-                {tab.icon}
-              </div>
-              <span className="text-xs mt-1.5 font-medium text-center w-full px-1 truncate">{tab.label}</span>
-            </div>
-          </Link>
+          <TabButton 
+            key={tab.path}
+            path={tab.path}
+            label={tab.label}
+            icon={tab.icon}
+            color={tab.color}
+            isActive={isActive(tab.path)}
+            onHover={tab.onHover}
+          />
         ))}
       </div>
     </nav>
   );
 }
 
-export default TabBar;
+// Memoize the entire TabBar component to prevent unnecessary renders when parent components update
+export default memo(TabBar);
