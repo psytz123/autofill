@@ -19,11 +19,7 @@ export default function PaymentMethodsPage() {
   const { toast } = useToast();
   const [addingPayment, setAddingPayment] = useState(false);
   
-  // Redirect if not authenticated
-  if (!user) {
-    setLocation('/auth');
-    return null;
-  }
+  // We don't need to manually redirect because ProtectedRoute will handle authentication
   
   // Fetch payment methods
   const { 

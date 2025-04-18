@@ -128,29 +128,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/payment-methods", isAuthenticated, async (req, res) => {
     try {
-      // Simplified payment method creation - in production use a payment processor
-      const cardNumber = req.body.cardNumber;
-      const last4 = cardNumber.slice(-4);
-      let cardType = "unknown";
+      console.log("Payment method creation request:", req.body);
       
-      if (cardNumber.startsWith("4")) {
-        cardType = "visa";
-      } else if (cardNumber.startsWith("5")) {
-        cardType = "mastercard";
-      } else if (cardNumber.startsWith("3")) {
-        cardType = "amex";
-      }
-      
+      // Use the payment method data sent from the client
       const data = insertPaymentMethodSchema.parse({
         userId: req.user!.id,
-        type: cardType,
-        last4,
-        expiry: req.body.expiryDate
+        type: req.body.type,
+        last4: req.body.last4,
+        expiry: req.body.expiry,
+        cardHolder: req.body.cardHolder
       });
+      
+      console.log("Parsed payment method data:", data);
       
       const paymentMethod = await storage.createPaymentMethod(data);
       res.status(201).json(paymentMethod);
     } catch (error) {
+      console.error("Payment method creation error:", error);
       if (error instanceof z.ZodError) {
         return res.status(400).json({ errors: error.errors });
       }

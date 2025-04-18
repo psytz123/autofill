@@ -8,6 +8,7 @@ import OrderPage from "@/pages/order-page";
 import OrdersPage from "@/pages/orders-page";
 import VehiclesPage from "@/pages/vehicles-page";
 import AccountPage from "@/pages/account-page";
+import PaymentMethodsPage from "@/pages/payment-methods-page";
 import SubscriptionPage from "@/pages/subscription-page";
 import SubscriptionSuccessPage from "@/pages/subscription-success";
 import { ProtectedRoute } from "./lib/protected-route";
@@ -26,6 +27,7 @@ function AppRouter() {
         <ProtectedRoute path="/orders" component={OrdersPage} />
         <ProtectedRoute path="/vehicles" component={VehiclesPage} />
         <ProtectedRoute path="/account" component={AccountPage} />
+        <ProtectedRoute path="/payment-methods" component={PaymentMethodsPage} />
         <ProtectedRoute path="/subscription" component={SubscriptionPage} />
         <ProtectedRoute path="/subscription-success" component={SubscriptionSuccessPage} />
         <Route component={NotFound} />
