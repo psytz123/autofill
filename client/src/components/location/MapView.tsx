@@ -68,16 +68,16 @@ export default function MapView({
                 setAddress(newAddress);
                 
                 // Create a new location and notify parent
-                const newLocation: Location = {
+                const newLocation: Partial<Location> = {
                   id: -1, // Temporary ID
                   userId: -1, // Will be set by backend
                   name: "Current Location",
                   address: newAddress,
                   type: LocationType.OTHER,
-                  coordinates: currentLocation,
-                  createdAt: new Date()
+                  coordinates: currentLocation
+                  // createdAt will be set by the server
                 };
-                onLocationSelect(newLocation);
+                onLocationSelect(newLocation as Location);
               }
             });
           }
@@ -115,16 +115,16 @@ export default function MapView({
           }
           
           // Create a new location and notify parent
-          const newLocation: Location = {
+          const newLocation: Partial<Location> = {
             id: -1, // Temporary ID
             userId: -1, // Will be set by backend
             name: "Selected Location",
             address: initialAddress,
             type: LocationType.HOME,
-            coordinates: position,
-            createdAt: new Date().toISOString()
+            coordinates: position
+            // createdAt will be set by the server
           };
-          onLocationSelect(newLocation);
+          onLocationSelect(newLocation as Location);
         }
       });
     }
@@ -147,16 +147,16 @@ export default function MapView({
             setAddress(newAddress);
             
             // Create a new location and notify parent
-            const newLocation: Location = {
+            const newLocation: Partial<Location> = {
               id: -1, // Temporary ID
               userId: -1, // Will be set by backend
               name: "Selected Location",
               address: newAddress,
               type: LocationType.HOME,
-              coordinates: clickedPos,
-              createdAt: new Date().toISOString()
+              coordinates: clickedPos
+              // createdAt will be set by the server
             };
-            onLocationSelect(newLocation);
+            onLocationSelect(newLocation as Location);
           }
         });
       }

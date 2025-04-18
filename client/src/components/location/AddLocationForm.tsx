@@ -12,6 +12,7 @@ import { LocationType, insertLocationSchema } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useMutation } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
+import MapView from "./MapView";
 
 // Extend the location schema but adjust the coordinates to match our form needs
 const locationFormSchema = z.object({
@@ -159,14 +160,20 @@ export default function AddLocationForm({ onSuccess, initialData }: AddLocationF
           )}
         />
 
-        {/* Map Placeholder */}
-        <Card className="w-full h-40 bg-neutral-100 flex items-center justify-center">
-          <div className="text-center text-neutral-500">
-            <MapPin className="h-6 w-6 mx-auto mb-1" />
-            <p className="text-sm">Map view will be shown here</p>
-            <p className="text-xs">Tap to select precise location</p>
-          </div>
-        </Card>
+        {/* Interactive Map */}
+        <div className="w-full h-48">
+          <MapView 
+            selectedLocation={null} 
+            onLocationSelect={(location) => {
+              // Update form values with the selected location
+              form.setValue("address", location.address);
+              setMapCoordinates(location.coordinates);
+              form.setValue("coordinatesStr", JSON.stringify(location.coordinates));
+            }}
+            initialAddress={form.watch("address")}
+            className="w-full h-full"
+          />
+        </div>
 
         <div className="flex space-x-3 pt-4">
           <Button
