@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { Card } from "@/components/ui/card";
 import { MapPin, Loader2 } from "lucide-react";
-import { Location, LocationType } from "@shared/schema";
+import { Location as LocationModel, LocationType } from "@shared/schema";
 import { GoogleMap, useJsApiLoader, Marker } from "@react-google-maps/api";
 
 const mapContainerStyle = {
@@ -10,8 +10,8 @@ const mapContainerStyle = {
 };
 
 interface MapViewProps {
-  selectedLocation: Location | null;
-  onLocationSelect: (location: Location) => void;
+  selectedLocation: LocationModel | null;
+  onLocationSelect: (location: LocationModel) => void;
   className?: string;
   initialAddress?: string;
 }
@@ -68,7 +68,7 @@ export default function MapView({
                 setAddress(newAddress);
                 
                 // Create a new location and notify parent
-                const newLocation: Partial<Location> = {
+                const newLocation: Partial<LocationModel> = {
                   id: -1, // Temporary ID
                   userId: -1, // Will be set by backend
                   name: "Current Location",
@@ -77,7 +77,7 @@ export default function MapView({
                   coordinates: currentLocation
                   // createdAt will be set by the server
                 };
-                onLocationSelect(newLocation as Location);
+                onLocationSelect(newLocation as LocationModel);
               }
             });
           }
@@ -115,7 +115,7 @@ export default function MapView({
           }
           
           // Create a new location and notify parent
-          const newLocation: Partial<Location> = {
+          const newLocation: Partial<LocationModel> = {
             id: -1, // Temporary ID
             userId: -1, // Will be set by backend
             name: "Selected Location",
@@ -124,7 +124,7 @@ export default function MapView({
             coordinates: position
             // createdAt will be set by the server
           };
-          onLocationSelect(newLocation as Location);
+          onLocationSelect(newLocation as LocationModel);
         }
       });
     }
@@ -147,7 +147,7 @@ export default function MapView({
             setAddress(newAddress);
             
             // Create a new location and notify parent
-            const newLocation: Partial<Location> = {
+            const newLocation: Partial<LocationModel> = {
               id: -1, // Temporary ID
               userId: -1, // Will be set by backend
               name: "Selected Location",
@@ -156,7 +156,7 @@ export default function MapView({
               coordinates: clickedPos
               // createdAt will be set by the server
             };
-            onLocationSelect(newLocation as Location);
+            onLocationSelect(newLocation as LocationModel);
           }
         });
       }

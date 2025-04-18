@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Home, Briefcase, MapPin } from "lucide-react";
-import { LocationType, insertLocationSchema } from "@shared/schema";
+import { LocationType, insertLocationSchema, Location as LocationModel } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useMutation } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
@@ -164,7 +164,7 @@ export default function AddLocationForm({ onSuccess, initialData }: AddLocationF
         <div className="w-full h-48">
           <MapView 
             selectedLocation={null} 
-            onLocationSelect={(location) => {
+            onLocationSelect={(location: LocationModel) => {
               // Update form values with the selected location
               form.setValue("address", location.address);
               setMapCoordinates(location.coordinates);
