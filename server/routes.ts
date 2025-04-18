@@ -7,6 +7,7 @@ import { registerAdminRoutes } from "./admin-routes";
 import { storage } from "./storage";
 import { z } from "zod";
 import Stripe from "stripe";
+import { getFuelPrices } from "./fuel-api";
 import { 
   insertUserSchema, 
   insertVehicleSchema, 
@@ -37,6 +38,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Register admin routes
   registerAdminRoutes(app);
+  
+  // Fuel Prices API
+  app.get("/api/fuel-prices", async (req, res) => {
+    try {
+      const stateCode = req.query.state as string || "FL";
+      const prices = await getFuelPrices(stateCode);
+      res.json(prices);
+    } catch (error) {
+      console.error("Error fetching fuel prices:", error);
+      res.status(500).json({ message: "Failed to fetch fuel prices" });
+    }
+  });
 
   // Vehicles API
   app.get("/api/vehicles", isAuthenticated, async (req, res) => {

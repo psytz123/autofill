@@ -1,5 +1,7 @@
 import { FuelType } from "@shared/schema";
 import { ReactNode } from "react";
+import { apiRequest } from "@/lib/queryClient";
+import { queryClient } from "@/lib/queryClient";
 
 // Fuel option types used across components
 export interface FuelOption {
@@ -8,18 +10,43 @@ export interface FuelOption {
   description: string;
   icon: ReactNode;
   color: string;
-  pricePerGallon: number; // in cents
+  pricePerGallon: number; // in dollars
 }
 
-// Pricing per gallon in cents
-export const FUEL_PRICES = {
-  [FuelType.REGULAR_UNLEADED]: 399, // $3.99/gallon
-  [FuelType.PREMIUM_UNLEADED]: 459, // $4.59/gallon
-  [FuelType.DIESEL]: 429, // $4.29/gallon
+// Default pricing in case API fails
+const DEFAULT_FUEL_PRICES = {
+  [FuelType.REGULAR_UNLEADED]: 3.49, 
+  [FuelType.PREMIUM_UNLEADED]: 3.99,
+  [FuelType.DIESEL]: 3.79,
 };
 
-// Delivery fee in cents
-export const BASE_DELIVERY_FEE = 599; // $5.99
+// Exported current prices - this will be updated via API
+export const FUEL_PRICES = { ...DEFAULT_FUEL_PRICES };
+
+// Function to fetch current fuel prices from the API
+export async function fetchCurrentFuelPrices(stateCode = "FL"): Promise<Record<FuelType, number>> {
+  try {
+    const response = await apiRequest("GET", `/api/fuel-prices?state=${stateCode}`);
+    const prices = await response.json();
+    
+    // Update the exported FUEL_PRICES object with current values
+    Object.assign(FUEL_PRICES, prices);
+    
+    // Invalidate queries that depend on fuel prices
+    queryClient.invalidateQueries({ queryKey: ["fuelPrices"] });
+    
+    return prices;
+  } catch (error) {
+    console.error("Error fetching fuel prices:", error);
+    return DEFAULT_FUEL_PRICES;
+  }
+}
+
+// Initialize fuel prices on module load
+fetchCurrentFuelPrices().catch(console.error);
+
+// Delivery fee in dollars
+export const BASE_DELIVERY_FEE = 5.99;
 
 // Default tank capacities by fuel type (in gallons)
 export const DEFAULT_TANK_CAPACITY = {
@@ -47,9 +74,9 @@ export function calculateTotalPrice(fuelType: FuelType, amount: number, includeD
   return includeDeliveryFee ? fuelCost + BASE_DELIVERY_FEE : fuelCost;
 }
 
-// Format price in cents to dollars with 2 decimal places
-export function formatPrice(priceInCents: number): string {
-  return (priceInCents / 100).toFixed(2);
+// Format price to display with dollar sign and 2 decimal places
+export function formatPrice(price: number): string {
+  return `$${price.toFixed(2)}`;
 }
 
 // Estimate tank capacity based on vehicle information

@@ -8,6 +8,7 @@ import VehicleCard from "@/components/vehicles/VehicleCard";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { Logo } from "@/components/ui/logo";
+import FuelPricesDisplay from "@/components/fuel/FuelPricesDisplay";
 
 export default function HomePage() {
   const { user } = useAuth();
@@ -62,8 +63,13 @@ export default function HomePage() {
         </div>
       </header>
       
+      {/* Real-time Fuel Prices Display */}
+      <section className="px-4 pt-4 bg-white">
+        <FuelPricesDisplay />
+      </section>
+      
       {/* Vehicle Selection - Main Content */}
-      <section className="px-4 py-4 bg-white flex-1 overflow-y-auto">
+      <section className="px-4 py-2 bg-white flex-1 overflow-y-auto">
         <h2 className="text-xl font-bold autofill-navy mb-4">Which vehicles would you like to fill?</h2>
         
         {vehiclesLoading ? (
