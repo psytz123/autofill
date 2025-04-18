@@ -240,7 +240,7 @@ export default function OrderPage() {
                 
                 <SavedLocationList
                   locations={savedLocations}
-                  selectedLocationId={orderData.location?.id ? String(orderData.location.id) : null}
+                  selectedLocationId={orderData.location?.id ?? null}
                   onLocationSelect={selectLocation}
                   isLoading={locationsLoading}
                   className="mb-4"

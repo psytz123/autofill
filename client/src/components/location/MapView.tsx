@@ -1,10 +1,11 @@
 import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { MapPin, Loader2 } from "lucide-react";
+import { Location, LocationType } from "@shared/schema";
 
 interface MapViewProps {
-  selectedLocation: any;
-  onLocationSelect: (location: any) => void;
+  selectedLocation: Location | null;
+  onLocationSelect: (location: Location) => void;
   className?: string;
 }
 
@@ -30,12 +31,14 @@ export default function MapView({
   const handleMapClick = () => {
     if (currentLocation) {
       // In a real implementation, this would be the selected point on the map
-      const newLocation = {
-        id: 'current-location',
+      const newLocation: Location = {
+        id: 999, // Use a numeric ID to match database schema
+        userId: 1,
         name: 'Current Location',
         address: '123 Market St, San Francisco, CA 94105',
-        type: 'other',
-        coordinates: currentLocation
+        type: LocationType.OTHER,
+        coordinates: currentLocation,
+        createdAt: new Date()
       };
       onLocationSelect(newLocation);
     }

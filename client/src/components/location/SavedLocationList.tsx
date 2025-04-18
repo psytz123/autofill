@@ -6,7 +6,7 @@ import { LocationType, Location } from "@shared/schema";
 
 interface SavedLocationListProps {
   locations: Location[];
-  selectedLocationId: string | null;
+  selectedLocationId: number | null;
   onLocationSelect: (location: Location) => void;
   isLoading?: boolean;
   className?: string;
