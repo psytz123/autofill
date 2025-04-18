@@ -8,6 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import VehicleCard from "@/components/vehicles/VehicleCard";
 import AddVehicleForm from "@/components/vehicles/AddVehicleForm";
 import { Vehicle } from "@shared/schema";
+import { Logo } from "@/components/ui/logo";
 
 export default function VehiclesPage() {
   const [, navigate] = useLocation();
@@ -50,42 +51,44 @@ export default function VehiclesPage() {
   };
 
   return (
-    <div className="h-screen-minus-tab overflow-y-auto">
+    <div className="h-screen-minus-tab overflow-y-auto flex flex-col">
       {/* Toolbar Header */}
       <header className="bg-white shadow-sm">
-        <div className="px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center">
-            <Button variant="ghost" size="icon" className="mr-2" onClick={() => navigate("/")}>
-              <ArrowLeft className="h-6 w-6 text-neutral-700" />
-            </Button>
-            <h1 className="text-xl font-bold font-heading">My Vehicles</h1>
+        <div className="px-4 py-5 flex items-center">
+          <Logo size="sm" className="mr-3" />
+          <div>
+            <h1 className="text-2xl font-bold autofill-navy">My Vehicles</h1>
+            <p className="text-sm text-neutral-500">Manage your cars, boats, and other vehicles</p>
           </div>
+        </div>
+        <div className="px-4 pb-3 flex justify-end">
           <Button
-            variant="ghost"
-            size="icon" 
             onClick={() => {
               setEditingVehicle(null);
               setShowAddForm(true);
             }}
-            className="text-primary"
+            className="bg-autofill-orange text-white hover:bg-orange-500"
+            size="sm"
           >
-            <Plus className="h-6 w-6" />
+            <Plus className="h-4 w-4 mr-1" />
+            Add Vehicle
           </Button>
         </div>
       </header>
 
       {/* Vehicles List */}
-      <div className="p-4">
+      <div className="p-4 flex-1 overflow-y-auto">
         {isLoading ? (
           <div className="text-center py-8">
             <p className="text-neutral-500">Loading vehicles...</p>
           </div>
         ) : vehicles.length === 0 && !showAddForm ? (
-          <div className="bg-white rounded-xl shadow-sm overflow-hidden border border-neutral-100 mb-4 py-8 text-center">
-            <p className="text-neutral-500 mb-3">You don't have any vehicles yet</p>
+          <div className="bg-white rounded-xl shadow-sm overflow-hidden border border-neutral-100 mb-4 py-10 text-center">
+            <Logo size="sm" className="mx-auto mb-4" />
+            <p className="text-neutral-500 mb-4">You haven't added any vehicles yet</p>
             <Button
               onClick={() => setShowAddForm(true)}
-              className="mx-auto"
+              className="mx-auto bg-autofill-orange text-white hover:bg-orange-500"
             >
               Add Your First Vehicle
             </Button>

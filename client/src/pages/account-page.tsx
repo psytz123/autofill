@@ -16,7 +16,7 @@ export default function AccountPage() {
   const { toast } = useToast();
   const [addingPayment, setAddingPayment] = useState(false);
   
-  const { data: paymentMethods = [], isLoading: paymentsLoading } = useQuery({
+  const { data: paymentMethods = [], isLoading: paymentsLoading } = useQuery<any[]>({
     queryKey: ['/api/payment-methods'],
     queryFn: getQueryFn({ on401: "throw" }),
   });
@@ -90,7 +90,7 @@ export default function AccountPage() {
               </div>
             ) : (
               <div className="space-y-3 mb-3">
-                {paymentMethods.map(method => (
+                {paymentMethods.map((method: any) => (
                   <PaymentMethodCard
                     key={method.id}
                     paymentMethod={method}

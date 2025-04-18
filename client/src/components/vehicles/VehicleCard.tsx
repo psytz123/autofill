@@ -81,14 +81,32 @@ export default function VehicleCard({
               <div className={`rounded-md py-1 px-3 text-sm font-medium ${getFuelTypeBackground(vehicle.fuelType)}`}>
                 {getFuelTypeLabel(vehicle.fuelType)}
               </div>
-              <div className="font-medium">$4.06</div>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="p-0 h-auto ml-auto text-neutral-500"
-              >
-                <ChevronDown className="h-5 w-5" />
-              </Button>
+              {showActions && (
+                <div className="flex gap-2 ml-auto">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (onEdit) onEdit();
+                    }}
+                    className="h-8 text-sm py-0 px-2 border-autofill-navy text-autofill-navy"
+                  >
+                    Edit
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShowDeleteDialog(true);
+                    }}
+                    className="h-8 text-sm py-0 px-2 border-destructive text-destructive"
+                  >
+                    Delete
+                  </Button>
+                </div>
+              )}
             </div>
           </div>
           
