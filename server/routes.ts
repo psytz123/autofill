@@ -2,6 +2,8 @@ import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
 import { WebSocketServer, WebSocket } from "ws";
 import { setupAuth } from "./auth";
+import { setupAdminAuth } from "./admin-auth";
+import { registerAdminRoutes } from "./admin-routes";
 import { storage } from "./storage";
 import { z } from "zod";
 import Stripe from "stripe";
@@ -29,6 +31,12 @@ function isAuthenticated(req: Request, res: Response, next: Function) {
 export async function registerRoutes(app: Express): Promise<Server> {
   // Setup authentication routes
   setupAuth(app);
+  
+  // Setup admin authentication
+  setupAdminAuth(app);
+  
+  // Register admin routes
+  registerAdminRoutes(app);
 
   // Vehicles API
   app.get("/api/vehicles", isAuthenticated, async (req, res) => {
