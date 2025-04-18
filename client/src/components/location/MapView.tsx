@@ -1,82 +1,237 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Card } from "@/components/ui/card";
 import { MapPin, Loader2 } from "lucide-react";
 import { Location, LocationType } from "@shared/schema";
+import { GoogleMap, useJsApiLoader, Marker } from "@react-google-maps/api";
+
+const mapContainerStyle = {
+  width: '100%',
+  height: '100%'
+};
 
 interface MapViewProps {
   selectedLocation: Location | null;
   onLocationSelect: (location: Location) => void;
   className?: string;
+  initialAddress?: string;
 }
 
 export default function MapView({ 
   selectedLocation, 
   onLocationSelect,
-  className = "" 
+  className = "",
+  initialAddress
 }: MapViewProps) {
-  const [isLoading, setIsLoading] = useState(false);
-  const [currentLocation, setCurrentLocation] = useState<{ lat: number, lng: number } | null>(null);
-  
-  // Simulate fetching user's current location
+  const [markerPosition, setMarkerPosition] = useState<google.maps.LatLngLiteral | null>(
+    selectedLocation?.coordinates || null
+  );
+  const [map, setMap] = useState<google.maps.Map | null>(null);
+  const [geocoder, setGeocoder] = useState<google.maps.Geocoder | null>(null);
+  const [address, setAddress] = useState<string>(selectedLocation?.address || "");
+  const [isGettingLocation, setIsGettingLocation] = useState(false);
+
+  // Load Google Maps API
+  const { isLoaded, loadError } = useJsApiLoader({
+    id: 'google-map-script',
+    googleMapsApiKey: process.env.GOOGLE_MAPS_API_KEY || "",
+  });
+
+  // Initialize geocoder when map is loaded
   useEffect(() => {
-    setIsLoading(true);
-    // In a real app, we would use the Geolocation API
-    setTimeout(() => {
-      // Using San Francisco as a default location
-      setCurrentLocation({ lat: 37.7749, lng: -122.4194 });
-      setIsLoading(false);
-    }, 1000);
-  }, []);
-  
-  const handleMapClick = () => {
-    if (currentLocation) {
-      // In a real implementation, this would be the selected point on the map
-      const newLocation: Location = {
-        id: 999, // Use a numeric ID to match database schema
-        userId: 1,
-        name: 'Current Location',
-        address: '123 Market St, San Francisco, CA 94105',
-        type: LocationType.OTHER,
-        coordinates: currentLocation,
-        createdAt: new Date()
-      };
-      onLocationSelect(newLocation);
+    if (isLoaded && !geocoder) {
+      setGeocoder(new window.google.maps.Geocoder());
     }
-  };
-  
-  return (
-    <Card 
-      className={`relative overflow-hidden ${className}`}
-      onClick={handleMapClick}
-    >
-      {isLoading ? (
+  }, [isLoaded, geocoder]);
+
+  // Get user's current location
+  const getCurrentLocation = useCallback(() => {
+    if (navigator.geolocation) {
+      setIsGettingLocation(true);
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const currentLocation = {
+            lat: position.coords.latitude,
+            lng: position.coords.longitude
+          };
+          setMarkerPosition(currentLocation);
+          
+          // Center map on current location
+          if (map) {
+            map.panTo(currentLocation);
+          }
+          
+          // Reverse geocode to get address
+          if (geocoder) {
+            geocoder.geocode({ location: currentLocation }, (results, status) => {
+              if (status === "OK" && results && results[0]) {
+                const newAddress = results[0].formatted_address;
+                setAddress(newAddress);
+                
+                // Create a new location and notify parent
+                const newLocation: Location = {
+                  id: -1, // Temporary ID
+                  userId: -1, // Will be set by backend
+                  name: "Current Location",
+                  address: newAddress,
+                  type: LocationType.OTHER,
+                  coordinates: currentLocation,
+                  createdAt: new Date().toISOString()
+                };
+                onLocationSelect(newLocation);
+              }
+            });
+          }
+          setIsGettingLocation(false);
+        },
+        (error) => {
+          console.error("Error getting current location:", error);
+          setIsGettingLocation(false);
+        }
+      );
+    }
+  }, [map, geocoder, onLocationSelect]);
+
+  // Set default location if no selected location
+  useEffect(() => {
+    if (isLoaded && !markerPosition) {
+      // Default to San Francisco if no location is provided
+      setMarkerPosition({ lat: 37.7749, lng: -122.4194 });
+    }
+  }, [isLoaded, markerPosition]);
+
+  // Geocode initial address when provided
+  useEffect(() => {
+    if (geocoder && initialAddress && initialAddress !== address) {
+      geocoder.geocode({ address: initialAddress }, (results, status) => {
+        if (status === "OK" && results && results[0]) {
+          const location = results[0].geometry.location;
+          const position = { lat: location.lat(), lng: location.lng() };
+          setMarkerPosition(position);
+          setAddress(initialAddress);
+          
+          // Center map on geocoded location
+          if (map) {
+            map.panTo(position);
+          }
+          
+          // Create a new location and notify parent
+          const newLocation: Location = {
+            id: -1, // Temporary ID
+            userId: -1, // Will be set by backend
+            name: "Selected Location",
+            address: initialAddress,
+            type: LocationType.HOME,
+            coordinates: position,
+            createdAt: new Date().toISOString()
+          };
+          onLocationSelect(newLocation);
+        }
+      });
+    }
+  }, [geocoder, initialAddress, address, map, onLocationSelect]);
+
+  // Handle map click
+  const onMapClick = useCallback((e: google.maps.MapMouseEvent) => {
+    if (e.latLng) {
+      const clickedPos = {
+        lat: e.latLng.lat(),
+        lng: e.latLng.lng()
+      };
+      setMarkerPosition(clickedPos);
+      
+      // Reverse geocode to get address
+      if (geocoder) {
+        geocoder.geocode({ location: clickedPos }, (results, status) => {
+          if (status === "OK" && results && results[0]) {
+            const newAddress = results[0].formatted_address;
+            setAddress(newAddress);
+            
+            // Create a new location and notify parent
+            const newLocation: Location = {
+              id: -1, // Temporary ID
+              userId: -1, // Will be set by backend
+              name: "Selected Location",
+              address: newAddress,
+              type: LocationType.HOME,
+              coordinates: clickedPos,
+              createdAt: new Date().toISOString()
+            };
+            onLocationSelect(newLocation);
+          }
+        });
+      }
+    }
+  }, [geocoder, onLocationSelect]);
+
+  // Set up map when loaded
+  const onMapLoad = useCallback((map: google.maps.Map) => {
+    setMap(map);
+    // Try to get user's current location when map loads
+    getCurrentLocation();
+  }, [getCurrentLocation]);
+
+  // Clean up map on unmount
+  const onUnmount = useCallback(() => {
+    setMap(null);
+  }, []);
+
+  if (loadError) {
+    return (
+      <Card className={`relative overflow-hidden ${className}`}>
+        <div className="absolute inset-0 flex items-center justify-center bg-neutral-100">
+          <div className="text-center text-red-500">
+            <MapPin className="h-8 w-8 mx-auto mb-2" />
+            <p>Error loading map</p>
+            <p className="text-xs">Please check your internet connection</p>
+          </div>
+        </div>
+      </Card>
+    );
+  }
+
+  if (!isLoaded || isGettingLocation) {
+    return (
+      <Card className={`relative overflow-hidden ${className}`}>
         <div className="absolute inset-0 flex items-center justify-center bg-neutral-100">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
-      ) : (
-        <>
-          {/* Map Placeholder - Would be replaced with actual map in production */}
-          <div className="absolute inset-0 bg-neutral-100">
-            <div className="p-2 text-xs bg-white absolute bottom-2 left-2 rounded shadow-sm">
-              Map view (simulated)
-            </div>
-            
-            {/* Location pin */}
-            <div className="absolute inset-0 flex items-center justify-center">
-              <div className="relative">
-                <MapPin className="h-8 w-8 text-primary" />
-                <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 translate-y-1/2 w-4 h-4 bg-primary rounded-full border-2 border-white" />
-              </div>
-            </div>
-            
-            {selectedLocation && (
-              <div className="absolute bottom-4 right-4 bg-white p-2 rounded-lg shadow-md">
-                <p className="text-sm font-medium">{selectedLocation.name}</p>
-                <p className="text-xs text-neutral-500 truncate max-w-[150px]">{selectedLocation.address}</p>
-              </div>
-            )}
-          </div>
-        </>
+      </Card>
+    );
+  }
+
+  return (
+    <Card className={`relative overflow-hidden ${className}`}>
+      <div className="absolute inset-0">
+        <GoogleMap
+          mapContainerStyle={mapContainerStyle}
+          center={markerPosition || { lat: 37.7749, lng: -122.4194 }}
+          zoom={15}
+          onClick={onMapClick}
+          onLoad={onMapLoad}
+          onUnmount={onUnmount}
+          options={{
+            fullscreenControl: false,
+            streetViewControl: false,
+            mapTypeControl: false,
+            zoomControl: true,
+          }}
+        >
+          {markerPosition && (
+            <Marker
+              position={markerPosition}
+              animation={google.maps.Animation.DROP}
+            />
+          )}
+        </GoogleMap>
+      </div>
+      
+      {address && (
+        <div className="absolute bottom-2 left-2 right-2 bg-white bg-opacity-90 p-2 rounded-md shadow-md">
+          <p className="text-sm font-medium truncate">{address}</p>
+          <p className="text-xs text-gray-500">
+            {markerPosition && `Lat: ${markerPosition.lat.toFixed(4)}, Lng: ${markerPosition.lng.toFixed(4)}`}
+          </p>
+        </div>
       )}
     </Card>
   );
