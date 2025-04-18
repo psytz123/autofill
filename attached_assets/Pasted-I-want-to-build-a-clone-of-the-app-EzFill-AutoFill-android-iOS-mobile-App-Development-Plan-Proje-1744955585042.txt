@@ -1,0 +1,232 @@
+I want to build a clone of the app EzFill
+
+AutoFill android & iOS mobile App Development Plan
+
+Project Goal: Develop a production-ready, native android & iOS application for AutoFill using SwiftUI, adhering to modern development practices (MVVM, Combine, async/await), providing a seamless user experience for on-demand fuel ordering and delivery tracking, while ensuring security, performance, and scalability.
+
+App Architecture (MVVM + SwiftUI + Combine)
+Pattern: Model-View-ViewModel (MVVM)
+
+Model: Represents data structures (e.g., User, Vehicle, Order, FuelType). Plain Swift structs/classes, often Codable for API interaction. Resides in Models directory.
+
+View: SwiftUI Views (struct conforming to View). Responsible for layout, presentation, and user interaction forwarding. Declares dependencies on ViewModels. Resides in Views directory, potentially grouped by feature.
+
+ViewModel: ObservableObject classes. Contain presentation logic, state management (@Published properties), and interact with Services/Repositories. Expose data formatted for the View and handle user actions relayed from the View. Resides in ViewModels directory, often mirroring the View structure.
+
+UI Framework: SwiftUI. Used for all UI components, leveraging its declarative nature, state management (@State, @StateObject, @ObservedObject, @EnvironmentObject), and composition capabilities.
+
+Reactive Programming: Combine Framework. Used extensively within ViewModels to handle asynchronous operations (network requests, data persistence), bind data to UI elements (@Published properties), and manage complex event flows. async/await will be preferred for cleaner asynchronous code where applicable, often bridged with Combine where necessary (e.g., using .values on Publishers).
+
+Modularity & Reusability:
+
+Break down complex views into smaller, reusable SwiftUI components (e.g., VehicleCard, MapView, OrderSummaryRow). Reside in Views/Components.
+
+Abstract business logic and data fetching into reusable Service or Repository layers.
+
+Clean Code & Best Practices: Adhere to Swift style guides (e.g., Swift API Design Guidelines), SOLID principles where applicable, clear naming conventions, and minimize code duplication.
+
+Key Features Implementation Details
+a. Authentication:
+
+UI: SwiftUI Views for Login (Email/Phone + Password), Signup (Email/Phone + Password + Confirmation), Profile Management (View/Edit), Password Reset (Request + Confirmation Code + New Password).
+ViewModel: AuthViewModel managing state (credentials, loading, errors, loggedIn status). Uses AuthService.
+Service: AuthService protocol/implementation handling API calls (login, signup, reset, fetch profile). Uses a NetworkService.
+Security: Securely store authentication tokens (e.g., JWT) in Keychain. Implement token refresh logic. Use HTTPS for all API communication.
+b. Vehicle Management:
+
+UI: VehicleListView displaying user's vehicles. AddEditVehicleView form (Make, Model, Year dropdowns/pickers, Fuel Type selection, License Plate input). Delete confirmation alerts.
+ViewModel: VehicleListViewModel fetching/displaying vehicles. AddEditVehicleViewModel handling form input, validation, and saving/updating via VehicleService.
+Model: Vehicle struct (Codable).
+Service: VehicleService handling CRUD operations via API calls.
+License Plate Verification: Input validation (format mask). If deeper verification needed, requires an external API or backend check against relevant databases.
+c. Ordering System:
+
+UI: Multi-step ordering flow (Location -> Vehicle -> Fuel/Amount -> Schedule -> Confirmation). OrderHistoryView listing past orders. OrderDetailView.
+ViewModel: OrderCreationViewModel managing state across steps. OrderHistoryViewModel fetching past orders.
+Model: Order struct (Codable), FuelType enum/struct.
+Service: OrderService handling order creation, fetching history, fetching real-time pricing based on location/fuel type via API. PricingService potentially separate.
+Scheduling: Use DatePicker for future deliveries. Backend handles scheduling logic.
+d. Location Services:
+
+Frameworks: CoreLocation (requesting permissions, fetching current location). MapKit (displaying MKMapView via UIViewRepresentable or potentially native SwiftUI Map in android & iOS 16+ if appropriate).
+UI: Interactive map for selecting/confirming delivery location (pin drop). Display driver location updates.
+ViewModel: Manages location permissions state, current coordinate, updates map annotations. Uses LocationService.
+Service: LocationService wrapping CLLocationManager logic, providing Combine publishers or async streams for location updates. GeocodingService (using CLGeocoder or external API like Mapbox/Google) for address lookup/validation. GeoFenceService (backend) checking if coordinates are within defined service areas.
+e. Payment Integration:
+
+SDK: Stripe android & iOS SDK is recommended. Handles UI for adding cards securely, tokenization, and processing payments. Supports Apple Pay (PassKit).
+UI: PaymentMethodsView (list, add, select default). Payment sheet presentation during checkout. TransactionHistoryView.
+ViewModel: PaymentViewModel interacting with Stripe SDK and backend PaymentService to save payment methods, create payment intents, and confirm payments.
+Service: PaymentService (backend interaction) for creating payment intents, saving Stripe customer/payment method IDs, fetching transaction history.
+Security: Client app never handles raw card details directly; relies on Stripe SDK tokenization. Backend handles payment processing securely.
+f. Real-time Features:
+
+WebSockets: Use URLSessionWebSocketTask or a library like Starscream/Socket.IO-Client-Swift to establish a WebSocket connection with the backend.
+ViewModel: Subscribes to WebSocket messages for specific orders (status changes, driver location updates) and updates @Published properties.
+Push Notifications: Integrate Firebase Cloud Messaging (FCM) via UserNotifications framework. Register device token with backend. Handle incoming notifications (display alerts, update UI).
+UI: Update order status text/indicators, animate driver icon on map, display ETAs dynamically.
+Technical Specifications Compliance
+Swift Version: 5.5+ (required for async/await). Use latest stable Swift version.
+
+Async/Await: Refactor networking calls, asynchronous tasks within ViewModels and Services to use async/await where it simplifies logic compared to complex Combine chains. Use Task { } for launching asynchronous work from synchronous contexts (like button actions).
+
+Offline Capabilities:
+
+Cache read-only data (e.g., user profile, vehicle list, past orders) using Core Data, Realm, or simple Property List/JSON file caching.
+
+Display cached data when offline.
+
+Disable actions requiring network connectivity (e.g., placing new order) and provide clear offline indicators.
+
+Consider queuing order requests made offline for submission when connectivity returns (complex, potentially post-MVP).
+
+Error Handling: Implement robust error handling (see Section 9).
+
+Loading States: Use @State variables in Views or @Published in ViewModels to track loading status. Display ProgressView or placeholder views (e.g., using .redacted(reason: .placeholder)).
+
+Dark/Light Mode: Use adaptive colors (Asset Catalog), system materials, and test thoroughly in both modes. Leverage @Environment(.colorScheme).
+
+Accessibility: Use standard SwiftUI controls, provide accessibility labels, hints, and values. Support Dynamic Type. Test with VoiceOver.
+
+UI/UX Requirements
+Interface: Minimalist design, clear visual hierarchy, ample white space. Focus on ease of use for the primary task (ordering fuel).
+
+Navigation: Use standard SwiftUI navigation (NavigationView, .sheet, .fullScreenCover, TabView if appropriate). Ensure predictable back navigation.
+
+Responsiveness: Test on various iPhone screen sizes and orientations (where applicable). Use adaptive layouts (e.g., GeometryReader, LazyVGrid).
+
+Animations: Use subtle SwiftUI animations (withAnimation, .transition, .matchedGeometryEffect) to enhance user experience, not distract.
+
+Feedback: Provide clear visual feedback for actions (button states, loading indicators, success messages/checkmarks, error alerts).
+
+Branding: Consistently apply AutoFill logo, color palette, and typography.
+
+Integration Requirements
+RESTful API: Implement a NetworkService layer using URLSession with async/await. Define clear API contracts (request/response models matching backend). Base URL configuration for different environments (dev, staging, prod).
+
+WebSocket: Implement a WebSocketService to manage connection lifecycle and message handling (sending/receiving JSON payloads).
+
+Push Notifications: Configure App ID with Push Notification capability. Set up APNs key/certificate in Apple Developer account. Integrate Firebase SDK for FCM, handle token registration/refresh, and implement UNUserNotificationCenterDelegate methods.
+
+Analytics: Integrate Firebase Analytics SDK. Log key events (signup, login, vehicle added, order placed, payment success/failure) with relevant parameters.
+
+Crash Reporting: Integrate Firebase Crashlytics. Ensure dSYMs are uploaded for symbolication.
+
+Performance Monitoring: Integrate Firebase Performance Monitoring to track network request times, app startup, and screen rendering performance.
+
+Security Requirements
+Data Storage: Use Keychain for sensitive data (auth tokens, potentially saved payment method identifiers if not solely managed by Stripe). Avoid storing sensitive info in UserDefaults or plain files.
+
+API Authentication: Send auth token (JWT) in HTTP Authorization header (Bearer scheme) for protected endpoints. Implement token refresh mechanism.
+
+Input Validation: Perform client-side validation (format, required fields) for user input (forms). Crucially, ensure comprehensive server-side validation as client validation can be bypassed.
+
+Payment Handling: Adhere strictly to Stripe SDK integration guidelines to maintain PCI compliance. Never let sensitive card data touch your app/backend directly.
+
+Privacy: Request permissions only when necessary (e.g., location "When In Use"). Clearly state data usage in Privacy Policy. Comply with GDPR/CCPA if applicable.
+
+Data Encryption: Use HTTPS (TLS 1.2+) for all network communication. iOS handles filesystem encryption by default when passcode is set.
+
+Testing Requirements
+Unit Tests (XCTest): Test ViewModels (mocking service dependencies), Services (mocking network layer), utility functions, data transformations. Aim for high code coverage (>70-80%) for core logic.
+
+UI Tests (XCTest): Test critical user flows (login, add vehicle, place order). Use accessibility identifiers for stable element selection. Can be slower and more brittle, focus on essential paths.
+
+Integration Tests: Test interactions between layers (e.g., ViewModel calling real Service with mocked network responses).
+
+Network Mocking: Use libraries like OHHTTPStubs or custom URLProtocol subclasses to mock network responses during tests, ensuring predictable behavior regardless of actual backend status.
+
+Test Coverage: Configure Xcode scheme to gather code coverage data. Regularly review reports.
+
+Project Structure
+AutoFillapp/
+├── App/                   # App entry point, AppDelegate (if needed), SceneDelegate (if needed)
+│   └── AutoFillApp.swift
+├── Core/                  # Core functionalities shared across features
+│   ├── Authentication/    # Auth logic, Keychain wrapper
+│   ├── Networking/        # NetworkService (API calls), WebSocketService
+│   ├── Persistence/       # Caching logic (CoreData, Realm, FileManager)
+│   ├── Location/          # LocationService, Geocoding wrappers
+│   ├── Models/            # Shared data models (User, etc.)
+│   ├── Utilities/         # Helper functions, extensions
+│   └── Components/        # Reusable SwiftUI Views (Buttons, Fields, Cards)
+├── Features/              # Feature-specific modules
+│   ├── Authentication/
+│   │   ├── Views/         # LoginView, SignupView, ProfileView
+│   │   └── ViewModels/    # LoginViewModel, SignupViewModel, ProfileViewModel
+│   ├── Vehicles/
+│   │   ├── Views/         # VehicleListView, AddEditVehicleView
+│   │   ├── ViewModels/    # VehicleListViewModel, AddEditVehicleViewModel
+│   │   └── Models/        # Vehicle struct
+│   ├── Ordering/
+│   │   ├── Views/         # OrderFlowView, OrderHistoryView, OrderDetailView
+│   │   ├── ViewModels/    # OrderCreationViewModel, OrderHistoryViewModel
+│   │   └── Models/        # Order, FuelType structs
+│   ├── MapAndTracking/
+│   │   ├── Views/         # MapContainerView, TrackingView
+│   │   └── ViewModels/    # MapViewModel, TrackingViewModel
+│   └── Settings/
+│       ├── Views/         # SettingsView, PaymentMethodsView
+│       └── ViewModels/    # SettingsViewModel, PaymentViewModel
+├── Resources/             # Assets, Fonts, Plists
+│   ├── Assets.xcassets
+│   └── Info.plist
+├── Tests/                 # Unit and UI Test Targets
+│   ├── AutoFillappTests/
+│   └── AutoFillappUITests/
+└── README.md              # Project documentation
+Dependency Injection: Use constructor injection primarily for ViewModels and Services. Consider a simple manual DI container or environment objects for injecting shared services (@EnvironmentObject). Avoid singletons where possible.
+
+Design Guidelines
+HIG Adherence: Follow Apple's Human Interface Guidelines for layout, navigation, controls, and interaction patterns.
+
+Consistency: Maintain uniform spacing, padding, typography (SF Symbols, system fonts), and component styling throughout the app.
+
+System Components: Prefer standard SwiftUI controls (Button, TextField, List, NavigationLink, etc.) over custom ones unless necessary for branding or specific functionality.
+
+Color Schemes: Define primary, secondary, accent, background, and text colors in the Asset Catalog with variants for Light and Dark Mode.
+
+Contrast: Ensure sufficient color contrast ratios (WCAG AA minimum) for text and interactive elements for accessibility.
+
+Error Handling
+Strategy: Define custom Error enums for different domains (e.g., NetworkError, AuthError, OrderError).
+
+User Feedback: Catch errors in ViewModels. Update state variables (@Published var errorMessage: String?). Display user-friendly messages in SwiftUI Views using .alert or custom error views. Avoid showing raw technical error details.
+
+Network Errors: Handle specific errors like no internet connection (URLError.notConnectedToInternet), timeouts, server errors (5xx), client errors (4xx - especially auth errors 401/403).
+
+Retry Mechanisms: Implement retry logic for transient network errors (e.g., simple retry button, potentially exponential backoff for certain background tasks).
+
+Logging: Log detailed error information (including context, stack traces if available) using OSLog or a remote logging service (like Firebase Crashlytics non-fatal error reporting) for debugging purposes.
+
+Performance Requirements
+Launch Time: Optimize by minimizing work in AppDelegate/App init, deferring non-essential initializations. Aim for < 2 seconds.
+
+Scrolling: Ensure smooth 60fps scrolling in lists (List, ScrollView) by using efficient data loading, view reuse (intrinsic to SwiftUI List), avoiding heavy computations on the main thread, and optimizing image loading/resizing (e.g., using AsyncImage correctly).
+
+Memory: Profile using Instruments (Allocations, Leaks). Avoid retain cycles (especially with Combine subscriptions - use .store(in: &cancellables)). Release resources appropriately.
+
+Battery: Profile using Xcode Energy Impact gauge. Minimize background processing, optimize location updates (desiredAccuracy, distanceFilter, use allowsBackgroundLocationUpdates judiciously), reduce network polling (prefer push/WebSockets).
+
+Caching: Implement caching for network responses (URLCache), images, and frequently accessed data to reduce network load and improve perceived speed.
+
+Network Efficiency: Batch API calls where possible. Request only necessary data fields. Use efficient data formats (JSON).
+
+Deliverables
+Complete Source Code: Well-commented Swift code following the structure outlined above. Includes project files (.xcodeproj, .xcworkspace).
+
+README.md: Detailed instructions for project setup, building, running, environment configuration (API keys, base URLs), and dependencies.
+
+API Integration Documentation: Clear documentation (or reference to backend docs) detailing required API endpoints, request/response formats, and authentication methods used by the app.
+
+Testing Documentation: Overview of testing strategy, instructions for running unit and UI tests, and summary of test coverage.
+
+Build Configuration Files: .xcconfig files for managing build settings across different environments (Debug, Release, Staging).
+
+Asset Files: All required assets (images, icons, fonts) organized in Assets.xcassets and resource folders.
+
+Third-Party Dependency List: List of all external libraries/SDKs used (e.g., Stripe, Firebase SDKs, potentially others) including versions, managed via Swift Package Manager (preferred) or CocoaPods.
+
+Known Issues and Limitations: A document outlining any known bugs, limitations, or areas for future improvement identified during development.
+
+This plan provides a robust technical foundation for building the AutoFill iOS app using modern SwiftUI practices. Adhering to these guidelines will result in a high-quality, maintainable, and scalable application.
