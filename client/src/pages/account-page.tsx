@@ -4,24 +4,11 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ChevronRight } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { queryClient, apiRequest } from "@/lib/queryClient";
+import { queryClient, apiRequest, getQueryFn } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import PaymentMethodCard from "@/components/payment/PaymentMethodCard";
-import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
-import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import { z } from "zod";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-
-const paymentSchema = z.object({
-  cardNumber: z.string().regex(/^\d{16}$/, "Card number must be 16 digits"),
-  cardholderName: z.string().min(3, "Cardholder name is required"),
-  expiryDate: z.string().regex(/^(0[1-9]|1[0-2])\/\d{2}$/, "Expiry date must be in MM/YY format"),
-  cvv: z.string().regex(/^\d{3,4}$/, "CVV must be 3 or 4 digits"),
-});
-
-type PaymentFormValues = z.infer<typeof paymentSchema>;
+import AddPaymentMethodForm from "@/components/payment/AddPaymentMethodForm";
+import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 
 export default function AccountPage() {
   const { user, logoutMutation } = useAuth();
@@ -31,28 +18,6 @@ export default function AccountPage() {
   const { data: paymentMethods = [], isLoading: paymentsLoading } = useQuery({
     queryKey: ['/api/payment-methods'],
     queryFn: getQueryFn({ on401: "throw" }),
-  });
-  
-  const addPaymentMutation = useMutation({
-    mutationFn: async (data: PaymentFormValues) => {
-      const res = await apiRequest("POST", "/api/payment-methods", data);
-      return await res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/payment-methods'] });
-      toast({
-        title: "Payment method added",
-        description: "Your new payment method has been saved",
-      });
-      setAddingPayment(false);
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Failed to add payment method",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
   });
   
   const deletePaymentMutation = useMutation({
@@ -74,20 +39,6 @@ export default function AccountPage() {
       });
     },
   });
-  
-  const form = useForm<PaymentFormValues>({
-    resolver: zodResolver(paymentSchema),
-    defaultValues: {
-      cardNumber: "",
-      cardholderName: "",
-      expiryDate: "",
-      cvv: "",
-    },
-  });
-  
-  const onSubmit = (data: PaymentFormValues) => {
-    addPaymentMutation.mutate(data);
-  };
   
   return (
     <div className="h-screen-minus-tab overflow-y-auto">

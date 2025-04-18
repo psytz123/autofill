@@ -6,13 +6,14 @@ import MapView from "@/components/location/MapView";
 import LocationOption from "@/components/location/LocationOption";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
-import { queryClient, apiRequest } from "@/lib/queryClient";
+import { queryClient, apiRequest, getQueryFn } from "@/lib/queryClient";
 import VehicleCard from "@/components/vehicles/VehicleCard";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { FuelType } from "@shared/schema";
+import StripePayment from "@/components/payment/StripePayment";
 
 const STEPS = [
   { id: "location", title: "Delivery Location" },
@@ -330,49 +331,74 @@ export default function OrderPage() {
                 </div>
               </CardContent>
             </Card>
-            
-            <Card className="mb-4">
-              <CardContent className="p-4">
-                <h3 className="font-medium text-neutral-700 mb-3">Payment Method</h3>
-                
-                <RadioGroup 
-                  value={orderData.paymentMethod?.id} 
-                  onValueChange={(value) => {
-                    const method = paymentMethods.find(m => m.id === value);
-                    if (method) selectPaymentMethod(method);
-                  }}
-                  className="space-y-2"
-                >
-                  {paymentsLoading ? (
-                    <p>Loading payment methods...</p>
-                  ) : paymentMethods.length === 0 ? (
-                    <div className="text-center py-4">
-                      <p className="mb-3 text-neutral-500">You don't have any payment methods</p>
-                      <Button variant="outline" onClick={() => navigate("/account")}>
-                        Add Payment Method
-                      </Button>
-                    </div>
-                  ) : (
-                    paymentMethods.map(method => (
-                      <div key={method.id} className="flex items-center space-x-2 border p-3 rounded-lg">
-                        <RadioGroupItem value={method.id} id={`payment-${method.id}`} />
-                        <Label htmlFor={`payment-${method.id}`} className="flex justify-between w-full">
-                          <div className="flex items-center">
-                            <div className="mr-3">
-                              {method.type === 'visa' && <span className="text-blue-500">Visa</span>}
-                              {method.type === 'mastercard' && <span className="text-red-500">MC</span>}
-                              {method.type === 'amex' && <span className="text-blue-400">Amex</span>}
+
+            {/* Traditional payment method selection */}
+            {paymentMethods.length > 0 && (
+              <Card className="mb-4">
+                <CardContent className="p-4">
+                  <h3 className="font-medium text-neutral-700 mb-3">Saved Payment Methods</h3>
+                  
+                  <RadioGroup 
+                    value={orderData.paymentMethod?.id} 
+                    onValueChange={(value) => {
+                      const method = paymentMethods.find(m => m.id === value);
+                      if (method) selectPaymentMethod(method);
+                    }}
+                    className="space-y-2"
+                  >
+                    {paymentsLoading ? (
+                      <p>Loading payment methods...</p>
+                    ) : (
+                      paymentMethods.map(method => (
+                        <div key={method.id} className="flex items-center space-x-2 border p-3 rounded-lg">
+                          <RadioGroupItem value={method.id} id={`payment-${method.id}`} />
+                          <Label htmlFor={`payment-${method.id}`} className="flex justify-between w-full">
+                            <div className="flex items-center">
+                              <div className="mr-3">
+                                {method.type === 'visa' && <span className="text-blue-500">Visa</span>}
+                                {method.type === 'mastercard' && <span className="text-red-500">MC</span>}
+                                {method.type === 'amex' && <span className="text-blue-400">Amex</span>}
+                              </div>
+                              <span>•••• {method.last4}</span>
                             </div>
-                            <span>•••• {method.last4}</span>
-                          </div>
-                          <span className="text-sm text-neutral-500">Exp: {method.expiry}</span>
-                        </Label>
-                      </div>
-                    ))
-                  )}
-                </RadioGroup>
-              </CardContent>
-            </Card>
+                            <span className="text-sm text-neutral-500">Exp: {method.expiry}</span>
+                          </Label>
+                        </div>
+                      ))
+                    )}
+                  </RadioGroup>
+                </CardContent>
+              </Card>
+            )}
+            
+            {/* Stripe Payment Integration */}
+            <div className="mb-4">
+              <h3 className="font-medium text-neutral-700 mb-3">Pay with Card</h3>
+              <StripePayment 
+                amount={parseFloat((orderData.amount * (orderData.fuelType === "PREMIUM_UNLEADED" ? 4.59 : orderData.fuelType === "DIESEL" ? 4.29 : 3.99)).toFixed(2))}
+                orderId={orderData.vehicle?.id || 1} // Using vehicle ID as a placeholder for now
+                onPaymentSuccess={() => {
+                  // Create a dummy payment method object for the order
+                  selectPaymentMethod({
+                    id: 'stripe-payment',
+                    type: 'credit-card',
+                    last4: '1234'
+                  });
+                  
+                  // Move to next step or submit the order
+                  setTimeout(() => {
+                    createOrderMutation.mutate(orderData);
+                  }, 1000);
+                }}
+              />
+            </div>
+            
+            {/* Link to manage payment methods */}
+            <div className="text-center mt-6">
+              <Button variant="link" onClick={() => navigate("/account")}>
+                Manage Payment Methods
+              </Button>
+            </div>
           </div>
         );
     }
