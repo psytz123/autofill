@@ -9,11 +9,14 @@ import {
   InsertPaymentMethod,
   Location,
   InsertLocation,
+  SubscriptionPlan,
+  InsertSubscriptionPlan,
   users,
   vehicles,
   orders,
   paymentMethods,
-  locations
+  locations,
+  subscriptionPlans
 } from "@shared/schema";
 import session from "express-session";
 import createMemoryStore from "memorystore";
@@ -29,6 +32,7 @@ export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
+  updateUserStripeInfo(userId: number, stripeInfo: { stripeCustomerId?: string, stripeSubscriptionId?: string }): Promise<User>;
   
   // Vehicle operations
   getVehicle(id: number): Promise<Vehicle | undefined>;
@@ -55,6 +59,13 @@ export interface IStorage {
   getLocationsByUserId(userId: number): Promise<Location[]>;
   createLocation(location: InsertLocation): Promise<Location>;
   deleteLocation(id: number): Promise<void>;
+  
+  // Subscription operations
+  getSubscriptionPlan(id: number): Promise<SubscriptionPlan | undefined>;
+  getActiveSubscriptionPlans(): Promise<SubscriptionPlan[]>;
+  createSubscriptionPlan(plan: InsertSubscriptionPlan): Promise<SubscriptionPlan>;
+  updateSubscriptionPlan(id: number, data: Partial<InsertSubscriptionPlan>): Promise<SubscriptionPlan>;
+  getUserSubscriptionPlan(userId: number): Promise<SubscriptionPlan | undefined>;
 }
 
 import connectPg from "connect-pg-simple";
@@ -86,6 +97,23 @@ export class DatabaseStorage implements IStorage {
 
   async createUser(insertUser: InsertUser): Promise<User> {
     const [user] = await db.insert(users).values(insertUser).returning();
+    return user;
+  }
+  
+  async updateUserStripeInfo(userId: number, stripeInfo: { stripeCustomerId?: string, stripeSubscriptionId?: string }): Promise<User> {
+    const [user] = await db
+      .update(users)
+      .set({ 
+        ...stripeInfo,
+        updatedAt: new Date()
+      })
+      .where(eq(users.id, userId))
+      .returning();
+    
+    if (!user) {
+      throw new Error("User not found");
+    }
+    
     return user;
   }
 
@@ -287,6 +315,61 @@ export class DatabaseStorage implements IStorage {
 
   async deleteLocation(id: number): Promise<void> {
     await db.delete(locations).where(eq(locations.id, id));
+  }
+  
+  // Subscription plan methods
+  async getSubscriptionPlan(id: number): Promise<SubscriptionPlan | undefined> {
+    const [plan] = await db.select().from(subscriptionPlans).where(eq(subscriptionPlans.id, id));
+    return plan as SubscriptionPlan;
+  }
+  
+  async getActiveSubscriptionPlans(): Promise<SubscriptionPlan[]> {
+    const plans = await db.select()
+      .from(subscriptionPlans)
+      .where(eq(subscriptionPlans.active, true));
+    return plans as SubscriptionPlan[];
+  }
+  
+  async createSubscriptionPlan(plan: InsertSubscriptionPlan): Promise<SubscriptionPlan> {
+    const [newPlan] = await db.insert(subscriptionPlans).values(plan).returning();
+    return newPlan as SubscriptionPlan;
+  }
+  
+  async updateSubscriptionPlan(id: number, data: Partial<InsertSubscriptionPlan>): Promise<SubscriptionPlan> {
+    const [plan] = await db
+      .update(subscriptionPlans)
+      .set({ 
+        ...data, 
+        updatedAt: new Date() 
+      })
+      .where(eq(subscriptionPlans.id, id))
+      .returning();
+    
+    if (!plan) {
+      throw new Error("Subscription plan not found");
+    }
+    
+    return plan as SubscriptionPlan;
+  }
+  
+  async getUserSubscriptionPlan(userId: number): Promise<SubscriptionPlan | undefined> {
+    // Get the user to check if they have a subscription
+    const [user] = await db.select().from(users).where(eq(users.id, userId));
+    
+    if (!user || !user.stripeSubscriptionId) {
+      return undefined;
+    }
+    
+    // Find all plans
+    const plans = await this.getActiveSubscriptionPlans();
+    
+    // This is a simplified approach. In production, you would query Stripe
+    // to get the exact product/price ID associated with the subscription
+    // and match it with the plans in the database.
+    
+    // For now, we'll return the first active plan as a placeholder
+    // since we don't have the actual Stripe integration yet
+    return plans.length > 0 ? plans[0] : undefined;
   }
 }
 

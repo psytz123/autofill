@@ -27,6 +27,10 @@ export const users = pgTable("users", {
   username: text("username").notNull().unique(),
   password: text("password").notNull(),
   name: text("name").notNull(),
+  // Stripe related fields
+  stripeCustomerId: text("stripe_customer_id"),
+  stripeSubscriptionId: text("stripe_subscription_id"),
+  // Timestamps
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
@@ -147,4 +151,36 @@ export type InsertLocation = z.infer<typeof insertLocationSchema>;
 export type Location = typeof locations.$inferSelect & { 
   coordinates: { lat: number, lng: number },
   type: LocationType
+};
+
+// Subscription Plans
+export enum SubscriptionPlanType {
+  BASIC = "BASIC",        // Regular one-time orders
+  PREMIUM = "PREMIUM",    // Monthly subscription with discounted delivery
+  UNLIMITED = "UNLIMITED" // Monthly subscription with unlimited deliveries
+}
+
+export const subscriptionPlans = pgTable("subscription_plans", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  type: text("type").notNull(),
+  price: integer("price").notNull(), // Price in cents
+  deliveryDiscount: integer("delivery_discount").notNull(), // Percentage discount on delivery fee
+  description: text("description").notNull(),
+  features: jsonb("features").notNull(),
+  stripePriceId: text("stripe_price_id").notNull(),
+  active: boolean("active").notNull().default(true),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const insertSubscriptionPlanSchema = createInsertSchema(subscriptionPlans).extend({
+  type: z.nativeEnum(SubscriptionPlanType),
+  features: z.array(z.string())
+});
+
+export type InsertSubscriptionPlan = z.infer<typeof insertSubscriptionPlanSchema>;
+export type SubscriptionPlan = typeof subscriptionPlans.$inferSelect & {
+  type: SubscriptionPlanType,
+  features: string[]
 };
