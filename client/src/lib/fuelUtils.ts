@@ -55,8 +55,33 @@ export const DEFAULT_TANK_CAPACITY = {
   [FuelType.DIESEL]: 20,
 };
 
-// We'll create the fuel options dynamically in components that use this file
-// to avoid JSX syntax issues in .ts files
+// Create array of fuel options to use across components
+export const FUEL_OPTIONS = [
+  {
+    value: FuelType.REGULAR_UNLEADED,
+    label: "Regular",
+    description: "87 Octane",
+    icon: null, // Icons will be injected by components
+    color: "bg-blue-100",
+    pricePerGallon: FUEL_PRICES[FuelType.REGULAR_UNLEADED]
+  },
+  {
+    value: FuelType.PREMIUM_UNLEADED,
+    label: "Premium", 
+    description: "93 Octane",
+    icon: null,
+    color: "bg-purple-100",
+    pricePerGallon: FUEL_PRICES[FuelType.PREMIUM_UNLEADED]
+  },
+  {
+    value: FuelType.DIESEL,
+    label: "Diesel",
+    description: "Ultra Low Sulfur",
+    icon: null,
+    color: "bg-yellow-100",
+    pricePerGallon: FUEL_PRICES[FuelType.DIESEL]
+  }
+];
 
 // Get the display name with spaces instead of underscores
 export function getFuelTypeDisplayName(fuelType: FuelType): string {
