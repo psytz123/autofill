@@ -52,6 +52,12 @@ function AdminRouter() {
       <AdminProtectedRoute path="/admin/orders" component={AdminOrdersPage} />
       <AdminProtectedRoute path="/admin/drivers" component={AdminDriversPage} />
       <AdminProtectedRoute path="/admin/profile" component={AdminProfilePage} />
+      <Route path="/admin/settings">
+        {() => {
+          window.location.href = "/admin/profile";
+          return null;
+        }}
+      </Route>
       <Route path="/admin/*">
         {() => {
           window.location.href = "/admin/dashboard";
