@@ -3,11 +3,13 @@ import { Card } from "@/components/ui/card";
 import { MapPin, Loader2 } from "lucide-react";
 import { Location, LocationType } from "@shared/schema";
 import { GoogleMap, useJsApiLoader, Marker } from "@react-google-maps/api";
-
-const mapContainerStyle = {
-  width: '100%',
-  height: '100%'
-};
+import { 
+  MAP_CONTAINER_STYLE, 
+  DEFAULT_MAP_CONFIG, 
+  createLocationFromCoordinates,
+  formatCoordinates,
+  reverseGeocode
+} from "@/lib/mapUtils";
 
 interface MapViewProps {
   selectedLocation: Location | null;
@@ -48,7 +50,7 @@ export default function MapView({
     if (navigator.geolocation) {
       setIsGettingLocation(true);
       navigator.geolocation.getCurrentPosition(
-        (position) => {
+        async (position) => {
           const currentLocation = {
             lat: position.coords.latitude,
             lng: position.coords.longitude
@@ -62,24 +64,20 @@ export default function MapView({
           
           // Reverse geocode to get address
           if (geocoder) {
-            geocoder.geocode({ location: currentLocation }, (results, status) => {
-              if (status === "OK" && results && results[0]) {
-                const newAddress = results[0].formatted_address;
-                setAddress(newAddress);
-                
-                // Create a new location and notify parent
-                const newLocation: Partial<Location> = {
-                  id: -1, // Temporary ID
-                  userId: -1, // Will be set by backend
-                  name: "Current Location",
-                  address: newAddress,
-                  type: LocationType.OTHER,
-                  coordinates: currentLocation
-                  // createdAt will be set by the server
-                };
-                onLocationSelect(newLocation as Location);
-              }
-            });
+            const result = await reverseGeocode(geocoder, currentLocation);
+            if (result) {
+              const newAddress = result.formatted_address;
+              setAddress(newAddress);
+              
+              // Create a location object and notify parent
+              const newLocation = createLocationFromCoordinates(
+                currentLocation, 
+                newAddress, 
+                "Current Location", 
+                LocationType.OTHER
+              );
+              onLocationSelect(newLocation);
+            }
           }
           setIsGettingLocation(false);
         },
@@ -131,7 +129,7 @@ export default function MapView({
   }, [geocoder, initialAddress, address, map, onLocationSelect]);
 
   // Handle map click
-  const onMapClick = useCallback((e: google.maps.MapMouseEvent) => {
+  const onMapClick = useCallback(async (e: google.maps.MapMouseEvent) => {
     if (e.latLng) {
       const clickedPos = {
         lat: e.latLng.lat(),
@@ -141,24 +139,20 @@ export default function MapView({
       
       // Reverse geocode to get address
       if (geocoder) {
-        geocoder.geocode({ location: clickedPos }, (results, status) => {
-          if (status === "OK" && results && results[0]) {
-            const newAddress = results[0].formatted_address;
-            setAddress(newAddress);
-            
-            // Create a new location and notify parent
-            const newLocation: Partial<Location> = {
-              id: -1, // Temporary ID
-              userId: -1, // Will be set by backend
-              name: "Selected Location",
-              address: newAddress,
-              type: LocationType.HOME,
-              coordinates: clickedPos
-              // createdAt will be set by the server
-            };
-            onLocationSelect(newLocation as Location);
-          }
-        });
+        const result = await reverseGeocode(geocoder, clickedPos);
+        if (result) {
+          const newAddress = result.formatted_address;
+          setAddress(newAddress);
+          
+          // Create a location object and notify parent
+          const newLocation = createLocationFromCoordinates(
+            clickedPos,
+            newAddress,
+            "Selected Location",
+            LocationType.HOME
+          );
+          onLocationSelect(newLocation);
+        }
       }
     }
   }, [geocoder, onLocationSelect]);
@@ -203,18 +197,13 @@ export default function MapView({
     <Card className={`relative overflow-hidden ${className}`}>
       <div className="absolute inset-0">
         <GoogleMap
-          mapContainerStyle={mapContainerStyle}
-          center={markerPosition || { lat: 37.7749, lng: -122.4194 }}
-          zoom={15}
+          mapContainerStyle={MAP_CONTAINER_STYLE}
+          center={markerPosition || DEFAULT_MAP_CONFIG.center}
+          zoom={DEFAULT_MAP_CONFIG.zoom}
           onClick={onMapClick}
           onLoad={onMapLoad}
           onUnmount={onUnmount}
-          options={{
-            fullscreenControl: false,
-            streetViewControl: false,
-            mapTypeControl: false,
-            zoomControl: true,
-          }}
+          options={DEFAULT_MAP_CONFIG.options}
         >
           {markerPosition && (
             <Marker
@@ -229,7 +218,7 @@ export default function MapView({
         <div className="absolute bottom-2 left-2 right-2 bg-white bg-opacity-90 p-2 rounded-md shadow-md">
           <p className="text-sm font-medium truncate">{address}</p>
           <p className="text-xs text-gray-500">
-            {markerPosition && `Lat: ${markerPosition.lat.toFixed(4)}, Lng: ${markerPosition.lng.toFixed(4)}`}
+            {markerPosition && formatCoordinates(markerPosition)}
           </p>
         </div>
       )}
