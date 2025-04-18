@@ -43,7 +43,9 @@ function CustomerRouter() {
     <div className="flex flex-col min-h-screen">
       <Suspense fallback={<PageLoader />}>
         <Switch>
-          <Route path="/auth" component={AuthPage}/>
+          <Route path="/auth">
+            {() => <AuthPage />}
+          </Route>
           <ProtectedRoute path="/" component={HomePage} />
           <ProtectedRoute path="/order" component={OrderPage} />
           <ProtectedRoute path="/orders" component={OrdersPage} />
@@ -52,7 +54,9 @@ function CustomerRouter() {
           <ProtectedRoute path="/payment-methods" component={PaymentMethodsPage} />
           <ProtectedRoute path="/subscription" component={SubscriptionPage} />
           <ProtectedRoute path="/subscription-success" component={SubscriptionSuccessPage} />
-          <Route path="/fuel-selector-test" component={FuelSelectorTest} />
+          <Route path="/fuel-selector-test">
+            {() => <FuelSelectorTest />}
+          </Route>
         </Switch>
       </Suspense>
       
@@ -65,7 +69,9 @@ function AdminRouter() {
   return (
     <Suspense fallback={<PageLoader />}>
       <Switch>
-        <Route path="/admin/login" component={AdminLoginPage} />
+        <Route path="/admin/login">
+          {() => <AdminLoginPage />}
+        </Route>
         <AdminProtectedRoute path="/admin/dashboard" component={AdminDashboardPage} />
         <AdminProtectedRoute path="/admin/orders" component={AdminOrdersPage} />
         <AdminProtectedRoute path="/admin/drivers" component={AdminDriversPage} />
@@ -91,15 +97,19 @@ function AppRouter() {
   const { user } = useAuth();
   
   return (
-    <Switch>
-      <Route path="/admin/*">
-        <AdminRouter />
-      </Route>
-      <Route path="/*">
-        <CustomerRouter />
-      </Route>
-      <Route component={NotFound} />
-    </Switch>
+    <Suspense fallback={<PageLoader />}>
+      <Switch>
+        <Route path="/admin/*">
+          <AdminRouter />
+        </Route>
+        <Route path="/*">
+          <CustomerRouter />
+        </Route>
+        <Route path="*">
+          {() => <NotFound />}
+        </Route>
+      </Switch>
+    </Suspense>
   );
 }
 

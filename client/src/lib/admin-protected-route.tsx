@@ -1,13 +1,14 @@
 import { useAdminAuth } from "@/hooks/use-admin-auth";
 import { Loader2 } from "lucide-react";
 import { Redirect, Route } from "wouter";
+import { ComponentType } from "react";
 
 export function AdminProtectedRoute({
   path,
   component: Component,
 }: {
   path: string;
-  component: () => React.JSX.Element;
+  component: ComponentType<any>;
 }) {
   const { adminUser, isLoading } = useAdminAuth();
 
@@ -29,5 +30,9 @@ export function AdminProtectedRoute({
     );
   }
 
-  return <Route path={path} component={Component} />;
+  return (
+    <Route path={path}>
+      {(params) => <Component {...params} />}
+    </Route>
+  );
 }
