@@ -573,9 +573,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
           if (stripeSecretKey !== 'sk_test_placeholder') {
             const subscription = await stripe.subscriptions.retrieve(user.stripeSubscriptionId);
             
+            // Get the latest invoice and its payment intent
+            let clientSecret = null;
+            
+            // Handle the case where latest_invoice is a string (ID)
+            if (typeof subscription.latest_invoice === 'string') {
+              const invoice = await stripe.invoices.retrieve(subscription.latest_invoice, { 
+                expand: ['payment_intent'] 
+              });
+              
+              // Now safely access the payment_intent if it exists
+              // Use type assertion since Stripe types might not be fully accurate
+              const paymentIntent = (invoice as any).payment_intent;
+              if (paymentIntent && typeof paymentIntent === 'object') {
+                clientSecret = paymentIntent.client_secret;
+              }
+            } 
+            // Handle the case where latest_invoice is an object (expanded)
+            else if (subscription.latest_invoice && typeof subscription.latest_invoice === 'object') {
+              const invoice = subscription.latest_invoice;
+              
+              // Use type assertion since we know this comes from Stripe API
+              const paymentIntent = (invoice as any).payment_intent;
+              if (paymentIntent && typeof paymentIntent === 'object') {
+                clientSecret = paymentIntent.client_secret;
+              }
+            }
+            
             return res.json({
               subscriptionId: subscription.id,
-              clientSecret: subscription.latest_invoice?.payment_intent?.client_secret || null,
+              clientSecret: clientSecret,
               status: subscription.status
             });
           } else {
@@ -612,9 +639,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
             stripeSubscriptionId: subscription.id 
           });
           
+          // Handle expanded invoice with payment_intent
+          let clientSecret = null;
+          
+          // Handle the expanded invoice from subscription.create
+          if (subscription.latest_invoice) {
+            // Use type assertion for latest_invoice and payment_intent
+            const invoice = subscription.latest_invoice as any;
+            
+            if (invoice && typeof invoice === 'object' && invoice.payment_intent) {
+              const paymentIntent = invoice.payment_intent;
+              if (typeof paymentIntent === 'object') {
+                clientSecret = paymentIntent.client_secret;
+              }
+            }
+          }
+          
           return res.json({
             subscriptionId: subscription.id,
-            clientSecret: subscription.latest_invoice?.payment_intent?.client_secret || null,
+            clientSecret: clientSecret,
             status: subscription.status
           });
         } else {

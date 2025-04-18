@@ -26,7 +26,9 @@ export default function PlanCard({ plan, isActive = false, onSelect }: PlanCardP
       </CardHeader>
       <CardContent className="flex-grow">
         <ul className="space-y-2">
-          {plan.features.map((feature, index) => (
+          {(typeof plan.features === 'string' 
+            ? JSON.parse(plan.features) 
+            : plan.features).map((feature: string, index: number) => (
             <li key={index} className="flex items-center gap-2">
               <Check className="h-5 w-5 text-primary" />
               <span>{feature}</span>
