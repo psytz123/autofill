@@ -119,6 +119,7 @@ export const paymentMethods = pgTable("payment_methods", {
   type: text("type").notNull(),
   last4: text("last4").notNull(),
   expiry: text("expiry").notNull(),
+  cardHolder: text("card_holder"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
