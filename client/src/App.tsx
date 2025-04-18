@@ -8,6 +8,7 @@ import { useAuth, AuthProvider } from "./hooks/use-auth";
 import { AdminAuthProvider } from "./hooks/use-admin-auth";
 import { ProtectedRoute } from "./lib/protected-route";
 import { AdminProtectedRoute } from "@/lib/admin-protected-route";
+import { FuelOptionsProvider } from "@/components/fuel/FuelOptionsProvider";
 
 // Lazily load components for better performance
 const NotFound = lazy(() => import("@/pages/not-found"));

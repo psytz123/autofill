@@ -99,7 +99,7 @@ export default function MapView({
 
   // Geocode initial address when provided
   useEffect(() => {
-    const geocodeAddress = async () => {
+    const handleGeocoding = async () => {
       if (geocoder && initialAddress && initialAddress !== address) {
         try {
           const result = await geocodeAddress(geocoder, initialAddress);
@@ -131,7 +131,7 @@ export default function MapView({
       }
     };
     
-    geocodeAddress();
+    handleGeocoding();
   }, [geocoder, initialAddress, address, map, onLocationSelect]);
 
   // Handle map click
