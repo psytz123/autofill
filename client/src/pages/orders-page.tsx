@@ -3,12 +3,13 @@ import { useQuery } from "@tanstack/react-query";
 import OrderCard from "@/components/orders/OrderCard";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { OrderStatus } from "@shared/schema";
+import { OrderStatus, Order } from "@shared/schema";
+import { getQueryFn } from "@/lib/queryClient";
 
 export default function OrdersPage() {
   const [filter, setFilter] = useState<OrderStatus | "ALL">("ALL");
   
-  const { data: orders = [], isLoading } = useQuery({
+  const { data: orders = [], isLoading } = useQuery<Order[]>({
     queryKey: ['/api/orders'],
     queryFn: getQueryFn({ on401: "throw" }),
   });
@@ -64,7 +65,7 @@ export default function OrdersPage() {
   );
 }
 
-function renderOrdersList(orders: any[], isLoading: boolean) {
+function renderOrdersList(orders: Order[], isLoading: boolean) {
   if (isLoading) {
     return (
       <div className="text-center py-8">

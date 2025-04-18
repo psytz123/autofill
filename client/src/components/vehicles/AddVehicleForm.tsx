@@ -54,7 +54,7 @@ export default function AddVehicleForm({ vehicle, onCancel, onSuccess }: AddVehi
       make: vehicle?.make || "",
       model: vehicle?.model || "",
       year: vehicle?.year || "",
-      fuelType: vehicle?.fuelType || "",
+      fuelType: vehicle?.fuelType || FuelType.REGULAR_UNLEADED,
       licensePlate: vehicle?.licensePlate || "",
     },
   });
@@ -82,7 +82,7 @@ export default function AddVehicleForm({ vehicle, onCancel, onSuccess }: AddVehi
   });
 
   const updateVehicleMutation = useMutation({
-    mutationFn: async (data: VehicleFormValues & { id: string }) => {
+    mutationFn: async (data: VehicleFormValues & { id: number | string }) => {
       const res = await apiRequest("PATCH", `/api/vehicles/${data.id}`, data);
       return await res.json();
     },
@@ -104,8 +104,8 @@ export default function AddVehicleForm({ vehicle, onCancel, onSuccess }: AddVehi
   });
 
   const onSubmit = (data: VehicleFormValues) => {
-    if (isEditing) {
-      updateVehicleMutation.mutate({ ...data, id: vehicle.id });
+    if (isEditing && vehicle) {
+      updateVehicleMutation.mutate({ ...data, id: vehicle.id.toString() });
     } else {
       createVehicleMutation.mutate(data);
     }

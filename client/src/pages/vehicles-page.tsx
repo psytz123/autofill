@@ -40,13 +40,13 @@ export default function VehiclesPage() {
     },
   });
 
-  const handleEdit = (vehicle: any) => {
+  const handleEdit = (vehicle: Vehicle) => {
     setEditingVehicle(vehicle);
     setShowAddForm(true);
   };
 
-  const handleDelete = (id: string) => {
-    deleteVehicleMutation.mutate(id);
+  const handleDelete = (id: number) => {
+    deleteVehicleMutation.mutate(id.toString());
   };
 
   return (
@@ -104,7 +104,7 @@ export default function VehiclesPage() {
         
         {showAddForm && (
           <AddVehicleForm
-            vehicle={editingVehicle}
+            vehicle={editingVehicle || undefined}
             onCancel={() => {
               setShowAddForm(false);
               setEditingVehicle(null);
