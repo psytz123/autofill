@@ -1,20 +1,19 @@
-import { FC } from "react";
+import { FC, memo, useMemo } from "react";
 
 interface LogoProps {
   className?: string;
   size?: "sm" | "md" | "lg" | number;
 }
 
-const Logo: FC<LogoProps> = ({ className = "", size = "md" }) => {
-  // Calculate size based on the prop
-  let sizeClass = "w-32";
-  if (size === "sm") {
-    sizeClass = "w-24";
-  } else if (size === "lg") {
-    sizeClass = "w-40";
-  } else if (typeof size === "number") {
-    sizeClass = `w-[${size}px]`;
-  }
+// Create a memoized version of the Logo component to prevent unnecessary re-renders
+const Logo: FC<LogoProps> = memo(({ className = "", size = "md" }) => {
+  // Calculate size based on the prop - memoized to prevent recreation on each render
+  const sizeClass = useMemo(() => {
+    if (size === "sm") return "w-24";
+    if (size === "lg") return "w-40";
+    if (typeof size === "number") return `w-[${size}px]`;
+    return "w-32"; // Default for "md"
+  }, [size]);
 
   return (
     <div className={`${sizeClass} ${className}`}>
@@ -50,6 +49,9 @@ const Logo: FC<LogoProps> = ({ className = "", size = "md" }) => {
       </svg>
     </div>
   );
-};
+});
+
+// Add display name for debugging
+Logo.displayName = 'Logo';
 
 export { Logo };
