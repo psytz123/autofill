@@ -65,4 +65,5 @@ export interface AssignedOrder extends AdminOrder {
   driver_name: string;
   driver_phone: string;
   driver_email: string;
+  estimated_delivery_time?: string;
 }

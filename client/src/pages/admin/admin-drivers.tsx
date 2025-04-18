@@ -6,6 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import AdminLayout from "@/components/admin/admin-layout";
 import { useToast } from "@/hooks/use-toast";
+import { AdminDriver } from "@/types/admin";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -56,7 +57,7 @@ export default function AdminDriversPage() {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [selectedDriver, setSelectedDriver] = useState<any>(null);
+  const [selectedDriver, setSelectedDriver] = useState<AdminDriver | null>(null);
   
   // Fetch all drivers
   const { data: drivers = [], isLoading: isLoadingDrivers } = useQuery({

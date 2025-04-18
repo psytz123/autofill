@@ -266,7 +266,7 @@ export default function AdminOrdersPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {orders.map((order: any) => (
+                      {orders.map((order) => (
                         <tr key={order.id} className="border-b">
                           <td className="py-3 px-4">#{order.id}</td>
                           <td className="py-3 px-4">{order.userId}</td>
@@ -349,9 +349,9 @@ export default function AdminOrdersPage() {
                         No available drivers
                       </div>
                     ) : (
-                      availableDrivers.map((driver: any) => (
+                      availableDrivers.map((driver) => (
                         <SelectItem key={driver.id} value={driver.id.toString()}>
-                          {driver.name} ({driver.vehicleModel})
+                          {driver.name}
                         </SelectItem>
                       ))
                     )}
