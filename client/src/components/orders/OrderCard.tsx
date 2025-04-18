@@ -36,7 +36,7 @@ export default function OrderCard({ order, showViewDetails = false }: OrderCardP
           <div>
             <h3 className="font-semibold text-neutral-800">Order #{order.id}</h3>
             <p className="text-xs text-neutral-500">
-              {order.date ? formatDate(order.date) : formatDistanceToNow(new Date(order.createdAt || Date.now()), { addSuffix: true })}
+              {formatDistanceToNow(new Date(order.createdAt || Date.now()), { addSuffix: true })}
             </p>
           </div>
           {getStatusBadge(order.status)}

@@ -8,7 +8,12 @@ import {
   PaymentMethod, 
   InsertPaymentMethod,
   Location,
-  InsertLocation
+  InsertLocation,
+  users,
+  vehicles,
+  orders,
+  paymentMethods,
+  locations
 } from "@shared/schema";
 import session from "express-session";
 import createMemoryStore from "memorystore";
@@ -52,148 +57,158 @@ export interface IStorage {
   deleteLocation(id: number): Promise<void>;
 }
 
-export class MemStorage implements IStorage {
-  private users: Map<number, User>;
-  private vehicles: Map<number, Vehicle>;
-  private orders: Map<number, Order>;
-  private paymentMethods: Map<number, PaymentMethod>;
-  private locations: Map<number, Location>;
+import connectPg from "connect-pg-simple";
+import { eq, desc, and } from "drizzle-orm";
+import { pool, db } from "./db";
+
+const PostgresSessionStore = connectPg(session);
+
+export class DatabaseStorage implements IStorage {
   sessionStore: session.Store;
-  
-  private userIdCounter: number = 1;
-  private vehicleIdCounter: number = 1;
-  private orderIdCounter: number = 1;
-  private paymentMethodIdCounter: number = 1;
-  private locationIdCounter: number = 1;
 
   constructor() {
-    this.users = new Map();
-    this.vehicles = new Map();
-    this.orders = new Map();
-    this.paymentMethods = new Map();
-    this.locations = new Map();
-    
-    this.sessionStore = new MemoryStore({
-      checkPeriod: 86400000 // 24 hours
+    this.sessionStore = new PostgresSessionStore({ 
+      pool, 
+      createTableIfMissing: true 
     });
-    
-    // Add some sample data
-    this.initializeData();
-  }
-
-  private initializeData() {
-    // Add some sample saved locations
-    this.locations.set(1, {
-      id: 1,
-      userId: 1,
-      name: "Home",
-      address: "456 Oak Avenue, Anytown, CA 91234",
-      coordinates: { lat: 37.784, lng: -122.401 },
-      type: "home",
-      createdAt: new Date().toISOString()
-    });
-    
-    this.locations.set(2, {
-      id: 2,
-      userId: 1,
-      name: "Work",
-      address: "789 Business Park, Anytown, CA 91234",
-      coordinates: { lat: 37.789, lng: -122.403 },
-      type: "work",
-      createdAt: new Date().toISOString()
-    });
-    
-    this.locationIdCounter = 3;
   }
 
   // User methods
   async getUser(id: number): Promise<User | undefined> {
-    return this.users.get(id);
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user;
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(
-      (user) => user.username === username,
-    );
+    const [user] = await db.select().from(users).where(eq(users.username, username));
+    return user;
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
-    const id = this.userIdCounter++;
-    const now = new Date().toISOString();
-    const user: User = { 
-      ...insertUser, 
-      id,
-      createdAt: now,
-      updatedAt: now
-    };
-    this.users.set(id, user);
+    const [user] = await db.insert(users).values(insertUser).returning();
     return user;
   }
 
   // Vehicle methods
   async getVehicle(id: number): Promise<Vehicle | undefined> {
-    return this.vehicles.get(id);
+    const [vehicle] = await db.select().from(vehicles).where(eq(vehicles.id, id));
+    return vehicle as Vehicle;
   }
 
   async getVehiclesByUserId(userId: number): Promise<Vehicle[]> {
-    return Array.from(this.vehicles.values())
-      .filter(vehicle => vehicle.userId === userId)
-      .sort((a, b) => b.id - a.id); // Newest first
+    const results = await db.select()
+      .from(vehicles)
+      .where(eq(vehicles.userId, userId))
+      .orderBy(desc(vehicles.id));
+    return results as Vehicle[];
   }
 
   async createVehicle(insertVehicle: InsertVehicle): Promise<Vehicle> {
-    const id = this.vehicleIdCounter++;
-    const now = new Date().toISOString();
-    const vehicle: Vehicle = { 
-      ...insertVehicle, 
-      id,
-      createdAt: now,
-      updatedAt: now
-    };
-    this.vehicles.set(id, vehicle);
-    return vehicle;
+    const [vehicle] = await db.insert(vehicles).values(insertVehicle).returning();
+    return vehicle as Vehicle;
   }
 
   async updateVehicle(id: number, data: Partial<InsertVehicle>): Promise<Vehicle> {
-    const vehicle = this.vehicles.get(id);
-    if (!vehicle) throw new Error("Vehicle not found");
+    const [vehicle] = await db
+      .update(vehicles)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(vehicles.id, id))
+      .returning();
     
-    const updatedVehicle: Vehicle = { 
-      ...vehicle, 
-      ...data,
-      updatedAt: new Date().toISOString()
-    };
+    if (!vehicle) {
+      throw new Error("Vehicle not found");
+    }
     
-    this.vehicles.set(id, updatedVehicle);
-    return updatedVehicle;
+    return vehicle as Vehicle;
   }
 
   async deleteVehicle(id: number): Promise<void> {
-    this.vehicles.delete(id);
+    await db.delete(vehicles).where(eq(vehicles.id, id));
   }
 
   // Order methods
   async getOrder(id: number): Promise<Order | undefined> {
-    return this.orders.get(id);
+    const [order] = await db.select().from(orders).where(eq(orders.id, id));
+    
+    if (order) {
+      const result = { ...order } as any;
+      
+      // Load related entities if needed
+      if (order.vehicleId) {
+        const [vehicle] = await db.select().from(vehicles).where(eq(vehicles.id, order.vehicleId));
+        if (vehicle) {
+          result.vehicle = vehicle as Vehicle;
+        }
+      }
+      
+      if (order.locationId) {
+        const [location] = await db.select().from(locations).where(eq(locations.id, order.locationId));
+        if (location) {
+          result.location = location as Location;
+        }
+      }
+      
+      if (order.paymentMethodId) {
+        const [paymentMethod] = await db.select().from(paymentMethods).where(eq(paymentMethods.id, order.paymentMethodId));
+        if (paymentMethod) {
+          result.paymentMethod = paymentMethod;
+        }
+      }
+      
+      return result as Order;
+    }
+    
+    return undefined;
   }
 
   async getOrdersByUserId(userId: number): Promise<Order[]> {
-    return Array.from(this.orders.values())
-      .filter(order => order.userId === userId)
-      .sort((a, b) => b.id - a.id); // Newest first
+    const orderList = await db.select()
+      .from(orders)
+      .where(eq(orders.userId, userId))
+      .orderBy(desc(orders.id));
+    
+    // Load vehicles for each order
+    const results = await Promise.all(orderList.map(async (order: any) => {
+      const result = { ...order } as any;
+      
+      if (order.vehicleId) {
+        const [vehicle] = await db.select().from(vehicles).where(eq(vehicles.id, order.vehicleId));
+        if (vehicle) {
+          result.vehicle = vehicle as Vehicle;
+        }
+      }
+      
+      return result as Order;
+    }));
+    
+    return results;
   }
 
   async getRecentOrdersByUserId(userId: number, limit: number = 2): Promise<Order[]> {
-    return Array.from(this.orders.values())
-      .filter(order => order.userId === userId)
-      .sort((a, b) => b.id - a.id) // Newest first
-      .slice(0, limit);
+    const orderList = await db.select()
+      .from(orders)
+      .where(eq(orders.userId, userId))
+      .orderBy(desc(orders.id))
+      .limit(limit);
+    
+    // Load vehicles for each order
+    const results = await Promise.all(orderList.map(async (order: any) => {
+      const result = { ...order } as any;
+      
+      if (order.vehicleId) {
+        const [vehicle] = await db.select().from(vehicles).where(eq(vehicles.id, order.vehicleId));
+        if (vehicle) {
+          result.vehicle = vehicle as Vehicle;
+        }
+      }
+      
+      return result as Order;
+    }));
+    
+    return results;
   }
 
   async createOrder(insertOrder: InsertOrder): Promise<Order> {
-    const id = this.orderIdCounter++;
-    const now = new Date().toISOString();
-    
     // Calculate total price based on fuel type and amount
     const fuelPrices = {
       "REGULAR_UNLEADED": 3.99,
@@ -204,84 +219,75 @@ export class MemStorage implements IStorage {
     const fuelPrice = fuelPrices[insertOrder.fuelType] || 3.99;
     const totalPrice = parseFloat((insertOrder.amount * fuelPrice).toFixed(2));
     
-    const order: Order = { 
-      ...insertOrder, 
-      id,
-      totalPrice,
-      createdAt: now,
-      updatedAt: now
-    };
+    const [order] = await db.insert(orders)
+      .values({
+        ...insertOrder,
+        totalPrice,
+      })
+      .returning();
     
-    this.orders.set(id, order);
-    return order;
+    return order as Order;
   }
 
   async updateOrderStatus(id: number, status: string): Promise<Order> {
-    const order = this.orders.get(id);
-    if (!order) throw new Error("Order not found");
+    const [order] = await db
+      .update(orders)
+      .set({ 
+        status: status as any,
+        updatedAt: new Date()
+      })
+      .where(eq(orders.id, id))
+      .returning();
     
-    const updatedOrder: Order = { 
-      ...order, 
-      status: status as any,
-      updatedAt: new Date().toISOString()
-    };
+    if (!order) {
+      throw new Error("Order not found");
+    }
     
-    this.orders.set(id, updatedOrder);
-    return updatedOrder;
+    return order as Order;
   }
 
   // Payment method methods
   async getPaymentMethod(id: number): Promise<PaymentMethod | undefined> {
-    return this.paymentMethods.get(id);
+    const [method] = await db.select().from(paymentMethods).where(eq(paymentMethods.id, id));
+    return method;
   }
 
   async getPaymentMethodsByUserId(userId: number): Promise<PaymentMethod[]> {
-    return Array.from(this.paymentMethods.values())
-      .filter(method => method.userId === userId);
+    return await db.select()
+      .from(paymentMethods)
+      .where(eq(paymentMethods.userId, userId));
   }
 
   async createPaymentMethod(insertMethod: InsertPaymentMethod): Promise<PaymentMethod> {
-    const id = this.paymentMethodIdCounter++;
-    const now = new Date().toISOString();
-    const method: PaymentMethod = { 
-      ...insertMethod, 
-      id,
-      createdAt: now,
-      updatedAt: now
-    };
-    this.paymentMethods.set(id, method);
+    const [method] = await db.insert(paymentMethods).values(insertMethod).returning();
     return method;
   }
 
   async deletePaymentMethod(id: number): Promise<void> {
-    this.paymentMethods.delete(id);
+    await db.delete(paymentMethods).where(eq(paymentMethods.id, id));
   }
 
   // Location methods
   async getLocation(id: number): Promise<Location | undefined> {
-    return this.locations.get(id);
+    const [location] = await db.select().from(locations).where(eq(locations.id, id));
+    return location as Location;
   }
 
   async getLocationsByUserId(userId: number): Promise<Location[]> {
-    return Array.from(this.locations.values())
-      .filter(location => location.userId === userId);
+    const results = await db.select()
+      .from(locations)
+      .where(eq(locations.userId, userId));
+    return results as Location[];
   }
 
   async createLocation(insertLocation: InsertLocation): Promise<Location> {
-    const id = this.locationIdCounter++;
-    const now = new Date().toISOString();
-    const location: Location = { 
-      ...insertLocation, 
-      id,
-      createdAt: now
-    };
-    this.locations.set(id, location);
-    return location;
+    const [location] = await db.insert(locations).values(insertLocation).returning();
+    return location as Location;
   }
 
   async deleteLocation(id: number): Promise<void> {
-    this.locations.delete(id);
+    await db.delete(locations).where(eq(locations.id, id));
   }
 }
 
-export const storage = new MemStorage();
+export const storage = new DatabaseStorage();
