@@ -14,6 +14,65 @@ function isAdminAuthenticated(req: Request, res: Response, next: Function) {
 }
 
 export function registerAdminRoutes(app: Express) {
+  // Dashboard statistics
+  app.get("/admin/api/stats", isAdminAuthenticated, async (req, res) => {
+    try {
+      // Get all orders
+      const allOrders = await adminStorage.getAllOrders();
+      
+      // Get available drivers
+      const availableDrivers = await adminStorage.getAvailableDrivers();
+      
+      // Get all drivers
+      const allDrivers = await adminStorage.getAllDrivers();
+      
+      // Calculate total revenue
+      const revenue = allOrders.reduce((sum, order) => sum + order.totalPrice, 0);
+      
+      // Count unique user IDs from orders
+      const customerIds = new Set(allOrders.map(order => order.userId));
+      
+      // Get order status counts
+      const ordersByStatus = [
+        { name: "In Progress", value: allOrders.filter(o => o.status === OrderStatus.IN_PROGRESS).length },
+        { name: "Completed", value: allOrders.filter(o => o.status === OrderStatus.COMPLETED).length },
+        { name: "Cancelled", value: allOrders.filter(o => o.status === OrderStatus.CANCELLED).length },
+      ];
+      
+      // Calculate deliveries by day (last 7 days)
+      const today = new Date();
+      const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+      const deliveriesByDay = Array(7).fill(0).map((_, i) => {
+        const date = new Date(today);
+        date.setDate(today.getDate() - (6 - i));
+        const dayName = days[date.getDay()];
+        
+        // Filter orders for this day
+        const dayOrders = allOrders.filter(order => {
+          const orderDate = new Date(order.createdAt);
+          return orderDate.toDateString() === date.toDateString();
+        });
+        
+        return {
+          day: dayName,
+          deliveries: dayOrders.length
+        };
+      });
+      
+      res.json({
+        totalOrders: allOrders.length,
+        activeDrivers: availableDrivers.length,
+        totalDrivers: allDrivers.length,
+        revenue,
+        customers: customerIds.size,
+        ordersByStatus,
+        deliveriesByDay,
+      });
+    } catch (error) {
+      console.error("Error generating dashboard stats:", error);
+      res.status(500).json({ message: "Failed to retrieve dashboard statistics" });
+    }
+  });
   // Orders endpoints
   app.get("/admin/api/orders", isAdminAuthenticated, async (req, res) => {
     try {
@@ -140,6 +199,63 @@ export function registerAdminRoutes(app: Express) {
   });
 
   // Order assignments endpoints
+  app.post("/admin/api/orders/assign", isAdminAuthenticated, async (req, res) => {
+    try {
+      const { orderId, driverId } = req.body;
+      
+      if (!orderId || !driverId) {
+        return res.status(400).json({ message: "Order ID and Driver ID are required" });
+      }
+      
+      // Check if order and driver exist
+      const order = await storage.getOrder(orderId);
+      if (!order) {
+        return res.status(404).json({ message: "Order not found" });
+      }
+      
+      const driver = await adminStorage.getDriver(driverId);
+      if (!driver) {
+        return res.status(404).json({ message: "Driver not found" });
+      }
+      
+      // Check if driver is available
+      if (!driver.isAvailable) {
+        return res.status(400).json({ message: "Driver is not available" });
+      }
+      
+      // Check if order is already assigned
+      const existingAssignment = await adminStorage.getOrderAssignmentByOrderId(orderId);
+      if (existingAssignment) {
+        return res.status(400).json({ message: "Order is already assigned" });
+      }
+      
+      // Create assignment
+      const now = new Date();
+      // Estimate 30 minutes for pickup and 1 hour for delivery from now
+      const pickupTime = new Date(now.getTime() + 30 * 60 * 1000);
+      const deliveryTime = new Date(now.getTime() + 90 * 60 * 1000);
+      
+      const assignment = await adminStorage.assignOrder({
+        orderId,
+        driverId,
+        adminId: req.adminUser!.id,
+        assignedAt: now,
+        status: "ASSIGNED",
+        estimatedPickupTime: pickupTime,
+        estimatedDeliveryTime: deliveryTime,
+        notes: "Assigned by admin"
+      });
+      
+      // Update order status to IN_PROGRESS
+      await storage.updateOrderStatus(orderId, OrderStatus.IN_PROGRESS);
+      
+      res.status(201).json(assignment);
+    } catch (error) {
+      console.error("Error assigning order:", error);
+      res.status(500).json({ message: "Failed to assign order" });
+    }
+  });
+  
   app.post("/admin/api/order-assignments", isAdminAuthenticated, async (req, res) => {
     try {
       const data = insertOrderAssignmentSchema.parse({
