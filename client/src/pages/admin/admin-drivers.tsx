@@ -60,16 +60,9 @@ export default function AdminDriversPage() {
   const [selectedDriver, setSelectedDriver] = useState<AdminDriver | null>(null);
   
   // Fetch all drivers
-  const { data: drivers = [], isLoading: isLoadingDrivers } = useQuery({
+  const { data: drivers = [] as AdminDriver[], isLoading: isLoadingDrivers } = useQuery<AdminDriver[]>({
     queryKey: ['/admin/api/drivers'],
-    queryFn: getQueryFn({ on401: "throw" }),
-    onError: (error) => {
-      toast({
-        title: "Error loading drivers",
-        description: error.message,
-        variant: "destructive",
-      });
-    }
+    queryFn: getQueryFn({ on401: "throw" })
   });
   
   // Create driver form
@@ -169,7 +162,7 @@ export default function AdminDriversPage() {
     }
   });
   
-  const handleEditDriver = (driver: any) => {
+  const handleEditDriver = (driver: AdminDriver) => {
     setSelectedDriver(driver);
     editForm.reset({
       name: driver.name,
@@ -182,7 +175,7 @@ export default function AdminDriversPage() {
     setIsEditDialogOpen(true);
   };
   
-  const handleDeleteDriver = (driver: any) => {
+  const handleDeleteDriver = (driver: AdminDriver) => {
     setSelectedDriver(driver);
     setIsDeleteDialogOpen(true);
   };
@@ -241,7 +234,7 @@ export default function AdminDriversPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {drivers.map((driver: any) => (
+                  {drivers.map((driver) => (
                     <tr key={driver.id} className="border-b">
                       <td className="py-3 px-4">{driver.name}</td>
                       <td className="py-3 px-4">

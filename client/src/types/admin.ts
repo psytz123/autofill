@@ -52,6 +52,9 @@ export interface AdminDriver {
   status: string;
   currentLocationLat: number | null;
   currentLocationLng: number | null;
+  vehicleModel: string;
+  vehicleLicense: string;
+  isAvailable: boolean;
   createdAt: string;
   updatedAt: string;
 }
