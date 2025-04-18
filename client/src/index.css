@@ -66,6 +66,8 @@
 
   .h-screen-minus-tab {
     height: calc(100vh - 5rem);
+    display: flex;
+    flex-direction: column;
   }
 
   .tab-active {
@@ -100,5 +102,10 @@
   
   .btn-autofill-secondary {
     @apply bg-secondary text-white hover:bg-secondary/90;
+  }
+  
+  /* AutoFill Custom Tab Styling */
+  [data-state="active"][data-orientation="horizontal"] {
+    @apply bg-autofill-navy text-white;
   }
 }

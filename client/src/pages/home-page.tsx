@@ -62,9 +62,9 @@ export default function HomePage() {
         </div>
       </header>
       
-      {/* Vehicle Selection */}
-      <section className="px-4 py-4 bg-white">
-        <h2 className="text-xl font-bold text-neutral-800 mb-4">Which vehicles would you like to fill?</h2>
+      {/* Vehicle Selection - Main Content */}
+      <section className="px-4 py-4 bg-white flex-1 overflow-y-auto">
+        <h2 className="text-xl font-bold autofill-navy mb-4">Which vehicles would you like to fill?</h2>
         
         {vehiclesLoading ? (
           <div className="text-center py-8">
@@ -74,7 +74,7 @@ export default function HomePage() {
           <div className="text-center py-6">
             <p className="text-neutral-500 mb-4">You haven't added any vehicles yet</p>
             <Link href="/vehicles">
-              <Button>Add Your Vehicle</Button>
+              <Button className="bg-autofill-orange text-white hover:bg-orange-500">Add Your Vehicle</Button>
             </Link>
           </div>
         ) : (
@@ -100,9 +100,9 @@ export default function HomePage() {
         )}
       </section>
       
-      {/* Order Button */}
-      <div className="px-4 py-6">
-        <Link href="/order">
+      {/* Order Button - Fixed at Bottom */}
+      <div className="px-4 py-5 bg-white border-t border-gray-100 mt-auto">
+        <Link href="/order" className="block w-full">
           <Button 
             className="w-full bg-autofill-orange text-white hover:bg-orange-500 font-bold py-6 text-lg shadow-md"
             disabled={!selectedVehicleId}

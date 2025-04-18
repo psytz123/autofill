@@ -9,6 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import PaymentMethodCard from "@/components/payment/PaymentMethodCard";
 import AddPaymentMethodForm from "@/components/payment/AddPaymentMethodForm";
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Logo } from "@/components/ui/logo";
 
 export default function AccountPage() {
   const { user, logoutMutation } = useAuth();
@@ -41,10 +42,14 @@ export default function AccountPage() {
   });
   
   return (
-    <div className="h-screen-minus-tab overflow-y-auto">
+    <div className="h-screen-minus-tab overflow-y-auto flex flex-col">
       <header className="bg-white shadow-sm">
-        <div className="px-4 py-6">
-          <h1 className="text-2xl font-bold font-heading text-neutral-800">My Account</h1>
+        <div className="px-4 py-5 flex items-center">
+          <Logo size="sm" className="mr-3" />
+          <div>
+            <h1 className="text-2xl font-bold autofill-navy">My Account</h1>
+            <p className="text-sm text-neutral-500">Manage your profile and settings</p>
+          </div>
         </div>
       </header>
       
