@@ -1,5 +1,6 @@
 import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
+import { WebSocketServer, WebSocket } from "ws";
 import { setupAuth } from "./auth";
 import { storage } from "./storage";
 import { z } from "zod";
@@ -8,7 +9,8 @@ import {
   insertVehicleSchema, 
   insertPaymentMethodSchema, 
   insertOrderSchema,
-  insertLocationSchema
+  insertLocationSchema,
+  OrderStatus
 } from "@shared/schema";
 
 // Middleware to ensure user is authenticated
@@ -191,6 +193,192 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Create HTTP server
   const httpServer = createServer(app);
+  
+  // Create WebSocket server
+  const wss = new WebSocketServer({ server: httpServer, path: '/ws' });
+  
+  // Store active connections by user ID
+  const activeConnections = new Map<number, WebSocket[]>();
+  
+  // Driver locations (simulated)
+  const driverLocations = new Map<number, { lat: number, lng: number }>();
+  
+  wss.on('connection', (ws: WebSocket) => {
+    console.log('WebSocket client connected');
+    let userId: number | null = null;
+    let orderId: number | null = null;
+    
+    // Handle messages from clients
+    ws.on('message', async (message: string) => {
+      try {
+        const data = JSON.parse(message);
+        
+        // Handle authentication
+        if (data.type === 'auth') {
+          userId = parseInt(data.userId);
+          if (userId) {
+            if (!activeConnections.has(userId)) {
+              activeConnections.set(userId, []);
+            }
+            activeConnections.get(userId)?.push(ws);
+            ws.send(JSON.stringify({ type: 'auth_success' }));
+          }
+        }
+        
+        // Handle order tracking subscription
+        if (data.type === 'track_order' && userId) {
+          orderId = parseInt(data.orderId);
+          const order = await storage.getOrder(orderId);
+          
+          if (!order || order.userId !== userId) {
+            ws.send(JSON.stringify({ 
+              type: 'error', 
+              message: 'Order not found or unauthorized' 
+            }));
+            return;
+          }
+          
+          // Initial location - simulate near the delivery address
+          if (order.location) {
+            const coords = order.location.coordinates as { lat: number, lng: number };
+            
+            // Create a simulated driver location slightly away from destination
+            const driverLocation = { 
+              lat: coords.lat + (Math.random() * 0.01 - 0.005), 
+              lng: coords.lng + (Math.random() * 0.01 - 0.005)
+            };
+            
+            driverLocations.set(orderId, driverLocation);
+            
+            // Send initial location
+            ws.send(JSON.stringify({
+              type: 'driver_location',
+              orderId: orderId,
+              location: driverLocation,
+              estimatedArrival: '10 minutes'
+            }));
+            
+            // Start simulated driver movement for this order
+            startDriverSimulation(orderId, coords);
+          }
+        }
+      } catch (error) {
+        console.error('Error processing WebSocket message:', error);
+      }
+    });
+    
+    // Handle disconnection
+    ws.on('close', () => {
+      console.log('WebSocket client disconnected');
+      if (userId) {
+        const connections = activeConnections.get(userId) || [];
+        const index = connections.indexOf(ws);
+        if (index !== -1) {
+          connections.splice(index, 1);
+        }
+        if (connections.length === 0) {
+          activeConnections.delete(userId);
+        }
+      }
+    });
+  });
+  
+  // Simulate driver movement toward destination
+  function startDriverSimulation(orderId: number, destination: { lat: number, lng: number }) {
+    const interval = setInterval(() => {
+      const driverLocation = driverLocations.get(orderId);
+      if (!driverLocation) {
+        clearInterval(interval);
+        return;
+      }
+      
+      // Move driver closer to destination
+      const moveToward = (current: number, target: number): number => {
+        const step = 0.0005; // Small movement step
+        if (Math.abs(current - target) < step) return target;
+        return current + (target > current ? step : -step);
+      };
+      
+      driverLocation.lat = moveToward(driverLocation.lat, destination.lat);
+      driverLocation.lng = moveToward(driverLocation.lng, destination.lng);
+      
+      // Calculate distance and estimate arrival time
+      const distance = Math.sqrt(
+        Math.pow(destination.lat - driverLocation.lat, 2) + 
+        Math.pow(destination.lng - driverLocation.lng, 2)
+      );
+      
+      // Convert to minutes (simplified)
+      const minutesRemaining = Math.ceil(distance * 2000);
+      let estimatedArrival: string;
+      
+      if (minutesRemaining <= 0) {
+        estimatedArrival = 'Arrived';
+        // Mark order as completed when driver arrives
+        storage.updateOrderStatus(orderId, OrderStatus.COMPLETED);
+        clearInterval(interval);
+      } else {
+        estimatedArrival = `${minutesRemaining} minutes`;
+      }
+      
+      // Broadcast to all connected clients for this order
+      const orderUserId = Array.from(activeConnections.keys()).find(userId => {
+        const connections = activeConnections.get(userId) || [];
+        return connections.length > 0;
+      });
+      
+      if (orderUserId) {
+        const connections = activeConnections.get(orderUserId) || [];
+        connections.forEach(connection => {
+          if (connection.readyState === WebSocket.OPEN) {
+            connection.send(JSON.stringify({
+              type: 'driver_location',
+              orderId: orderId,
+              location: driverLocation,
+              estimatedArrival
+            }));
+          }
+        });
+      }
+    }, 3000); // Update every 3 seconds
+  }
+  
+  // Add endpoint to update order status (for admin/drivers)
+  app.post("/api/orders/:id/status", isAuthenticated, async (req, res) => {
+    try {
+      const orderId = parseInt(req.params.id);
+      const order = await storage.getOrder(orderId);
+      
+      if (!order) {
+        return res.status(404).json({ message: "Order not found" });
+      }
+      
+      // In production, add additional checks for authorization
+      const status = req.body.status;
+      if (!Object.values(OrderStatus).includes(status)) {
+        return res.status(400).json({ message: "Invalid status" });
+      }
+      
+      const updatedOrder = await storage.updateOrderStatus(orderId, status);
+      
+      // Notify connected client
+      const userId = order.userId;
+      const connections = activeConnections.get(userId) || [];
+      connections.forEach(connection => {
+        if (connection.readyState === WebSocket.OPEN) {
+          connection.send(JSON.stringify({
+            type: 'order_status_update',
+            orderId,
+            status: updatedOrder.status
+          }));
+        }
+      });
+      
+      res.json(updatedOrder);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to update order status" });
+    }
+  });
 
   return httpServer;
 }
