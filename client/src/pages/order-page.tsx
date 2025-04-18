@@ -38,7 +38,7 @@ export default function OrderPage() {
   
   // Define proper type for the orderData
   interface OrderForm {
-    location: Location | null;
+    location: (Location & { id: number }) | null;
     vehicle: Vehicle | null;
     fuelType: FuelType;
     amount: number;
@@ -84,7 +84,7 @@ export default function OrderPage() {
 
   // Create order mutation
   const createOrderMutation = useMutation({
-    mutationFn: async (orderData: any) => {
+    mutationFn: async (orderData: OrderForm) => {
       const res = await apiRequest("POST", "/api/orders", orderData);
       return await res.json();
     },
@@ -241,7 +241,7 @@ export default function OrderPage() {
                 
                 <SavedLocationList
                   locations={savedLocations}
-                  selectedLocationId={orderData.location ? orderData.location.id : null}
+                  selectedLocationId={orderData.location?.id ?? null}
                   onLocationSelect={selectLocation}
                   isLoading={locationsLoading}
                   className="mb-4"

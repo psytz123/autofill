@@ -228,8 +228,8 @@ export const queryClient = new QueryClient({
       staleTime: QUERY_CATEGORIES.DEFAULT.staleTime,
       gcTime: QUERY_CATEGORIES.DEFAULT.gcTime, // gcTime is the new name for cacheTime in React Query v5
       // Suspense mode is now configured at the QueryClientProvider level in React Query v5
-      // Implement better error handling
-      useErrorBoundary: (error: Error) => {
+      // Implement better error handling with throwOnError in React Query v5
+      throwOnError: (error: Error) => {
         return error.message.includes('500');
       },
     },
