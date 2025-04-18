@@ -3,6 +3,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { getQueryFn, apiRequest, queryClient } from "@/lib/queryClient";
 import AdminLayout from "@/components/admin/admin-layout";
 import { useToast } from "@/hooks/use-toast";
+import { AdminOrder, AssignedOrder, AdminDriver } from "@/types/admin";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -28,59 +29,31 @@ import { Loader2 } from "lucide-react";
 export default function AdminOrdersPage() {
   const { toast } = useToast();
   const [assignDialogOpen, setAssignDialogOpen] = useState(false);
-  const [selectedOrder, setSelectedOrder] = useState<any>(null);
+  const [selectedOrder, setSelectedOrder] = useState<AdminOrder | null>(null);
   const [selectedDriver, setSelectedDriver] = useState<string>("");
   
   // Fetch all orders
-  const { data: orders = [], isLoading: isLoadingOrders } = useQuery({
+  const { data: orders = [] as AdminOrder[], isLoading: isLoadingOrders } = useQuery<AdminOrder[]>({
     queryKey: ['/admin/api/orders'],
     queryFn: getQueryFn({ on401: "throw" }),
-    onError: (error) => {
-      toast({
-        title: "Error loading orders",
-        description: error.message,
-        variant: "destructive",
-      });
-    }
   });
   
   // Fetch unassigned orders
-  const { data: unassignedOrders = [], isLoading: isLoadingUnassigned } = useQuery({
+  const { data: unassignedOrders = [] as AdminOrder[], isLoading: isLoadingUnassigned } = useQuery<AdminOrder[]>({
     queryKey: ['/admin/api/orders/unassigned'],
     queryFn: getQueryFn({ on401: "throw" }),
-    onError: (error) => {
-      toast({
-        title: "Error loading unassigned orders",
-        description: error.message,
-        variant: "destructive",
-      });
-    }
   });
   
   // Fetch assigned orders
-  const { data: assignedOrders = [], isLoading: isLoadingAssigned } = useQuery({
+  const { data: assignedOrders = [] as AssignedOrder[], isLoading: isLoadingAssigned } = useQuery<AssignedOrder[]>({
     queryKey: ['/admin/api/orders/assigned'],
     queryFn: getQueryFn({ on401: "throw" }),
-    onError: (error) => {
-      toast({
-        title: "Error loading assigned orders",
-        description: error.message,
-        variant: "destructive",
-      });
-    }
   });
   
   // Fetch available drivers
-  const { data: availableDrivers = [], isLoading: isLoadingDrivers } = useQuery({
+  const { data: availableDrivers = [] as AdminDriver[], isLoading: isLoadingDrivers } = useQuery<AdminDriver[]>({
     queryKey: ['/admin/api/drivers/available'],
     queryFn: getQueryFn({ on401: "throw" }),
-    onError: (error) => {
-      toast({
-        title: "Error loading available drivers",
-        description: error.message,
-        variant: "destructive",
-      });
-    }
   });
   
   // Assign order to driver mutation
@@ -116,7 +89,7 @@ export default function AdminOrdersPage() {
     }
   });
   
-  const handleAssignOrder = (order: any) => {
+  const handleAssignOrder = (order: AdminOrder) => {
     setSelectedOrder(order);
     setAssignDialogOpen(true);
   };
@@ -187,7 +160,7 @@ export default function AdminOrdersPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {unassignedOrders.map((order: any) => (
+                      {unassignedOrders.map((order) => (
                         <tr key={order.id} className="border-b">
                           <td className="py-3 px-4">#{order.id}</td>
                           <td className="py-3 px-4">{order.userId}</td>
@@ -242,7 +215,7 @@ export default function AdminOrdersPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {assignedOrders.map((order: any) => (
+                      {assignedOrders.map((order) => (
                         <tr key={order.id} className="border-b">
                           <td className="py-3 px-4">#{order.id}</td>
                           <td className="py-3 px-4">{order.userId}</td>

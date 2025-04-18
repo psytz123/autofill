@@ -1,14 +1,16 @@
 import { useAuth } from "@/hooks/use-auth";
 import { Loader2 } from "lucide-react";
 import { Redirect, Route } from "wouter";
-import { ComponentType } from "react";
+import { ComponentType, LazyExoticComponent } from "react";
+
+type ComponentProp = LazyExoticComponent<() => JSX.Element> | ComponentType<any>;
 
 export function ProtectedRoute({
   path,
   component: Component,
 }: {
   path: string;
-  component: ComponentType<any>;
+  component: ComponentProp;
 }) {
   const { user, isLoading } = useAuth();
 
