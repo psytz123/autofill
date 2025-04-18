@@ -1,9 +1,8 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import MapView from "@/components/location/MapView";
-import LocationOption from "@/components/location/LocationOption";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest, getQueryFn } from "@/lib/queryClient";
@@ -14,6 +13,10 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { FuelType } from "@shared/schema";
 import StripePayment from "@/components/payment/StripePayment";
+import SavedLocationList from "@/components/location/SavedLocationList";
+import AddLocationForm from "@/components/location/AddLocationForm";
+import FuelLevelSelector from "@/components/vehicles/FuelLevelSelector";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 
 const STEPS = [
   { id: "location", title: "Delivery Location" },
@@ -147,6 +150,10 @@ export default function OrderPage() {
     setOrderData(prev => ({ ...prev, paymentMethod }));
   };
   
+  // State for dialogs
+  const [showAddLocation, setShowAddLocation] = useState(false);
+  const [showFuelLevel, setShowFuelLevel] = useState(false);
+  
   const renderStepContent = () => {
     switch (currentStep) {
       case 0:
@@ -160,28 +167,42 @@ export default function OrderPage() {
               className="w-full h-48 rounded-lg mb-4"
             />
             
-            {orderData.location && (
-              <Card className="mb-4">
-                <CardContent className="p-4">
-                  <h3 className="font-medium text-neutral-700 mb-1">Current Location</h3>
-                  <p className="text-neutral-600">{orderData.location.address}</p>
-                </CardContent>
-              </Card>
-            )}
+            <SavedLocationList
+              locations={savedLocations}
+              selectedLocationId={orderData.location?.id}
+              onLocationSelect={selectLocation}
+              isLoading={locationsLoading}
+              className="mb-4"
+            />
             
-            {!locationsLoading && savedLocations.length > 0 && (
-              <div>
-                <h3 className="text-sm font-medium text-neutral-500 mb-2">Saved Locations</h3>
-                {savedLocations.map(location => (
-                  <LocationOption
-                    key={location.id}
-                    location={location}
-                    onSelect={() => selectLocation(location)}
-                    isSelected={orderData.location?.id === location.id}
-                  />
-                ))}
-              </div>
-            )}
+            <Button 
+              variant="outline" 
+              className="w-full flex items-center justify-center"
+              onClick={() => setShowAddLocation(true)}
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Add New Location
+            </Button>
+            
+            <Dialog open={showAddLocation} onOpenChange={setShowAddLocation}>
+              <DialogContent className="sm:max-w-[425px]">
+                <DialogHeader>
+                  <DialogTitle>Add New Location</DialogTitle>
+                  <DialogDescription>
+                    Enter the details of your new delivery location.
+                  </DialogDescription>
+                </DialogHeader>
+                <AddLocationForm 
+                  onSuccess={() => {
+                    setShowAddLocation(false);
+                    toast({
+                      title: "Location added",
+                      description: "Your new location has been saved."
+                    });
+                  }} 
+                />
+              </DialogContent>
+            </Dialog>
           </div>
         );
       
@@ -204,16 +225,57 @@ export default function OrderPage() {
             ) : (
               <div>
                 {vehicles.map(vehicle => (
-                  <VehicleCard
-                    key={vehicle.id}
-                    vehicle={vehicle}
-                    onSelect={() => selectVehicle(vehicle)}
-                    isSelected={orderData.vehicle?.id === vehicle.id}
-                    showActions={true}
-                  />
+                  <div key={vehicle.id} className="mb-3">
+                    <VehicleCard
+                      vehicle={vehicle}
+                      onSelect={() => selectVehicle(vehicle)}
+                      isSelected={orderData.vehicle?.id === vehicle.id}
+                      showActions={true}
+                      actionButtons={
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setOrderData(prev => ({ ...prev, vehicle }));
+                            setShowFuelLevel(true);
+                          }}
+                        >
+                          Set Fuel Level
+                        </Button>
+                      }
+                    />
+                  </div>
                 ))}
               </div>
             )}
+            
+            <Dialog open={showFuelLevel} onOpenChange={setShowFuelLevel}>
+              <DialogContent className="sm:max-w-[425px]">
+                <FuelLevelSelector
+                  vehicleName={`${orderData.vehicle?.make || ''} ${orderData.vehicle?.model || ''}`}
+                  initialLevel={orderData.vehicle?.fuelLevel || 50}
+                  onSave={(level) => {
+                    // Update vehicle with new fuel level
+                    if (orderData.vehicle) {
+                      setOrderData(prev => ({
+                        ...prev,
+                        vehicle: {
+                          ...prev.vehicle,
+                          fuelLevel: level
+                        }
+                      }));
+                    }
+                    setShowFuelLevel(false);
+                    toast({
+                      title: "Fuel level updated",
+                      description: "Your vehicle's fuel level has been updated."
+                    });
+                  }}
+                  onClose={() => setShowFuelLevel(false)}
+                />
+              </DialogContent>
+            </Dialog>
           </div>
         );
       
