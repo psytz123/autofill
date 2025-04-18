@@ -460,78 +460,16 @@ export default function OrderPage() {
               <h2 className="text-lg font-semibold">Fuel Type & Amount</h2>
             </div>
             
-            <Card className="mb-4">
-              <CardContent className="p-4">
-                <h3 className="font-medium text-neutral-700 mb-3">Select Fuel Type</h3>
-                
-                <RadioGroup 
-                  value={orderData.fuelType} 
-                  onValueChange={(value) => selectFuelType(value as FuelType)}
-                  className="space-y-2"
-                >
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="REGULAR_UNLEADED" id="fuel-regular" />
-                    <Label htmlFor="fuel-regular" className="flex justify-between w-full">
-                      <span>Regular Unleaded</span>
-                      <span className="font-medium">$3.99/gal</span>
-                    </Label>
-                  </div>
-                  
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="PREMIUM_UNLEADED" id="fuel-premium" />
-                    <Label htmlFor="fuel-premium" className="flex justify-between w-full">
-                      <span>Premium Unleaded</span>
-                      <span className="font-medium">$4.59/gal</span>
-                    </Label>
-                  </div>
-                  
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="DIESEL" id="fuel-diesel" />
-                    <Label htmlFor="fuel-diesel" className="flex justify-between w-full">
-                      <span>Diesel</span>
-                      <span className="font-medium">$4.29/gal</span>
-                    </Label>
-                  </div>
-                </RadioGroup>
-              </CardContent>
-            </Card>
-            
-            <Card className="mb-4">
-              <CardContent className="p-4">
-                <h3 className="font-medium text-neutral-700 mb-3">Fuel Amount</h3>
-                
-                <div className="flex items-center gap-4">
-                  <Button 
-                    variant="outline" 
-                    size="icon"
-                    onClick={() => updateAmount(Math.max(1, orderData.amount - 1))}
-                  >
-                    -
-                  </Button>
-                  
-                  <Input 
-                    type="number" 
-                    min={1} 
-                    max={50}
-                    value={orderData.amount}
-                    onChange={(e) => updateAmount(parseInt(e.target.value) || 0)}
-                    className="text-center"
-                  />
-                  
-                  <Button 
-                    variant="outline" 
-                    size="icon"
-                    onClick={() => updateAmount(Math.min(50, orderData.amount + 1))}
-                  >
-                    +
-                  </Button>
-                </div>
-                
-                <p className="mt-4 text-right font-medium">
-                  Total: ${(orderData.amount * (orderData.fuelType === "PREMIUM_UNLEADED" ? 4.59 : orderData.fuelType === "DIESEL" ? 4.29 : 3.99)).toFixed(2)}
-                </p>
-              </CardContent>
-            </Card>
+            <div className="mt-4">
+              {/* Use our new enhanced fuel selector component */}
+              <FuelSelector
+                fuelType={orderData.fuelType}
+                amount={orderData.amount}
+                onFuelTypeChange={selectFuelType}
+                onAmountChange={updateAmount}
+                vehicle={orderData.vehicle || undefined}
+              />
+            </div>
           </div>
         );
       
