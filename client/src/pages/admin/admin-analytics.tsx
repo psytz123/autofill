@@ -2,340 +2,324 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getQueryFn } from "@/lib/queryClient";
 import AdminLayout from "@/components/admin/admin-layout";
-import { 
-  Card, 
-  CardContent, 
-  CardDescription, 
-  CardHeader, 
-  CardTitle 
-} from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
-  Loader2, 
-  TrendingUp, 
-  Users, 
-  Calendar, 
-  Clock, 
-  DollarSign, 
-  ShoppingBag, 
-  MapPin 
-} from "lucide-react";
-import { 
-  BarChart, 
-  Bar, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
-  ResponsiveContainer,
-  LineChart,
-  Line,
-  PieChart,
-  Pie,
-  Cell,
-  Legend
-} from "recharts";
-import { format } from "date-fns";
-import { useToast } from "@/hooks/use-toast";
-import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@/components/ui/select";
+  Select, 
+  SelectContent, 
+  SelectItem, 
+  SelectTrigger, 
+  SelectValue 
+} from "@/components/ui/select";
+import { Loader2, TrendingUp, DollarSign, Calendar, MapPin, Clock, Users } from "lucide-react";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from "recharts";
 
-// Custom type definitions
-interface RevenueStat {
-  time_period: string;
-  order_count: number;
-  revenue: number;
+// Define types for analytics data
+interface RevenueData {
+  date: string;
+  amount: number;
+  growth?: number;
 }
 
-interface LocationStat {
-  lat: string;
-  lng: string;
-  delivery_count: number;
+interface LocationData {
+  id: number;
+  address: string;
+  count: number;
+  percentage: number;
 }
 
-interface PeakTimeStat {
+interface TimeData {
   hour: number;
-  order_count: number;
-}
-
-interface RetentionSummary {
-  total_customers: number;
-  repeat_customers: number;
-  avg_orders_per_customer: number;
-  avg_customer_lifespan_days: number;
-}
-
-interface RetentionCohort {
-  cohort: string;
-  total_users: number;
-  retention_30d_pct: number;
-  retention_60d_pct: number;
-  retention_90d_pct: number;
+  count: number;
 }
 
 interface RetentionData {
-  summary: RetentionSummary;
-  cohorts: RetentionCohort[];
+  month: string;
+  newUsers: number;
+  returningUsers: number;
+  churnRate: number;
 }
 
-// Card to format a metric with title, value and icon
-interface MetricCardProps {
-  title: string;
-  value: string | number;
-  icon: React.ReactNode;
-  description?: string;
-  isLoading?: boolean;
-}
-
-function MetricCard({ title, value, icon, description, isLoading = false }: MetricCardProps) {
-  return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between pb-2">
-        <CardTitle className="text-sm font-medium text-muted-foreground">{title}</CardTitle>
-        {icon}
-      </CardHeader>
-      <CardContent>
-        {isLoading ? (
-          <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-        ) : (
-          <>
-            <div className="text-2xl font-bold">{value}</div>
-            {description && <p className="text-xs text-muted-foreground mt-1">{description}</p>}
-          </>
-        )}
-      </CardContent>
-    </Card>
-  );
-}
+// Define color constants for charts
+const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82CA9D'];
 
 export default function AdminAnalyticsPage() {
-  const [revenuePeriod, setRevenuePeriod] = useState<'daily' | 'weekly' | 'monthly'>('daily');
-  const { toast } = useToast();
+  const [timeframe, setTimeframe] = useState("monthly");
   
-  // Fetch revenue analytics
-  const { 
-    data: revenueData = [], 
-    isLoading: isLoadingRevenue 
-  } = useQuery<RevenueStat[]>({
-    queryKey: ['/admin/api/analytics/revenue', revenuePeriod],
-    queryFn: getQueryFn({ on401: "throw" })
+  // Revenue data query
+  const {
+    data: revenueData,
+    isLoading: isLoadingRevenue,
+  } = useQuery({
+    queryKey: ["/admin/api/analytics/revenue", timeframe],
+    queryFn: getQueryFn(),
   });
   
-  // Fetch popular locations
-  const { 
-    data: locationData = [], 
-    isLoading: isLoadingLocations 
-  } = useQuery<LocationStat[]>({
-    queryKey: ['/admin/api/analytics/popular-locations'],
-    queryFn: getQueryFn({ on401: "throw" })
+  // Popular locations query
+  const {
+    data: locationsData,
+    isLoading: isLoadingLocations,
+  } = useQuery({
+    queryKey: ["/admin/api/analytics/popular-locations"],
+    queryFn: getQueryFn(),
   });
   
-  // Fetch peak ordering times
-  const { 
-    data: peakTimeData = [], 
-    isLoading: isLoadingPeakTimes 
-  } = useQuery<PeakTimeStat[]>({
-    queryKey: ['/admin/api/analytics/peak-times'],
-    queryFn: getQueryFn({ on401: "throw" })
+  // Peak ordering times query
+  const {
+    data: peakTimesData,
+    isLoading: isLoadingPeakTimes,
+  } = useQuery({
+    queryKey: ["/admin/api/analytics/peak-times"],
+    queryFn: getQueryFn(),
   });
   
-  // Fetch customer retention metrics
-  const { 
-    data: retentionData, 
-    isLoading: isLoadingRetention 
-  } = useQuery<RetentionData>({
-    queryKey: ['/admin/api/analytics/customer-retention'],
-    queryFn: getQueryFn({ on401: "throw" })
+  // Customer retention metrics query
+  const {
+    data: retentionData,
+    isLoading: isLoadingRetention,
+  } = useQuery({
+    queryKey: ["/admin/api/analytics/retention"],
+    queryFn: getQueryFn(),
   });
   
-  // Format revenue data for charts
-  const formattedRevenueData = revenueData.map(item => ({
-    name: revenuePeriod === 'daily' 
-      ? format(new Date(item.time_period), 'MMM d')
-      : revenuePeriod === 'weekly'
-        ? `Week ${item.time_period.split('-')[1]}`
-        : format(new Date(item.time_period + '-01'), 'MMM yyyy'),
-    Revenue: parseFloat(item.revenue as any) || 0,
-    Orders: parseInt(item.order_count as any) || 0
-  }));
+  // Calculate total revenue
+  const calculateTotalRevenue = () => {
+    if (!revenueData) return 0;
+    return revenueData.reduce((total: number, item: RevenueData) => total + item.amount, 0);
+  };
   
-  // Format peak time data with proper labels
-  const formattedPeakTimeData = peakTimeData.map(item => ({
-    name: item.hour < 12 
-      ? `${item.hour === 0 ? 12 : item.hour}am`
-      : `${item.hour === 12 ? 12 : item.hour - 12}pm`,
-    Orders: parseInt(item.order_count as any) || 0,
-    hour: item.hour // Keep original hour for sorting
-  })).sort((a, b) => a.hour - b.hour);
+  // Calculate average growth
+  const calculateAverageGrowth = () => {
+    if (!revenueData || revenueData.length < 2) return 0;
+    
+    const growthValues = revenueData
+      .filter((item: RevenueData) => item.growth !== undefined)
+      .map((item: RevenueData) => item.growth);
+      
+    if (growthValues.length === 0) return 0;
+    
+    const sum = growthValues.reduce((total: number, value: number | undefined) => total + (value || 0), 0);
+    return sum / growthValues.length;
+  };
   
-  // Prepare retention cohort data for chart
-  const cohortChartData = retentionData?.cohorts.map(cohort => ({
-    name: cohort.cohort,
-    '30 Days': cohort.retention_30d_pct,
-    '60 Days': cohort.retention_60d_pct,
-    '90 Days': cohort.retention_90d_pct
-  })).reverse() || [];
+  // Format dollar amounts
+  const formatDollar = (amount: number) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: 2,
+    }).format(amount);
+  };
   
-  // Colors for the pie chart
-  const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8'];
-
+  // Format percentages
+  const formatPercent = (value: number) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'percent',
+      minimumFractionDigits: 1,
+      maximumFractionDigits: 1,
+    }).format(value / 100);
+  };
+  
+  // Format time from 24h to 12h format
+  const formatHour = (hour: number) => {
+    const ampm = hour >= 12 ? 'PM' : 'AM';
+    const formattedHour = hour % 12 || 12;
+    return `${formattedHour}${ampm}`;
+  };
+  
+  // Custom tooltip for charts
+  const CustomTooltip = ({ active, payload, label }: any) => {
+    if (active && payload && payload.length) {
+      return (
+        <div className="bg-background border rounded p-2 shadow-md">
+          <p className="font-semibold">{label}</p>
+          <p className="text-primary">{formatDollar(payload[0].value)}</p>
+        </div>
+      );
+    }
+    return null;
+  };
+  
+  // Location tooltip
+  const LocationTooltip = ({ active, payload }: any) => {
+    if (active && payload && payload.length) {
+      return (
+        <div className="bg-background border rounded p-2 shadow-md">
+          <p className="font-semibold">{payload[0].payload.address}</p>
+          <p className="text-primary">{payload[0].value} orders</p>
+          <p className="text-muted-foreground">{formatPercent(payload[0].payload.percentage)}</p>
+        </div>
+      );
+    }
+    return null;
+  };
+  
   return (
     <AdminLayout title="Analytics Dashboard">
-      <div className="space-y-6">
-        {/* Summary metrics */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <MetricCard 
-            title="Total Revenue (90 days)" 
-            value={
-              isLoadingRevenue 
-                ? "Loading..." 
-                : `$${revenueData.reduce((sum, item) => sum + (parseFloat(item.revenue as any) || 0), 0).toFixed(2)}`
-            } 
-            icon={<DollarSign className="h-4 w-4 text-muted-foreground" />} 
-            isLoading={isLoadingRevenue}
-          />
-          
-          <MetricCard 
-            title="Total Orders (90 days)" 
-            value={
-              isLoadingRevenue 
-                ? "Loading..." 
-                : revenueData.reduce((sum, item) => sum + (parseInt(item.order_count as any) || 0), 0)
-            } 
-            icon={<ShoppingBag className="h-4 w-4 text-muted-foreground" />} 
-            isLoading={isLoadingRevenue}
-          />
-          
-          <MetricCard 
-            title="Customer Retention Rate" 
-            value={
-              isLoadingRetention 
-                ? "Loading..." 
-                : `${retentionData?.cohorts[0]?.retention_30d_pct || 0}%`
-            } 
-            description="Customers who return within 30 days" 
-            icon={<Users className="h-4 w-4 text-muted-foreground" />} 
-            isLoading={isLoadingRetention}
-          />
-          
-          <MetricCard 
-            title="Avg. Customer Lifespan" 
-            value={
-              isLoadingRetention 
-                ? "Loading..." 
-                : `${Math.round(retentionData?.summary?.avg_customer_lifespan_days || 0)} days`
-            } 
-            icon={<Calendar className="h-4 w-4 text-muted-foreground" />} 
-            isLoading={isLoadingRetention}
-          />
+      <div className="container mx-auto py-6 space-y-6">
+        <div className="flex items-center justify-between">
+          <h1 className="text-3xl font-bold">Business Analytics</h1>
+          <Select 
+            value={timeframe} 
+            onValueChange={setTimeframe}
+          >
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Select timeframe" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="daily">Daily</SelectItem>
+              <SelectItem value="weekly">Weekly</SelectItem>
+              <SelectItem value="monthly">Monthly</SelectItem>
+              <SelectItem value="yearly">Yearly</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
         
-        {/* Revenue Trends */}
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle>Revenue Trends</CardTitle>
-              
-              <Select value={revenuePeriod} onValueChange={(value) => setRevenuePeriod(value as any)}>
-                <SelectTrigger className="w-[180px]">
-                  <SelectValue placeholder="Select period" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="daily">Daily</SelectItem>
-                  <SelectItem value="weekly">Weekly</SelectItem>
-                  <SelectItem value="monthly">Monthly</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <CardDescription>
-              Revenue and order trends over the last 90 days
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {isLoadingRevenue ? (
-              <div className="flex items-center justify-center h-80">
-                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        {/* Revenue Overview Cards */}
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
+              <DollarSign className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">
+                {isLoadingRevenue ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  formatDollar(calculateTotalRevenue())
+                )}
               </div>
-            ) : formattedRevenueData.length === 0 ? (
-              <div className="flex items-center justify-center h-80 text-muted-foreground">
-                No revenue data available
+              <p className="text-xs text-muted-foreground">
+                For selected period
+              </p>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Growth Rate</CardTitle>
+              <TrendingUp className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">
+                {isLoadingRevenue ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  `${calculateAverageGrowth().toFixed(1)}%`
+                )}
               </div>
-            ) : (
-              <ResponsiveContainer width="100%" height={350}>
-                <LineChart
-                  data={formattedRevenueData}
-                  margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="name" />
-                  <YAxis yAxisId="left" />
-                  <YAxis yAxisId="right" orientation="right" />
-                  <Tooltip />
-                  <Legend />
-                  <Line 
-                    yAxisId="left"
-                    type="monotone" 
-                    dataKey="Revenue" 
-                    stroke="#8884d8" 
-                    activeDot={{ r: 8 }} 
-                  />
-                  <Line 
-                    yAxisId="right"
-                    type="monotone" 
-                    dataKey="Orders" 
-                    stroke="#82ca9d" 
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            )}
-          </CardContent>
-        </Card>
+              <p className="text-xs text-muted-foreground">
+                Avg. growth per period
+              </p>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Peak Time</CardTitle>
+              <Clock className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">
+                {isLoadingPeakTimes ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : peakTimesData && peakTimesData.length > 0 ? (
+                  formatHour(peakTimesData.sort((a: TimeData, b: TimeData) => b.count - a.count)[0].hour)
+                ) : (
+                  "N/A"
+                )}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Highest order volume
+              </p>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Churn Rate</CardTitle>
+              <Users className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">
+                {isLoadingRetention ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : retentionData && retentionData.length > 0 ? (
+                  `${(retentionData.reduce((sum: number, item: RetentionData) => sum + item.churnRate, 0) / retentionData.length).toFixed(1)}%`
+                ) : (
+                  "N/A"
+                )}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Average customer churn
+              </p>
+            </CardContent>
+          </Card>
+        </div>
         
-        {/* Detailed Metrics Tabs */}
-        <Tabs defaultValue="peak-times">
-          <TabsList className="w-full mb-4">
-            <TabsTrigger value="peak-times" className="flex-1">
-              Peak Delivery Times
+        <Tabs defaultValue="revenue">
+          <TabsList className="grid w-full grid-cols-4">
+            <TabsTrigger value="revenue" className="flex items-center space-x-2">
+              <DollarSign className="h-4 w-4" />
+              <span>Revenue Trends</span>
             </TabsTrigger>
-            <TabsTrigger value="locations" className="flex-1">
-              Popular Locations
+            <TabsTrigger value="locations" className="flex items-center space-x-2">
+              <MapPin className="h-4 w-4" />
+              <span>Popular Locations</span>
             </TabsTrigger>
-            <TabsTrigger value="retention" className="flex-1">
-              Customer Retention
+            <TabsTrigger value="times" className="flex items-center space-x-2">
+              <Clock className="h-4 w-4" />
+              <span>Peak Hours</span>
+            </TabsTrigger>
+            <TabsTrigger value="retention" className="flex items-center space-x-2">
+              <Users className="h-4 w-4" />
+              <span>User Retention</span>
             </TabsTrigger>
           </TabsList>
           
-          {/* Peak Delivery Times Tab */}
-          <TabsContent value="peak-times">
+          {/* Revenue Trends Tab */}
+          <TabsContent value="revenue">
             <Card>
               <CardHeader>
-                <CardTitle>Peak Ordering Hours</CardTitle>
+                <CardTitle>Revenue Trends</CardTitle>
                 <CardDescription>
-                  Most popular times of day for orders over the last 30 days
+                  Revenue analysis over {timeframe} periods
                 </CardDescription>
               </CardHeader>
-              <CardContent>
-                {isLoadingPeakTimes ? (
-                  <div className="flex items-center justify-center h-80">
-                    <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+              <CardContent className="h-96">
+                {isLoadingRevenue ? (
+                  <div className="flex h-full items-center justify-center">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
                   </div>
-                ) : formattedPeakTimeData.length === 0 ? (
-                  <div className="flex items-center justify-center h-80 text-muted-foreground">
-                    No peak time data available
-                  </div>
-                ) : (
-                  <ResponsiveContainer width="100%" height={350}>
+                ) : revenueData && revenueData.length > 0 ? (
+                  <ResponsiveContainer width="100%" height="100%">
                     <BarChart
-                      data={formattedPeakTimeData}
-                      margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+                      data={revenueData}
+                      margin={{
+                        top: 20,
+                        right: 30,
+                        left: 20,
+                        bottom: 50,
+                      }}
                     >
                       <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="name" />
+                      <XAxis 
+                        dataKey="date" 
+                        angle={-45} 
+                        textAnchor="end"
+                        height={70}
+                        tickMargin={30}
+                      />
                       <YAxis />
-                      <Tooltip />
-                      <Legend />
-                      <Bar dataKey="Orders" fill="#8884d8" />
+                      <Tooltip content={<CustomTooltip />} />
+                      <Bar dataKey="amount" fill="#FF6B00" />
                     </BarChart>
                   </ResponsiveContainer>
+                ) : (
+                  <div className="flex h-full items-center justify-center text-muted-foreground">
+                    No revenue data available
+                  </div>
                 )}
               </CardContent>
             </Card>
@@ -347,146 +331,167 @@ export default function AdminAnalyticsPage() {
               <CardHeader>
                 <CardTitle>Popular Delivery Locations</CardTitle>
                 <CardDescription>
-                  Areas with the highest delivery frequency
+                  Top locations by order volume
                 </CardDescription>
               </CardHeader>
-              <CardContent>
+              <CardContent className="flex flex-col lg:flex-row">
                 {isLoadingLocations ? (
-                  <div className="flex items-center justify-center h-80">
-                    <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                  <div className="flex h-80 w-full items-center justify-center">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
                   </div>
-                ) : locationData.length === 0 ? (
-                  <div className="flex items-center justify-center h-80 text-muted-foreground">
-                    No location data available
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                    <div>
-                      <ResponsiveContainer width="100%" height={300}>
+                ) : locationsData && locationsData.length > 0 ? (
+                  <>
+                    <div className="w-full lg:w-1/2 h-80">
+                      <ResponsiveContainer width="100%" height="100%">
                         <PieChart>
                           <Pie
-                            data={locationData.slice(0, 5).map((item, index) => ({
-                              name: `Location ${index + 1}`,
-                              value: parseInt(item.delivery_count as any) || 0
-                            }))}
+                            data={locationsData}
                             cx="50%"
                             cy="50%"
                             labelLine={false}
-                            label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}
                             outerRadius={80}
                             fill="#8884d8"
-                            dataKey="value"
+                            dataKey="count"
                           >
-                            {locationData.slice(0, 5).map((entry, index) => (
+                            {locationsData.map((entry: LocationData, index: number) => (
                               <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                             ))}
                           </Pie>
-                          <Tooltip />
+                          <Tooltip content={<LocationTooltip />} />
                         </PieChart>
                       </ResponsiveContainer>
                     </div>
-                    
-                    <div className="space-y-4">
-                      <h3 className="font-medium">Top Delivery Areas</h3>
-                      {locationData.slice(0, 5).map((location, index) => (
-                        <div key={index} className="flex items-center justify-between border-b pb-2">
-                          <div className="flex items-center gap-2">
-                            <div 
-                              className="w-3 h-3 rounded-full" 
+                    <div className="w-full lg:w-1/2 mt-4 lg:mt-0">
+                      <ul className="space-y-2">
+                        {locationsData.map((location: LocationData, index: number) => (
+                          <li key={location.id} className="flex items-center">
+                            <div
+                              className="w-4 h-4 mr-2 rounded-full"
                               style={{ backgroundColor: COLORS[index % COLORS.length] }}
                             ></div>
-                            <span>Location {index + 1}</span>
-                          </div>
-                          <div className="font-medium">{location.delivery_count} orders</div>
-                        </div>
-                      ))}
-                      <div className="text-xs text-muted-foreground mt-4">
-                        <span className="font-medium">Note:</span> Coordinates have been grouped by proximity. 
-                        For exact delivery points, please export the detailed data.
-                      </div>
+                            <div className="flex-1 truncate" title={location.address}>
+                              {location.address}
+                            </div>
+                            <div className="text-right font-medium">
+                              {location.count} orders ({formatPercent(location.percentage)})
+                            </div>
+                          </li>
+                        ))}
+                      </ul>
                     </div>
+                  </>
+                ) : (
+                  <div className="flex h-80 w-full items-center justify-center text-muted-foreground">
+                    No location data available
                   </div>
                 )}
               </CardContent>
             </Card>
           </TabsContent>
           
-          {/* Customer Retention Tab */}
+          {/* Peak Hours Tab */}
+          <TabsContent value="times">
+            <Card>
+              <CardHeader>
+                <CardTitle>Peak Ordering Hours</CardTitle>
+                <CardDescription>
+                  Order distribution throughout the day
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="h-80">
+                {isLoadingPeakTimes ? (
+                  <div className="flex h-full items-center justify-center">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                  </div>
+                ) : peakTimesData && peakTimesData.length > 0 ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart
+                      data={peakTimesData}
+                      margin={{
+                        top: 20,
+                        right: 30,
+                        left: 20,
+                        bottom: 5,
+                      }}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis 
+                        dataKey="hour" 
+                        tickFormatter={formatHour}
+                      />
+                      <YAxis />
+                      <Tooltip 
+                        formatter={(value: any) => [`${value} orders`, 'Count']}
+                        labelFormatter={formatHour}
+                      />
+                      <Bar dataKey="count" fill="#002B5B" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="flex h-full items-center justify-center text-muted-foreground">
+                    No peak time data available
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+          
+          {/* User Retention Tab */}
           <TabsContent value="retention">
             <Card>
               <CardHeader>
-                <CardTitle>Customer Retention Analysis</CardTitle>
+                <CardTitle>Customer Retention Metrics</CardTitle>
                 <CardDescription>
-                  How well we retain customers over time
+                  New vs. returning customers and churn rates
                 </CardDescription>
               </CardHeader>
-              <CardContent>
+              <CardContent className="h-80">
                 {isLoadingRetention ? (
-                  <div className="flex items-center justify-center h-80">
-                    <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                  <div className="flex h-full items-center justify-center">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
                   </div>
-                ) : !retentionData ? (
-                  <div className="flex items-center justify-center h-80 text-muted-foreground">
-                    No retention data available
-                  </div>
+                ) : retentionData && retentionData.length > 0 ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart
+                      data={retentionData}
+                      margin={{
+                        top: 20,
+                        right: 30,
+                        left: 20,
+                        bottom: 5,
+                      }}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="month" />
+                      <YAxis yAxisId="left" />
+                      <YAxis yAxisId="right" orientation="right" />
+                      <Tooltip />
+                      <Line 
+                        yAxisId="left" 
+                        type="monotone" 
+                        dataKey="newUsers" 
+                        stroke="#0088FE" 
+                        name="New Users"
+                      />
+                      <Line 
+                        yAxisId="left" 
+                        type="monotone" 
+                        dataKey="returningUsers" 
+                        stroke="#00C49F" 
+                        name="Returning Users"
+                      />
+                      <Line 
+                        yAxisId="right" 
+                        type="monotone" 
+                        dataKey="churnRate" 
+                        stroke="#FF8042" 
+                        name="Churn Rate (%)"
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
                 ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    {/* Summary card */}
-                    <div className="md:col-span-1 space-y-4">
-                      <h3 className="font-medium">Retention Summary</h3>
-                      
-                      <div className="border rounded-lg p-4 space-y-3">
-                        <div>
-                          <div className="text-sm text-muted-foreground">Total Customers</div>
-                          <div className="text-2xl font-bold">{retentionData.summary.total_customers}</div>
-                        </div>
-                        
-                        <div>
-                          <div className="text-sm text-muted-foreground">Repeat Customers</div>
-                          <div className="text-2xl font-bold">{retentionData.summary.repeat_customers}</div>
-                        </div>
-                        
-                        <div>
-                          <div className="text-sm text-muted-foreground">Repeat Rate</div>
-                          <div className="text-2xl font-bold">
-                            {retentionData.summary.total_customers > 0 
-                              ? ((retentionData.summary.repeat_customers / retentionData.summary.total_customers) * 100).toFixed(1) 
-                              : 0}%
-                          </div>
-                        </div>
-                        
-                        <div>
-                          <div className="text-sm text-muted-foreground">Avg. Orders Per Customer</div>
-                          <div className="text-2xl font-bold">{retentionData.summary.avg_orders_per_customer?.toFixed(1) || "0"}</div>
-                        </div>
-                      </div>
-                    </div>
-                    
-                    {/* Chart for cohort retention */}
-                    <div className="md:col-span-2">
-                      <h3 className="font-medium mb-4">Cohort Retention Rates</h3>
-                      {cohortChartData.length === 0 ? (
-                        <div className="flex items-center justify-center h-60 border rounded-lg text-muted-foreground">
-                          No cohort data available
-                        </div>
-                      ) : (
-                        <ResponsiveContainer width="100%" height={300}>
-                          <BarChart
-                            data={cohortChartData}
-                            margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
-                          >
-                            <CartesianGrid strokeDasharray="3 3" />
-                            <XAxis dataKey="name" />
-                            <YAxis label={{ value: 'Retention %', angle: -90, position: 'insideLeft' }} />
-                            <Tooltip />
-                            <Legend />
-                            <Bar dataKey="30 Days" fill="#8884d8" />
-                            <Bar dataKey="60 Days" fill="#82ca9d" />
-                            <Bar dataKey="90 Days" fill="#ffc658" />
-                          </BarChart>
-                        </ResponsiveContainer>
-                      )}
-                    </div>
+                  <div className="flex h-full items-center justify-center text-muted-foreground">
+                    No retention data available
                   </div>
                 )}
               </CardContent>

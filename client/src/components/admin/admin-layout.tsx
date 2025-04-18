@@ -10,7 +10,8 @@ import {
   LogOut,
   Menu,
   X,
-  UserCircle
+  UserCircle,
+  BarChart3
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -36,11 +37,20 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
       switch(location) {
         case '/admin/dashboard':
           preloadComponent(() => import('@/pages/admin/admin-orders'));
+          preloadComponent(() => import('@/pages/admin/admin-customers'));
           break;
         case '/admin/orders':
           preloadComponent(() => import('@/pages/admin/admin-drivers'));
+          preloadComponent(() => import('@/pages/admin/admin-customers'));
           break;
         case '/admin/drivers':
+          preloadComponent(() => import('@/pages/admin/admin-profile'));
+          preloadComponent(() => import('@/pages/admin/admin-customers'));
+          break;
+        case '/admin/customers':
+          preloadComponent(() => import('@/pages/admin/admin-analytics'));
+          break;
+        case '/admin/analytics':
           preloadComponent(() => import('@/pages/admin/admin-profile'));
           break;
         default:
@@ -81,6 +91,11 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
       href: "/admin/customers",
     },
     {
+      label: "Analytics",
+      icon: <BarChart3 className="h-5 w-5" />,
+      href: "/admin/analytics",
+    },
+    {
       label: "Profile",
       icon: <UserCircle className="h-5 w-5" />,
       href: "/admin/profile",
@@ -101,6 +116,12 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
           break;
         case '/admin/drivers':
           preloadComponent(() => import('@/pages/admin/admin-drivers'));
+          break;
+        case '/admin/customers':
+          preloadComponent(() => import('@/pages/admin/admin-customers'));
+          break;
+        case '/admin/analytics':
+          preloadComponent(() => import('@/pages/admin/admin-analytics'));
           break;
         case '/admin/profile':
           preloadComponent(() => import('@/pages/admin/admin-profile'));
