@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/hooks/use-auth";
 import { Redirect } from "wouter";
-import { Loader2 } from "lucide-react";
+import { Loader2, Droplet, Car, CreditCard, MapPin } from "lucide-react";
 import { Logo } from "@/components/ui/logo";
 import {
   Form,
@@ -81,15 +81,15 @@ export default function AuthPage() {
     <div className="min-h-screen grid md:grid-cols-2">
       <div className="bg-white p-8 flex items-center justify-center">
         <div className="w-full max-w-md">
-          <div className="mb-8 text-center">
-            <Logo size="lg" className="mx-auto mb-3" />
-            <p className="text-neutral-500 text-sm mt-2">ON-DEMAND FUEL DELIVERY</p>
+          <div className="mb-10 text-center">
+            <Logo size="lg" className="mx-auto mb-3 drop-shadow-sm" />
+            <p className="text-neutral-500 text-sm mt-2 tracking-wide">ON-DEMAND FUEL DELIVERY</p>
           </div>
 
           <Tabs defaultValue="login" value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid grid-cols-2 mb-6">
-              <TabsTrigger value="login">Login</TabsTrigger>
-              <TabsTrigger value="register">Sign Up</TabsTrigger>
+            <TabsList className="grid grid-cols-2 mb-6 bg-slate-100 p-1 rounded-lg">
+              <TabsTrigger value="login" className="rounded-md">Login</TabsTrigger>
+              <TabsTrigger value="register" className="rounded-md">Sign Up</TabsTrigger>
             </TabsList>
 
             <TabsContent value="login">
@@ -219,28 +219,45 @@ export default function AuthPage() {
         </div>
       </div>
 
-      <div className="bg-autofill-navy hidden md:flex flex-col items-center justify-center p-8 text-center">
-        <div className="max-w-md">
-          <Logo size="lg" className="mx-auto mb-8" />
-          <h2 className="text-3xl font-bold mb-4 text-white">Fuel delivery, simplified</h2>
-          <p className="text-slate-200 mb-8">
+      <div className="bg-autofill-navy hidden md:flex flex-col items-center justify-center p-10 text-center relative overflow-hidden">
+        {/* Decorative Background Elements */}
+        <div className="absolute inset-0 opacity-10">
+          <div className="absolute top-20 right-20 w-64 h-64 rounded-full bg-autofill-orange blur-3xl"></div>
+          <div className="absolute bottom-20 left-20 w-64 h-64 rounded-full bg-autofill-orange blur-3xl"></div>
+        </div>
+        <div className="max-w-md relative z-10">
+          <Logo size="lg" className="mx-auto mb-8 filter drop-shadow-lg" />
+          <h2 className="text-3xl font-bold mb-4 text-white leading-tight">Fuel delivery, simplified</h2>
+          <p className="text-slate-200 mb-10 text-lg">
             AutoFill brings the gas station to you. Order fuel directly to your vehicle, 
             anytime, anywhere. Save time and never worry about empty tanks again.
           </p>
-          <div className="grid grid-cols-2 gap-4 text-left">
-            <div className="bg-white/10 backdrop-blur-sm p-4 rounded-lg border border-white/20">
+          <div className="grid grid-cols-2 gap-5 text-left">
+            <div className="bg-white/10 backdrop-blur-sm p-5 rounded-lg border border-white/20 transform transition-all hover:scale-105 hover:bg-white/15">
+              <div className="bg-autofill-orange/20 rounded-full w-10 h-10 mb-3 flex items-center justify-center">
+                <Droplet className="h-5 w-5 text-white" />
+              </div>
               <h3 className="font-medium mb-2 text-white">On-demand delivery</h3>
               <p className="text-sm text-slate-200">Get fuel delivered to your location in minutes</p>
             </div>
-            <div className="bg-white/10 backdrop-blur-sm p-4 rounded-lg border border-white/20">
+            <div className="bg-white/10 backdrop-blur-sm p-5 rounded-lg border border-white/20 transform transition-all hover:scale-105 hover:bg-white/15">
+              <div className="bg-autofill-orange/20 rounded-full w-10 h-10 mb-3 flex items-center justify-center">
+                <Car className="h-5 w-5 text-white" />
+              </div>
               <h3 className="font-medium mb-2 text-white">Multiple vehicles</h3>
               <p className="text-sm text-slate-200">Manage all your vehicles in one place</p>
             </div>
-            <div className="bg-white/10 backdrop-blur-sm p-4 rounded-lg border border-white/20">
+            <div className="bg-white/10 backdrop-blur-sm p-5 rounded-lg border border-white/20 transform transition-all hover:scale-105 hover:bg-white/15">
+              <div className="bg-autofill-orange/20 rounded-full w-10 h-10 mb-3 flex items-center justify-center">
+                <CreditCard className="h-5 w-5 text-white" />
+              </div>
               <h3 className="font-medium mb-2 text-white">Secure payments</h3>
               <p className="text-sm text-slate-200">Pay securely with saved payment methods</p>
             </div>
-            <div className="bg-white/10 backdrop-blur-sm p-4 rounded-lg border border-white/20">
+            <div className="bg-white/10 backdrop-blur-sm p-5 rounded-lg border border-white/20 transform transition-all hover:scale-105 hover:bg-white/15">
+              <div className="bg-autofill-orange/20 rounded-full w-10 h-10 mb-3 flex items-center justify-center">
+                <MapPin className="h-5 w-5 text-white" />
+              </div>
               <h3 className="font-medium mb-2 text-white">Real-time tracking</h3>
               <p className="text-sm text-slate-200">Track your delivery in real-time on the map</p>
             </div>
