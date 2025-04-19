@@ -17,9 +17,13 @@ import {
   OrderStatus
 } from "@shared/schema";
 
-// Initialize Stripe with placeholder key - replace with environment variable later
-const stripeSecretKey = process.env.STRIPE_SECRET_KEY || 'sk_test_placeholder';
-const stripe = new Stripe(stripeSecretKey);
+// Initialize Stripe with the secret key from environment variables
+if (!process.env.STRIPE_SECRET_KEY) {
+  console.error("STRIPE_SECRET_KEY environment variable is not set. Stripe functionality will be limited.");
+}
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "", {
+  apiVersion: "2023-10-16",
+});
 
 // Middleware to ensure user is authenticated
 function isAuthenticated(req: Request, res: Response, next: Function) {
@@ -427,17 +431,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Invalid amount" });
       }
       
+      if (!process.env.STRIPE_SECRET_KEY) {
+        return res.status(503).json({ 
+          message: "Payment service is not configured. Please contact support." 
+        });
+      }
+      
       // Create a PaymentIntent with the order amount and currency
       try {
-        // If we're using a placeholder key, return a mock payment intent
-        if (stripeSecretKey === 'sk_test_placeholder') {
-          return res.json({
-            clientSecret: 'pi_mock_secret_' + Math.random().toString(36).substring(2, 15),
-            amount: amount,
-            id: 'pi_mock_' + Math.random().toString(36).substring(2, 10),
-          });
-        }
-        
         const paymentIntent = await stripe.paymentIntents.create({
           amount: Math.round(amount * 100), // convert to cents
           currency: 'usd',
@@ -456,7 +457,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       } catch (stripeError) {
         console.error('Stripe error:', stripeError);
-        res.status(400).json({ message: 'Payment service unavailable. Please try again later.' });
+        res.status(400).json({ 
+          message: 'Payment service unavailable. Please try again later.',
+          error: process.env.NODE_ENV === 'development' ? stripeError.message : undefined
+        });
       }
     } catch (error) {
       console.error('Error creating payment intent:', error);
@@ -581,7 +585,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           await storage.updateUserStripeInfo(user.id, { stripeCustomerId: customerId });
         } catch (stripeError) {
           console.error('Stripe customer creation error:', stripeError);
-          if (stripeSecretKey === 'sk_test_placeholder') {
+          if (!process.env.STRIPE_SECRET_KEY) {
             // Generate mock customer ID for testing
             customerId = 'cus_mock_' + Math.random().toString(36).substring(2, 10);
             await storage.updateUserStripeInfo(user.id, { stripeCustomerId: customerId });
@@ -595,7 +599,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (user.stripeSubscriptionId) {
         try {
           // If using a real Stripe key, get the subscription
-          if (stripeSecretKey !== 'sk_test_placeholder') {
+          if (process.env.STRIPE_SECRET_KEY) {
             const subscription = await stripe.subscriptions.retrieve(user.stripeSubscriptionId);
             
             // Get the latest invoice and its payment intent
@@ -678,7 +682,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "No active subscription found" });
       }
       
-      if (stripeSecretKey !== 'sk_test_placeholder') {
+      if (process.env.STRIPE_SECRET_KEY) {
         await stripe.subscriptions.update(user.stripeSubscriptionId, {
           cancel_at_period_end: true
         });
