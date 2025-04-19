@@ -40,15 +40,15 @@ class OrderTrackingService {
   private userId: number | null = null;
   private trackingOrderId: number | null = null;
   
-  // Special flag for development mode
-  private readonly isDevelopment = import.meta.env.MODE === 'development';
+  // Special flag to completely disable WebSockets on Replit
+  private readonly disableWebSockets = true;
 
   /**
    * Connect to WebSocket server
    */
   async connect(): Promise<void> {
-    // Skip if already connected, connecting, or if we're in development mode
-    if (this.socket || this.isConnecting || this.isDevelopment) {
+    // Skip if already connected, connecting, or if WebSockets are disabled
+    if (this.socket || this.isConnecting || this.disableWebSockets) {
       return;
     }
     
@@ -164,9 +164,9 @@ class OrderTrackingService {
   authenticate(userId: number): void {
     this.userId = userId;
     
-    // If in development mode, skip actual WebSocket operations
-    if (this.isDevelopment) {
-      console.log('Development mode: Skipping WebSocket authentication');
+    // If WebSockets are disabled, skip actual WebSocket operations
+    if (this.disableWebSockets) {
+      console.log('WebSockets disabled: Skipping WebSocket authentication');
       return;
     }
     
@@ -187,9 +187,9 @@ class OrderTrackingService {
   trackOrder(orderId: number): void {
     this.trackingOrderId = orderId;
     
-    // If in development mode, skip actual WebSocket operations
-    if (this.isDevelopment) {
-      console.log('Development mode: Skipping WebSocket order tracking');
+    // If WebSockets are disabled, skip actual WebSocket operations
+    if (this.disableWebSockets) {
+      console.log('WebSockets disabled: Skipping WebSocket order tracking');
       return;
     }
     
@@ -212,9 +212,9 @@ class OrderTrackingService {
   disconnect(): void {
     this.trackingOrderId = null;
     
-    // If in development mode, skip actual WebSocket operations
-    if (this.isDevelopment) {
-      console.log('Development mode: Skipping WebSocket disconnect');
+    // If WebSockets are disabled, skip actual WebSocket operations
+    if (this.disableWebSockets) {
+      console.log('WebSockets disabled: Skipping WebSocket disconnect');
       return;
     }
     
