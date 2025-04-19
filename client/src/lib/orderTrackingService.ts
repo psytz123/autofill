@@ -58,27 +58,36 @@ class OrderTrackingService {
       }
       
       // Create WebSocket URL with CSRF token if available
-      // Handle both Replit and local development environments
-      let wsUrl;
+      let wsUrl = '';
       
-      if (window.location.href.includes('replit.dev')) {
-        // For Replit, use the exact same host as the current page
-        const replitUrl = new URL(window.location.href);
-        wsUrl = `${protocol}//${replitUrl.host}/ws${csrfToken ? `?csrf=${csrfToken}` : ''}`;
-      } else {
-        // For local development
-        wsUrl = `${protocol}//localhost:5000/ws${csrfToken ? `?csrf=${csrfToken}` : ''}`;
-      }
-      
-      console.log('Connecting to WebSocket at:', wsUrl);
-      
-      // Create new WebSocket connection with error handling
       try {
+        // Get current URL object
+        const currentUrl = new URL(window.location.href);
+        
+        // Use the same hostname/port for the WebSocket connection as the current page
+        wsUrl = `${protocol}//${currentUrl.host}/ws${csrfToken ? `?csrf=${csrfToken}` : ''}`;
+        
+        console.log('Connecting to WebSocket at:', wsUrl);
+        
+        // Create new WebSocket connection
         this.socket = new WebSocket(wsUrl);
       } catch (error) {
-        console.error('Failed to create WebSocket connection:', error);
-        this.socket = null;
-        throw error;
+        console.error('Failed to create WebSocket connection:', error, 'URL was:', wsUrl);
+        
+        // Fallback mechanism - try direct connection if possible
+        try {
+          console.log('Attempting fallback WebSocket connection...');
+          const fallbackUrl = window.location.protocol === 'https:' ? 
+            `wss://${window.location.host}/ws` : 
+            'ws://localhost:5000/ws';
+            
+          console.log('Fallback URL:', fallbackUrl);
+          this.socket = new WebSocket(fallbackUrl);
+        } catch (fallbackError) {
+          console.error('Fallback WebSocket connection also failed:', fallbackError);
+          this.socket = null;
+          throw fallbackError;
+        }
       }
       
       // Set up event handlers
