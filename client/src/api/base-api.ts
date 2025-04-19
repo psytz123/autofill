@@ -44,6 +44,15 @@ export class BaseApi {
   };
   
   /**
+   * Get CSRF token for request headers
+   * Lazy loads the CSRF token utility to avoid circular dependencies
+   */
+  protected async getCsrfHeaders(): Promise<HeadersInit> {
+    const { addCsrfHeader } = await import('@/lib/csrfToken');
+    return addCsrfHeader();
+  }
+  
+  /**
    * Execute a GET request
    * @param url API endpoint
    * @param options Additional request options
@@ -122,12 +131,16 @@ export class BaseApi {
    */
   protected async request<T>(url: string, options: RequestInit): Promise<ApiResponse<T>> {
     try {
+      // Get CSRF headers
+      const csrfHeaders = await this.getCsrfHeaders();
+      
       // Combine defaults with provided options
       const requestOptions: RequestInit = {
         ...this.defaultOptions,
         ...options,
         headers: {
           ...this.defaultOptions.headers,
+          ...csrfHeaders,
           ...options.headers,
         }
       };
@@ -137,6 +150,30 @@ export class BaseApi {
       
       // Process response
       if (!response.ok) {
+        // If CSRF validation failed, reset token and try again (once)
+        if (response.status === 403 && 
+            response.headers.get('X-CSRF-Valid') === 'false') {
+          
+          // Check if this is already a retry attempt
+          const isRetry = options.headers instanceof Headers && 
+            options.headers.has('X-CSRF-Retry');
+          
+          if (!isRetry) {
+            // Reset CSRF token
+            const { resetCsrfToken } = await import('@/lib/csrfToken');
+            resetCsrfToken();
+            
+            // Try again with a new token (mark to prevent infinite retries)
+            const retryHeaders = new Headers(options.headers || {});
+            retryHeaders.set('X-CSRF-Retry', 'true');
+            
+            return this.request<T>(url, {
+              ...options,
+              headers: retryHeaders
+            });
+          }
+        }
+        
         return this.handleApiError<T>(response);
       }
       

@@ -1,4 +1,5 @@
-import { queryClient, QUERY_CATEGORIES } from './queryClient';
+import { queryClient } from './queryClient';
+import { QUERY_CATEGORIES } from './query-cache-config';
 
 /**
  * Prefetch data for a specific route

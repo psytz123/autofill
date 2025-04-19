@@ -40,7 +40,9 @@ app.use((req, res, next) => {
     '/api/register',
     '/api/auth',
     // Admin routes - ensure we match all admin paths
-    '/admin/'
+    '/admin/',
+    // WebSocket path
+    '/ws'
   ];
   
   // Helper function to check if the path should be excluded

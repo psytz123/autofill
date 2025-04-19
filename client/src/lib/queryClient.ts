@@ -66,13 +66,24 @@ export const getQueryFn: <T>(options: ApiQueryOptions) => QueryFunction<T> =
     try {
       const endpoint = queryKey[0] as string;
       
+      // Get CSRF token
+      let headers: HeadersInit = {
+        'X-Requested-With': 'XMLHttpRequest',
+      };
+      
+      // Add CSRF token if needed for non-GET requests
+      try {
+        const { getCsrfToken } = await import('./csrfToken');
+        headers['X-CSRF-Token'] = getCsrfToken();
+      } catch (error) {
+        console.warn('Failed to get CSRF token:', error);
+      }
+      
       // Use standard fetch with better error handling
       const res = await fetch(endpoint, {
         credentials: "include",
         signal: abortController.signal,
-        headers: {
-          'X-Requested-With': 'XMLHttpRequest',
-        }
+        headers
       });
       
       // Clear timeout since request completed

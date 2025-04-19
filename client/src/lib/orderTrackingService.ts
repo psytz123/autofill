@@ -43,7 +43,22 @@ class OrderTrackingService {
     
     this.isConnecting = true;
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const wsUrl = `${protocol}//${window.location.host}/ws`;
+    
+    // Get CSRF token if available
+    let csrfToken = '';
+    try {
+      // Import dynamically to avoid circular dependencies
+      const csrfTokenModule = require('../lib/csrfToken');
+      if (csrfTokenModule && csrfTokenModule.getCsrfToken) {
+        csrfToken = csrfTokenModule.getCsrfToken();
+      }
+    } catch (e) {
+      console.warn('Could not load CSRF token for WebSocket', e);
+    }
+    
+    // Add CSRF token as query parameter
+    const wsUrl = `${protocol}//${window.location.host}/ws${csrfToken ? `?csrf=${csrfToken}` : ''}`;
+    console.log('Connecting to WebSocket at', wsUrl);
     
     try {
       this.socket = new WebSocket(wsUrl);
