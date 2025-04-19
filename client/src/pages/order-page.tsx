@@ -303,21 +303,59 @@ export default function OrderPage() {
   
   const selectLocation = (location: Location) => {
     console.log("Selected location:", location);
-    // Ensure we have valid location data before updating state
-    if (location && location.id !== undefined) {
-      setOrderData(prev => ({ ...prev, location }));
-      // Clear location validation error if it exists
+    
+    // Handle case where location is coming from MapView (temporary ID)
+    if (location) {
+      // For locations from MapView, they'll have id = -1
+      // Ensure coordinates are valid (non-null) according to schema
+      if (!location.coordinates) {
+        console.error("Location missing coordinates");
+        toast({
+          title: "Error with location",
+          description: "Selected location is missing coordinates",
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      // Create a properly formatted location object matching the schema type
+      const validLocation: Location = {
+        id: location.id,
+        userId: location.userId,
+        name: location.name || "Selected Location",
+        address: location.address,
+        type: location.type || LocationType.OTHER,
+        coordinates: {
+          lat: location.coordinates.lat,
+          lng: location.coordinates.lng
+        },
+        createdAt: location.createdAt || new Date().toISOString()
+      };
+      
+      // Update order data with the validated location
+      setOrderData(prev => ({ ...prev, location: validLocation }));
+      
+      // Clear any location validation errors
       if (formErrors.location) {
         setFormErrors(prev => ({ ...prev, location: undefined }));
       }
+      
       // Show success toast for better user feedback
       toast({
         title: "Location selected",
         description: `Selected ${location.name || 'location'} for delivery`,
         duration: 2000,
       });
+      
+      // Log selection for debugging
+      console.log("Updated order data with location:", validLocation);
     } else {
       console.error("Invalid location data:", location);
+      toast({
+        title: "Error selecting location",
+        description: "Please try selecting another location",
+        variant: "destructive"
+      });
     }
   };
   
@@ -405,7 +443,7 @@ export default function OrderPage() {
                 
                 <SavedLocationList
                   locations={savedLocations}
-                  selectedLocationId={orderData.location ? orderData.location.id : null}
+                  selectedLocationId={orderData.location && typeof orderData.location.id === 'number' ? orderData.location.id : null}
                   onLocationSelect={selectLocation}
                   isLoading={locationsLoading}
                   className="mb-4"
