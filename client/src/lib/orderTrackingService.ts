@@ -34,116 +34,142 @@ class OrderTrackingService {
   private maxReconnectAttempts = 5;
   private userId: number | null = null;
   private trackingOrderId: number | null = null;
-  
+
   /**
-   * Connect to WebSocket server
+   * Connect to WebSocket server with improved error handling and retry logic
    */
-  connect(): void {
+  async connect(): Promise<void> {
+    // Skip if already connected or connecting
     if (this.socket || this.isConnecting) return;
     
     this.isConnecting = true;
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     
-    // Get CSRF token if available
-    let csrfToken = '';
     try {
-      // Import dynamically to avoid circular dependencies
-      const csrfTokenModule = require('../lib/csrfToken');
-      if (csrfTokenModule && csrfTokenModule.getCsrfToken) {
-        csrfToken = csrfTokenModule.getCsrfToken();
+      // Determine protocol based on current page
+      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      
+      // Get CSRF token using dynamic import to avoid circular dependencies
+      let csrfToken = '';
+      try {
+        const csrfModule = await import('@/lib/csrfToken');
+        csrfToken = csrfModule.getCsrfToken();
+      } catch (e) {
+        console.warn('Could not load CSRF token for WebSocket', e);
       }
-    } catch (e) {
-      console.warn('Could not load CSRF token for WebSocket', e);
-    }
-    
-    // Add CSRF token as query parameter
-    const wsUrl = `${protocol}//${window.location.host}/ws${csrfToken ? `?csrf=${csrfToken}` : ''}`;
-    console.log('Connecting to WebSocket at', wsUrl);
-    
-    try {
+      
+      // Create WebSocket URL with CSRF token if available
+      const wsUrl = `${protocol}//${window.location.host}/ws${csrfToken ? `?csrf=${csrfToken}` : ''}`;
+      
+      // Create new WebSocket connection
       this.socket = new WebSocket(wsUrl);
       
-      this.socket.onopen = () => {
-        console.log('WebSocket connected');
-        this.isConnecting = false;
-        this.reconnectAttempts = 0;
-        
-        // Authenticate if user ID is set
-        if (this.userId) {
-          this.authenticate(this.userId);
-        }
-        
-        if (this.listeners.connected) {
-          this.listeners.connected();
-        }
-      };
-      
-      this.socket.onmessage = (event) => {
-        try {
-          const data = JSON.parse(event.data);
-          
-          switch (data.type) {
-            case 'auth_success':
-              this.isAuthenticated = true;
-              // Resume tracking if there was an order being tracked
-              if (this.trackingOrderId) {
-                this.trackOrder(this.trackingOrderId);
-              }
-              break;
-              
-            case 'driver_location':
-              if (this.listeners.driverLocation) {
-                this.listeners.driverLocation(data);
-              }
-              break;
-              
-            case 'order_status_update':
-              if (this.listeners.statusUpdate) {
-                this.listeners.statusUpdate(data);
-              }
-              break;
-              
-            case 'error':
-              console.error('WebSocket error:', data.message);
-              if (this.listeners.error) {
-                this.listeners.error(new Error(data.message));
-              }
-              break;
-          }
-        } catch (error) {
-          console.error('Error parsing WebSocket message:', error);
-        }
-      };
-      
-      this.socket.onclose = () => {
-        console.log('WebSocket disconnected');
-        this.socket = null;
-        this.isAuthenticated = false;
-        this.isConnecting = false;
-        
-        if (this.listeners.disconnected) {
-          this.listeners.disconnected();
-        }
-        
-        // Attempt to reconnect
-        if (this.reconnectAttempts < this.maxReconnectAttempts) {
-          this.reconnectAttempts++;
-          setTimeout(() => this.connect(), 3000);
-        }
-      };
-      
-      this.socket.onerror = (error) => {
-        console.error('WebSocket error:', error);
-        if (this.listeners.error) {
-          this.listeners.error(new Error('WebSocket connection error'));
-        }
-      };
+      // Set up event handlers
+      this.socket.onopen = this.handleOpen.bind(this);
+      this.socket.onmessage = this.handleMessage.bind(this);
+      this.socket.onclose = this.handleClose.bind(this);
+      this.socket.onerror = this.handleError.bind(this);
     } catch (error) {
       console.error('Failed to connect to WebSocket:', error);
       this.isConnecting = false;
+      
       if (this.listeners.error) {
-        this.listeners.error(error as Error);
+        this.listeners.error(error instanceof Error ? error : new Error(String(error)));
       }
+    }
+  }
+  
+  /**
+   * Handle WebSocket open event
+   */
+  private handleOpen(): void {
+    console.log('WebSocket connected');
+    this.isConnecting = false;
+    this.reconnectAttempts = 0;
+    
+    // Authenticate if user ID is already set
+    if (this.userId !== null) {
+      this.authenticate(this.userId);
+    }
+    
+    // Notify listeners
+    if (this.listeners.connected) {
+      this.listeners.connected();
+    }
+  }
+  
+  /**
+   * Handle WebSocket message event
+   */
+  private handleMessage(event: MessageEvent): void {
+    try {
+      const data = JSON.parse(event.data);
+      
+      switch (data.type) {
+        case 'auth_success':
+          this.isAuthenticated = true;
+          // Resume tracking if there was an order being tracked
+          if (this.trackingOrderId !== null) {
+            this.trackOrder(this.trackingOrderId);
+          }
+          break;
+          
+        case 'driver_location':
+          if (this.listeners.driverLocation) {
+            this.listeners.driverLocation(data);
+          }
+          break;
+          
+        case 'order_status_update':
+          if (this.listeners.statusUpdate) {
+            this.listeners.statusUpdate(data);
+          }
+          break;
+          
+        case 'error':
+          console.error('WebSocket server error:', data.message);
+          if (this.listeners.error) {
+            this.listeners.error(new Error(data.message));
+          }
+          break;
+          
+        default:
+          console.warn('Unknown message type:', data.type);
+      }
+    } catch (error) {
+      console.error('Error parsing WebSocket message:', error);
+    }
+  }
+  
+  /**
+   * Handle WebSocket close event
+   */
+  private handleClose(): void {
+    console.log('WebSocket disconnected');
+    this.socket = null;
+    this.isAuthenticated = false;
+    this.isConnecting = false;
+    
+    // Notify listeners
+    if (this.listeners.disconnected) {
+      this.listeners.disconnected();
+    }
+    
+    // Attempt to reconnect with exponential backoff
+    if (this.reconnectAttempts < this.maxReconnectAttempts) {
+      this.reconnectAttempts++;
+      const delay = Math.min(3000 * Math.pow(1.5, this.reconnectAttempts - 1), 30000);
+      setTimeout(() => this.connect(), delay);
+    }
+  }
+  
+  /**
+   * Handle WebSocket error event
+   */
+  private handleError(event: Event): void {
+    console.error('WebSocket error:', event);
+    
+    if (this.listeners.error) {
+      this.listeners.error(new Error('WebSocket connection error'));
     }
   }
   
@@ -171,7 +197,7 @@ class OrderTrackingService {
     this.trackingOrderId = orderId;
     
     if (!this.socket || this.socket.readyState !== WebSocket.OPEN || !this.isAuthenticated) {
-      if (!this.isConnecting && this.userId) {
+      if (!this.isConnecting && this.userId !== null) {
         this.connect();
       }
       return;

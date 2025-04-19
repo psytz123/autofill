@@ -5,8 +5,9 @@
 
 /**
  * Response structure for all API calls
+ * Generic type parameter allows for strongly-typed responses
  */
-export interface ApiResponse<T = any> {
+export interface ApiResponse<T = unknown> {
   data?: T;
   error?: Error;
   status: number;
@@ -72,7 +73,7 @@ export class BaseApi {
    * @param options Additional request options
    * @returns API response
    */
-  async post<T>(url: string, data?: any, options: RequestInit = {}): Promise<ApiResponse<T>> {
+  async post<T, D = unknown>(url: string, data?: D, options: RequestInit = {}): Promise<ApiResponse<T>> {
     return this.request<T>(url, {
       ...options,
       method: 'POST',
@@ -87,7 +88,7 @@ export class BaseApi {
    * @param options Additional request options
    * @returns API response
    */
-  async put<T>(url: string, data?: any, options: RequestInit = {}): Promise<ApiResponse<T>> {
+  async put<T, D = unknown>(url: string, data?: D, options: RequestInit = {}): Promise<ApiResponse<T>> {
     return this.request<T>(url, {
       ...options,
       method: 'PUT',
@@ -102,7 +103,7 @@ export class BaseApi {
    * @param options Additional request options
    * @returns API response
    */
-  async patch<T>(url: string, data?: any, options: RequestInit = {}): Promise<ApiResponse<T>> {
+  async patch<T, D = unknown>(url: string, data?: D, options: RequestInit = {}): Promise<ApiResponse<T>> {
     return this.request<T>(url, {
       ...options,
       method: 'PATCH',
@@ -256,7 +257,7 @@ export class BaseApi {
    * @param data Data to sanitize
    * @returns Sanitized data
    */
-  protected sanitizeData(data: any): any {
+  protected sanitizeData<T>(data: T): T {
     if (data === null || data === undefined) {
       return data;
     }
@@ -266,18 +267,18 @@ export class BaseApi {
     }
     
     if (Array.isArray(data)) {
-      return data.map(item => this.sanitizeData(item));
+      return data.map(item => this.sanitizeData(item)) as unknown as T;
     }
     
-    const sanitized: Record<string, any> = {};
-    for (const [key, value] of Object.entries(data)) {
+    const sanitized: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(data as object)) {
       // Skip functions or complex objects
       if (typeof value !== 'function' && !(value instanceof Element) && !(value instanceof File)) {
         sanitized[key] = this.sanitizeData(value);
       }
     }
     
-    return sanitized;
+    return sanitized as unknown as T;
   }
 }
 
