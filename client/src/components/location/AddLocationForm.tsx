@@ -51,16 +51,32 @@ export default function AddLocationForm({ onSuccess, initialData }: AddLocationF
 
   const addLocationMutation = useMutation({
     mutationFn: async (data: LocationFormValues) => {
-      // Convert from our form schema to the API schema
-      const apiData = {
-        name: data.name,
-        address: data.address,
-        type: data.type,
-        // Pass the coordinates object directly as expected by the API
-        coordinates: mapCoordinates,
-      };
-      const res = await apiRequest("POST", "/api/locations", apiData);
-      return await res.json();
+      try {
+        // First, ensure we have a fresh CSRF token registered with the server
+        const { getCsrfToken, initCsrfToken } = await import('@/lib/csrfToken');
+        
+        // Refresh CSRF token to ensure it's registered with the server
+        await initCsrfToken();
+        
+        // Convert from our form schema to the API schema
+        const apiData = {
+          name: data.name,
+          address: data.address,
+          type: data.type,
+          // Pass the coordinates object directly as expected by the API
+          coordinates: mapCoordinates,
+        };
+        
+        // Make the API request with the CSRF token
+        const res = await apiRequest("POST", "/api/locations", apiData, {
+          retries: 2, // Add retries for better reliability
+        });
+        
+        return await res.json();
+      } catch (error) {
+        console.error("Location creation error:", error);
+        throw error;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/locations'] });
@@ -73,6 +89,7 @@ export default function AddLocationForm({ onSuccess, initialData }: AddLocationF
       }
     },
     onError: (error: Error) => {
+      console.error("Location mutation error:", error);
       toast({
         title: "Failed to add location",
         description: error.message,
