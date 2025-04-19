@@ -203,6 +203,8 @@ export async function apiRequest(
     headers?: Record<string, string>;
   }
 ): Promise<Response> {
+  console.log(`API Request: ${method} ${url}`, data ? { data } : '');
+  
   // Get CSRF token
   let headers: HeadersInit = {
     'X-Requested-With': 'XMLHttpRequest',
@@ -213,7 +215,9 @@ export async function apiRequest(
   try {
     if (method !== 'GET') {
       const { getCsrfToken } = await import('./csrfToken');
-      headers['X-CSRF-Token'] = getCsrfToken();
+      const token = getCsrfToken();
+      headers['X-CSRF-Token'] = token;
+      console.log('Using CSRF token:', token.substring(0, 5) + '...');
     }
   } catch (error) {
     console.warn('Failed to get CSRF token:', error);
@@ -230,6 +234,8 @@ export async function apiRequest(
   const timeoutId = setTimeout(() => controller.abort('Request timed out'), timeoutMs);
   
   try {
+    console.log(`Sending ${method} request to ${url} with headers:`, headers);
+    
     // Execute the request
     const response = await fetch(url, {
       method,
@@ -242,11 +248,34 @@ export async function apiRequest(
     // Clear timeout
     clearTimeout(timeoutId);
     
-    // Return the response directly
+    // Log response details
+    console.log(`Response from ${url}:`, {
+      status: response.status,
+      statusText: response.statusText,
+      headers: Object.fromEntries([...response.headers.entries()]),
+      ok: response.ok
+    });
+    
+    // Clone the response to avoid consuming it
+    const clonedResponse = response.clone();
+    
+    // Log response body for debugging if it's JSON
+    try {
+      if (clonedResponse.headers.get('Content-Type')?.includes('application/json')) {
+        const responseData = await clonedResponse.json();
+        console.log(`Response data from ${url}:`, responseData);
+      }
+    } catch (error) {
+      console.warn(`Could not parse response from ${url} as JSON:`, error);
+    }
+    
+    // Return the original response
     return response;
   } catch (error) {
     // Clear timeout
     clearTimeout(timeoutId);
+    
+    console.error(`Request to ${url} failed:`, error);
     
     // Retry logic
     if (options?.retries && options.retries > 0) {

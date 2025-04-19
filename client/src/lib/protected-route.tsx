@@ -19,11 +19,21 @@ export function ProtectedRoute({
   path: string;
   component: ComponentProp;
 }) {
-  const { user, isLoading } = useAuth();
+  const { user, isLoading, error } = useAuth();
   const [location, navigate] = useLocation();
+  
+  // Add debugging for authentication state
+  useEffect(() => {
+    console.log(`Protected route (${path}) auth state:`, { 
+      user: user ? `User ${user.id} (${user.name})` : 'No user', 
+      isLoading, 
+      error: error?.message 
+    });
+  }, [user, isLoading, error, path]);
 
   // Show loading state while checking authentication
   if (isLoading) {
+    console.log(`Loading auth state for path: ${path}`);
     return (
       <Route path={path}>
         <PageLoader />
@@ -33,6 +43,7 @@ export function ProtectedRoute({
 
   // Redirect to auth page if not authenticated
   if (!user) {
+    console.log(`No authenticated user, redirecting to /auth from ${path}`);
     return (
       <Route path={path}>
         <Redirect to="/auth" />

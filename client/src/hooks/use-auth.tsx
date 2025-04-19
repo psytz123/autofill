@@ -36,11 +36,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     refetch: refetchUser
   } = useQuery<SelectUser | null, Error>({
     queryKey: ["/api/user"],
-    queryFn: getQueryFn({ 
-      on401: "returnNull", 
-      retries: 1,
-      timeout: 5000 
-    }),
+    queryFn: async (context) => {
+      console.log("Fetching auth state...");
+      const fetchFn = getQueryFn({ 
+        on401: "returnNull", 
+        retries: 1,
+        timeout: 5000 
+      });
+      
+      try {
+        const result = await fetchFn(context);
+        console.log("Auth state fetched:", result ? "Authenticated" : "Not authenticated");
+        return result;
+      } catch (error) {
+        console.error("Error fetching auth state:", error);
+        throw error;
+      }
+    },
     // Don't refetch too frequently to avoid UI jank
     staleTime: 1000 * 60 * 5, // 5 minutes
     retry: 0
