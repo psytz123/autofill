@@ -25,16 +25,22 @@ export function createLocationFromCoordinates(
   name: string = "Selected Location",
   type: LocationType = LocationType.OTHER
 ): Location {
-  // Create a valid location object that matches our schema type
-  return {
+  // Create a valid location object that precisely matches our schema type
+  const location: Location = {
     id: -1, // Temporary ID, will be replaced by the server
     userId: -1, // Will be set by backend
     name,
     address,
     type,
-    coordinates,
-    createdAt: new Date().toISOString(), // ISO string format for dates
-  } as unknown as Location; // Force type to ensure compatibility
+    coordinates: {
+      lat: coordinates.lat,
+      lng: coordinates.lng
+    },
+    createdAt: new Date() // Must be a Date object, not a string
+  };
+  
+  console.log("Created location from coordinates:", location);
+  return location;
 }
 
 // Format coordinates for display

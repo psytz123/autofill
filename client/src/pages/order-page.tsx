@@ -304,51 +304,62 @@ export default function OrderPage() {
   const selectLocation = (location: Location) => {
     console.log("Selected location:", location);
     
-    // Handle case where location is coming from MapView (temporary ID)
+    // Handle location selection
     if (location) {
-      // For locations from MapView, they'll have id = -1
-      // Ensure coordinates are valid (non-null) according to schema
-      if (!location.coordinates) {
-        console.error("Location missing coordinates");
+      try {
+        // Ensure coordinates are valid according to schema
+        if (!location.coordinates) {
+          throw new Error("Location missing coordinates");
+        }
+        
+        // Create a fully valid location object that matches the schema type
+        const validLocation: Location = {
+          id: location.id || -1,
+          userId: location.userId || -1,
+          name: location.name || "Selected Location",
+          address: location.address || "",
+          type: location.type,
+          coordinates: {
+            lat: location.coordinates.lat,
+            lng: location.coordinates.lng
+          },
+          createdAt: location.createdAt || new Date()
+        };
+        
+        console.log("Validated location object:", validLocation);
+        
+        // Update order data with the validated location
+        setOrderData(prev => ({ 
+          ...prev, 
+          location: validLocation 
+        }));
+        
+        // Clear any location validation errors
+        if (formErrors.location) {
+          setFormErrors(prev => ({ ...prev, location: undefined }));
+        }
+        
+        // Show success toast for better user feedback
+        toast({
+          title: "Location selected",
+          description: `Selected ${validLocation.name} for delivery`,
+          duration: 2000,
+        });
+        
+        // Close location dropdown if it was open
+        const savedLocationList = document.querySelector('.saved-location-list');
+        if (savedLocationList) {
+          // Adding this for future reference if needed
+          console.log("Location selected from dropdown");
+        }
+      } catch (error) {
+        console.error("Error processing location:", error);
         toast({
           title: "Error with location",
-          description: "Selected location is missing coordinates",
+          description: error instanceof Error ? error.message : "Please try another location",
           variant: "destructive"
         });
-        return;
       }
-      
-      // Create a properly formatted location object matching the schema type
-      const validLocation: Location = {
-        id: location.id,
-        userId: location.userId,
-        name: location.name || "Selected Location",
-        address: location.address,
-        type: location.type || LocationType.OTHER,
-        coordinates: {
-          lat: location.coordinates.lat,
-          lng: location.coordinates.lng
-        },
-        createdAt: location.createdAt || new Date().toISOString()
-      };
-      
-      // Update order data with the validated location
-      setOrderData(prev => ({ ...prev, location: validLocation }));
-      
-      // Clear any location validation errors
-      if (formErrors.location) {
-        setFormErrors(prev => ({ ...prev, location: undefined }));
-      }
-      
-      // Show success toast for better user feedback
-      toast({
-        title: "Location selected",
-        description: `Selected ${location.name || 'location'} for delivery`,
-        duration: 2000,
-      });
-      
-      // Log selection for debugging
-      console.log("Updated order data with location:", validLocation);
     } else {
       console.error("Invalid location data:", location);
       toast({
