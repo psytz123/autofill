@@ -42,36 +42,44 @@ export function formatCoordinates(coordinates: google.maps.LatLngLiteral, precis
   return `Lat: ${coordinates.lat.toFixed(precision)}, Lng: ${coordinates.lng.toFixed(precision)}`;
 }
 
-// Geocode an address to coordinates
+// Geocode an address to coordinates - updated for new Google Maps API
 export async function geocodeAddress(
   geocoder: google.maps.Geocoder,
   address: string
 ): Promise<google.maps.GeocoderResult | null> {
-  return new Promise((resolve, reject) => {
-    geocoder.geocode({ address }, (results, status) => {
-      if (status === "OK" && results && results[0]) {
-        resolve(results[0]);
-      } else {
-        console.error("Geocode failed:", status);
-        resolve(null);
-      }
-    });
-  });
+  try {
+    const request: google.maps.GeocoderRequest = { address };
+    const response = await geocoder.geocode(request);
+    
+    if (response.results && response.results.length > 0) {
+      return response.results[0];
+    } else {
+      console.error("Geocode returned no results for address:", address);
+      return null;
+    }
+  } catch (error) {
+    console.error("Geocode error:", error);
+    return null;
+  }
 }
 
-// Reverse geocode coordinates to address
+// Reverse geocode coordinates to address - updated for new Google Maps API
 export async function reverseGeocode(
   geocoder: google.maps.Geocoder,
   coordinates: google.maps.LatLngLiteral
 ): Promise<google.maps.GeocoderResult | null> {
-  return new Promise((resolve, reject) => {
-    geocoder.geocode({ location: coordinates }, (results, status) => {
-      if (status === "OK" && results && results[0]) {
-        resolve(results[0]);
-      } else {
-        console.error("Reverse geocode failed:", status);
-        resolve(null);
-      }
-    });
-  });
+  try {
+    const request: google.maps.GeocoderRequest = { location: coordinates };
+    const response = await geocoder.geocode(request);
+    
+    if (response.results && response.results.length > 0) {
+      return response.results[0];
+    } else {
+      console.error("Reverse geocode returned no results for coordinates:", coordinates);
+      return null;
+    }
+  } catch (error) {
+    console.error("Reverse geocode error:", error);
+    return null;
+  }
 }

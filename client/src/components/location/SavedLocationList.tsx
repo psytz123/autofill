@@ -172,6 +172,13 @@ export default function SavedLocationList({
             <Button 
               variant="ghost" 
               className="w-full py-3 flex items-center justify-center text-primary"
+              onClick={(e) => {
+                e.stopPropagation();
+                if (typeof window !== 'undefined') {
+                  // Dispatch an event to trigger "Add New Location" dialog
+                  window.dispatchEvent(new CustomEvent('add-location-requested'));
+                }
+              }}
             >
               <MapPin className="h-5 w-5 mr-2" />
               <span>Add New Location</span>
