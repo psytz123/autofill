@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Check, MapPin, Home, Briefcase, Map } from "lucide-react";
 import { LocationType, Location } from "@shared/schema";
+import { useToast } from "@/hooks/use-toast";
 
 interface SavedLocationListProps {
   locations: Location[];
@@ -20,6 +21,35 @@ export default function SavedLocationList({
   className = "",
 }: SavedLocationListProps) {
   const [expanded, setExpanded] = useState(false);
+  const [sanitizedLocations, setSanitizedLocations] = useState<Location[]>([]);
+  const { toast } = useToast();
+  
+  // Process and sanitize locations to ensure they match expected type format
+  useEffect(() => {
+    if (locations && locations.length > 0) {
+      try {
+        // Make sure all locations have valid coordinates and other required properties
+        const processed = locations.map(location => ({
+          ...location,
+          id: location.id || -1,
+          coordinates: location.coordinates || { lat: 0, lng: 0 },
+          type: location.type || LocationType.OTHER
+        }));
+        
+        setSanitizedLocations(processed);
+        console.log("Processed locations for dropdown:", processed);
+      } catch (error) {
+        console.error("Error processing locations:", error);
+        toast({
+          title: "Error loading locations",
+          description: "There was a problem processing your saved locations.",
+          variant: "destructive"
+        });
+      }
+    } else {
+      setSanitizedLocations([]);
+    }
+  }, [locations, toast]);
 
   const getLocationIcon = (type: LocationType) => {
     switch (type) {
@@ -35,7 +65,7 @@ export default function SavedLocationList({
   };
 
   // Find the selected location for display
-  const selectedLocation = locations.find(loc => loc.id === selectedLocationId);
+  const selectedLocation = sanitizedLocations.find(loc => loc.id === selectedLocationId);
 
   if (isLoading) {
     return (
@@ -134,9 +164,9 @@ export default function SavedLocationList({
 
       {/* Expanded Location List */}
       {expanded && (
-        <Card className="w-full overflow-hidden mb-2 bg-neutral-50">
+        <Card className="w-full overflow-hidden mb-2 bg-neutral-50 saved-location-list">
           <CardContent className="p-0 divide-y divide-neutral-100">
-            {locations.length === 0 ? (
+            {sanitizedLocations.length === 0 ? (
               <div className="p-4 text-center text-neutral-500">
                 <p>No saved locations found</p>
                 <Button 
@@ -154,14 +184,22 @@ export default function SavedLocationList({
                 </Button>
               </div>
             ) : (
-              locations.map((location) => (
+              sanitizedLocations.map((location) => (
                 <div
-                  key={location.id}
+                  key={location.id} 
                   className={`flex items-center p-3 hover:bg-neutral-100 cursor-pointer ${
                     selectedLocationId === location.id ? 'bg-primary/5' : ''
                   }`}
                   onClick={() => {
-                    onLocationSelect(location);
+                    console.log("Location selected from dropdown:", location);
+                    // Create a safe copy to ensure all properties exist
+                    const safeLocation = {
+                      ...location,
+                      id: location.id || -1,
+                      coordinates: location.coordinates || { lat: 0, lng: 0 },
+                      type: location.type
+                    };
+                    onLocationSelect(safeLocation);
                     setExpanded(false);
                   }}
                 >
