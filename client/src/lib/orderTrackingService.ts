@@ -58,7 +58,11 @@ class OrderTrackingService {
       }
       
       // Create WebSocket URL with CSRF token if available
-      const wsUrl = `${protocol}//${window.location.host}/ws${csrfToken ? `?csrf=${csrfToken}` : ''}`;
+      // Fix: For Replit URLs, we need to ensure we use the correct domain and don't try to use localhost
+      const host = window.location.host.includes('replit') ? window.location.host : 'localhost:5000';
+      const wsUrl = `${protocol}//${host}/ws${csrfToken ? `?csrf=${csrfToken}` : ''}`;
+      
+      console.log('Connecting to WebSocket at:', wsUrl);
       
       // Create new WebSocket connection
       this.socket = new WebSocket(wsUrl);
