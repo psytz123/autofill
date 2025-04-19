@@ -405,7 +405,7 @@ export default function OrderPage() {
                 
                 <SavedLocationList
                   locations={savedLocations}
-                  selectedLocationId={orderData.location?.id ?? null}
+                  selectedLocationId={orderData.location ? orderData.location.id : null}
                   onLocationSelect={selectLocation}
                   isLoading={locationsLoading}
                   className="mb-4"
@@ -440,6 +440,8 @@ export default function OrderPage() {
                 <AddLocationForm 
                   onSuccess={() => {
                     setShowAddLocation(false);
+                    // Invalidate the locations query to refresh the list
+                    queryClient.invalidateQueries({ queryKey: ['/api/locations'] });
                     toast({
                       title: "Location added",
                       description: "Your new location has been saved."

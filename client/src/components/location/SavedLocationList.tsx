@@ -139,7 +139,17 @@ export default function SavedLocationList({
             {locations.length === 0 ? (
               <div className="p-4 text-center text-neutral-500">
                 <p>No saved locations found</p>
-                <Button variant="link" className="mt-1 text-primary">
+                <Button 
+                  variant="link" 
+                  className="mt-1 text-primary"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (typeof window !== 'undefined') {
+                      // Dispatch an event to trigger "Add New Location" dialog
+                      window.dispatchEvent(new CustomEvent('add-location-requested'));
+                    }
+                  }}
+                >
                   Add a new location
                 </Button>
               </div>
