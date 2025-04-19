@@ -71,6 +71,8 @@ export interface IStorage {
 import connectPg from "connect-pg-simple";
 import { eq, desc, and } from "drizzle-orm";
 import { pool, db } from "./db";
+import pkg from 'pg';
+const { Pool } = pkg;
 
 const PostgresSessionStore = connectPg(session);
 
@@ -78,8 +80,14 @@ export class DatabaseStorage implements IStorage {
   sessionStore: session.Store;
 
   constructor() {
+    // Create a separate pool for the session store using the node-postgres package
+    // since connect-pg-simple is not compatible with @neondatabase/serverless
+    const pgPool = new Pool({
+      connectionString: process.env.DATABASE_URL
+    });
+    
     this.sessionStore = new PostgresSessionStore({ 
-      pool, 
+      pool: pgPool, 
       createTableIfMissing: true 
     });
   }

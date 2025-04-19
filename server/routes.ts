@@ -21,9 +21,7 @@ import {
 if (!process.env.STRIPE_SECRET_KEY) {
   console.error("STRIPE_SECRET_KEY environment variable is not set. Stripe functionality will be limited.");
 }
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "", {
-  apiVersion: "2023-10-16",
-});
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "");
 
 // Middleware to ensure user is authenticated
 function isAuthenticated(req: Request, res: Response, next: Function) {
@@ -455,7 +453,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           amount: amount,
           id: paymentIntent.id
         });
-      } catch (stripeError) {
+      } catch (stripeError: any) {
         console.error('Stripe error:', stripeError);
         res.status(400).json({ 
           message: 'Payment service unavailable. Please try again later.',
@@ -583,7 +581,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           
           // Update user with Stripe customer ID
           await storage.updateUserStripeInfo(user.id, { stripeCustomerId: customerId });
-        } catch (stripeError) {
+        } catch (stripeError: any) {
           console.error('Stripe customer creation error:', stripeError);
           if (!process.env.STRIPE_SECRET_KEY) {
             // Generate mock customer ID for testing
@@ -642,7 +640,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               status: 'active'
             });
           }
-        } catch (stripeError) {
+        } catch (stripeError: any) {
           console.error('Error retrieving subscription:', stripeError);
         }
       }
@@ -663,7 +661,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           clientSecret: 'pi_mock_secret_' + Math.random().toString(36).substring(2, 15),
           status: 'active'
         });
-      } catch (stripeError) {
+      } catch (stripeError: any) {
         console.error('Stripe subscription creation error:', stripeError);
         return res.status(400).json({ message: 'Failed to create subscription. Please try again.' });
       }
