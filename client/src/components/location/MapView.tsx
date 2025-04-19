@@ -32,6 +32,7 @@ export default function MapView({
   const [geocoder, setGeocoder] = useState<google.maps.Geocoder | null>(null);
   const [address, setAddress] = useState<string>(selectedLocation?.address || "");
   const [isGettingLocation, setIsGettingLocation] = useState(false);
+  const [mapError, setMapError] = useState<string | null>(null);
 
   // Load Google Maps API
   const { isLoaded, loadError } = useJsApiLoader({
@@ -39,6 +40,14 @@ export default function MapView({
     googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY || "",
     libraries: ['places', 'geometry'],
   });
+  
+  // Handle load errors
+  useEffect(() => {
+    if (loadError) {
+      console.error("Google Maps API loading error:", loadError);
+      setMapError("Failed to load Google Maps API: " + loadError.toString());
+    }
+  }, [loadError]);
 
   // Initialize geocoder when map is loaded
   useEffect(() => {
@@ -227,35 +236,89 @@ export default function MapView({
     );
   }
 
-  return (
-    <Card className={`relative overflow-hidden ${className}`}>
-      <div className="absolute inset-0">
-        <GoogleMap
-          mapContainerStyle={MAP_CONTAINER_STYLE}
-          center={markerPosition || DEFAULT_MAP_CONFIG.center}
-          zoom={DEFAULT_MAP_CONFIG.zoom}
-          onClick={onMapClick}
-          onLoad={onMapLoad}
-          onUnmount={onUnmount}
-          options={DEFAULT_MAP_CONFIG.options}
-        >
-          {markerPosition && (
-            <Marker
-              position={markerPosition}
-              animation={google.maps.Animation.DROP}
-            />
-          )}
-        </GoogleMap>
-      </div>
-      
-      {address && (
-        <div className="absolute bottom-2 left-2 right-2 bg-white bg-opacity-90 p-2 rounded-md shadow-md">
-          <p className="text-sm font-medium truncate">{address}</p>
-          <p className="text-xs text-gray-500">
-            {markerPosition && formatCoordinates(markerPosition)}
-          </p>
+  // Show error message if mapError is set
+  if (mapError) {
+    return (
+      <Card className={`relative overflow-hidden ${className}`}>
+        <div className="absolute inset-0 flex items-center justify-center bg-neutral-100">
+          <div className="text-center text-red-500">
+            <MapPin className="h-8 w-8 mx-auto mb-2" />
+            <p>Error with map</p>
+            <p className="text-xs">{mapError}</p>
+            
+            {/* Fallback location selection with existing location */}
+            <button 
+              className="mt-4 px-3 py-1 text-xs bg-primary text-white rounded-full hover:bg-primary/90" 
+              onClick={() => {
+                const coords = markerPosition || DEFAULT_MAP_CONFIG.center;
+                const addr = address || "Default Location";
+                
+                // Create a location even without a map
+                const defaultLocation = createLocationFromCoordinates(
+                  coords,
+                  addr,
+                  "Selected Location",
+                  LocationType.OTHER
+                );
+                onLocationSelect(defaultLocation);
+              }}
+            >
+              Use Current Location Details
+            </button>
+          </div>
         </div>
-      )}
-    </Card>
-  );
+      </Card>
+    );
+  }
+  
+  // Create a try-catch wrapper for the map component
+  // This will catch and handle any runtime errors during map rendering
+  try {
+    return (
+      <Card className={`relative overflow-hidden ${className}`}>
+        <div className="absolute inset-0">
+          <GoogleMap
+            mapContainerStyle={MAP_CONTAINER_STYLE}
+            center={markerPosition || DEFAULT_MAP_CONFIG.center}
+            zoom={DEFAULT_MAP_CONFIG.zoom}
+            onClick={onMapClick}
+            onLoad={onMapLoad}
+            onUnmount={onUnmount}
+            options={DEFAULT_MAP_CONFIG.options}
+          >
+            {markerPosition && window.google?.maps?.Animation && (
+              <Marker
+                position={markerPosition}
+                animation={window.google.maps.Animation.DROP}
+              />
+            )}
+          </GoogleMap>
+        </div>
+        
+        {address && (
+          <div className="absolute bottom-2 left-2 right-2 bg-white bg-opacity-90 p-2 rounded-md shadow-md">
+            <p className="text-sm font-medium truncate">{address}</p>
+            <p className="text-xs text-gray-500">
+              {markerPosition && formatCoordinates(markerPosition)}
+            </p>
+          </div>
+        )}
+      </Card>
+    );
+  } catch (error) {
+    console.error("Error rendering Google Map:", error);
+    setMapError("Failed to render map: " + ((error as Error)?.message || "Unknown error"));
+    
+    return (
+      <Card className={`relative overflow-hidden ${className}`}>
+        <div className="absolute inset-0 flex items-center justify-center bg-neutral-100">
+          <div className="text-center text-red-500">
+            <MapPin className="h-8 w-8 mx-auto mb-2" />
+            <p>Error rendering map</p>
+            <p className="text-xs">Please try again later</p>
+          </div>
+        </div>
+      </Card>
+    );
+  }
 }

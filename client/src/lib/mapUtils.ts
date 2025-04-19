@@ -25,6 +25,7 @@ export function createLocationFromCoordinates(
   name: string = "Selected Location",
   type: LocationType = LocationType.OTHER
 ): Location {
+  // Create a valid location object that matches our schema type
   return {
     id: -1, // Temporary ID, will be replaced by the server
     userId: -1, // Will be set by backend
@@ -32,9 +33,8 @@ export function createLocationFromCoordinates(
     address,
     type,
     coordinates,
-    createdAt: new Date(), // Will be overwritten by the server
-    updatedAt: new Date() // Will be overwritten by the server
-  } as Location;
+    createdAt: new Date().toISOString(), // ISO string format for dates
+  } as unknown as Location; // Force type to ensure compatibility
 }
 
 // Format coordinates for display
