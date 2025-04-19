@@ -41,10 +41,9 @@ async function throwIfResNotOk(res: Response) {
  * Supports cancellation, timeouts, retries and caching
  */
 export const getQueryFn: <T>(options: ApiQueryOptions) => QueryFunction<T> =
-  ({ on401: unauthorizedBehavior, timeout = 30000, retries = 1, signal }) =>
+  ({ on401: unauthorizedBehavior, timeout = 30000, retries = 1, signal, category }) =>
   async ({ queryKey, signal: querySignal }) => {
-    // Create a new abort controller that combines the signal from QueryClient
-    // and the signal provided in getQueryFn (if any)
+    // Create a new abort controller
     const abortController = new AbortController();
     
     // If either signal aborts, abort our controller
@@ -64,68 +63,95 @@ export const getQueryFn: <T>(options: ApiQueryOptions) => QueryFunction<T> =
     }, timeout);
     
     try {
+      // Get the endpoint from the query key
       const endpoint = queryKey[0] as string;
       
-      // Get CSRF token
-      let headers: HeadersInit = {
-        'X-Requested-With': 'XMLHttpRequest',
-      };
-      
-      // Add CSRF token if needed for non-GET requests
-      try {
-        const { getCsrfToken } = await import('./csrfToken');
-        headers['X-CSRF-Token'] = getCsrfToken();
-      } catch (error) {
-        console.warn('Failed to get CSRF token:', error);
-      }
-      
-      // Use standard fetch with better error handling
-      const res = await fetch(endpoint, {
-        credentials: "include",
-        signal: abortController.signal,
-        headers
+      // Use the improved fetch implementation directly
+      const response = await fetch(endpoint, {
+        method: 'GET',
+        credentials: 'include',
+        headers: {
+          'X-Requested-With': 'XMLHttpRequest',
+          'Accept': 'application/json',
+        },
+        signal: abortController.signal
       });
       
-      // Clear timeout since request completed
+      // Clear timeout
       clearTimeout(timeoutId);
       
-      // Handle 401 according to specified behavior
-      if (unauthorizedBehavior === "returnNull" && res.status === 401) {
-        return null;
+      // Handle 401 according to specified behavior for unauthorized responses
+      if (response.status === 401) {
+        if (unauthorizedBehavior === "returnNull") {
+          return null;
+        } else if (unauthorizedBehavior === "throw") {
+          throw new Error('Unauthorized. Please log in to continue.');
+        }
       }
       
-      // Handle error with retry logic
-      if (!res.ok && retries > 0) {
-        console.log(`Query request to ${endpoint} failed with status ${res.status}, retrying... (${retries} attempts left)`);
+      // Retry failed requests if we have retries left
+      if (!response.ok && retries > 0) {
+        console.log(`Query to ${endpoint} failed with status ${response.status}, retrying... (${retries} attempts left)`);
         
-        // Wait a bit before retrying (with exponential backoff)
+        // Wait with exponential backoff before retrying
         const backoffMs = Math.min(1000 * 2 ** (2 - retries), 10000);
         await new Promise(resolve => setTimeout(resolve, backoffMs));
         
+        // Retry with one less retry attempt
         return getQueryFn({ 
           on401: unauthorizedBehavior, 
           timeout, 
           retries: retries - 1,
-          signal
+          signal,
+          category
         })({ queryKey, signal: querySignal } as any);
       }
       
-      await throwIfResNotOk(res);
+      // Handle unexpected errors
+      if (!response.ok) {
+        let errorMessage: string;
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.message || errorData.error || response.statusText;
+        } catch {
+          errorMessage = await response.text() || response.statusText;
+        }
+        
+        const error = new Error(`${response.status}: ${errorMessage}`);
+        (error as any).status = response.status;
+        throw error;
+      }
       
-      // Parse response as JSON
-      const data = await res.json();
-      return data;
+      // Parse successful response
+      if (response.headers.get('Content-Type')?.includes('application/json')) {
+        return await response.json();
+      } else {
+        // Handle non-JSON responses
+        const text = await response.text();
+        try {
+          // Try to parse it as JSON anyway
+          return JSON.parse(text);
+        } catch {
+          // If it's not JSON, return as is
+          return text as any;
+        }
+      }
     } catch (error: any) {
       // Clear timeout to prevent memory leaks
       clearTimeout(timeoutId);
       
-      // If aborted, rethrow as is
+      // For special error types, customize handling
       if (error.name === 'AbortError') {
-        throw error;
+        const abortError = new Error('Request was cancelled');
+        abortError.name = 'AbortError';
+        (abortError as any).status = 0;
+        throw abortError;
       }
       
-      // For network errors, retry if retries > 0
-      if (error instanceof TypeError && error.message.includes('network') && retries > 0) {
+      // For network errors, retry if we have retries left
+      if (error instanceof TypeError && 
+          error.message.includes('network') && 
+          retries > 0) {
         console.log(`Network error for ${queryKey[0]}, retrying... (${retries} attempts left)`);
         
         const backoffMs = Math.min(1000 * 2 ** (2 - retries), 10000);
@@ -135,18 +161,19 @@ export const getQueryFn: <T>(options: ApiQueryOptions) => QueryFunction<T> =
           on401: unauthorizedBehavior, 
           timeout, 
           retries: retries - 1,
-          signal
+          signal,
+          category
         })({ queryKey, signal: querySignal } as any);
       }
       
-      // Add better debugging information to error
+      // Better logging in development
       if (process.env.NODE_ENV !== 'production') {
-        console.error(`Query error for ${queryKey[0]}:`, error);
+        console.error(`Query error for ${queryKey[0]} (${category || 'unknown category'}):`, error);
       }
       
       throw error;
     } finally {
-      // Clean up event listeners
+      // Clean up event listeners to prevent memory leaks
       if (signal) {
         signal.removeEventListener('abort', handleAbort);
       }
@@ -176,29 +203,70 @@ export async function apiRequest(
     headers?: Record<string, string>;
   }
 ): Promise<Response> {
-  // Use the enhanced API from base-api.ts
-  const { baseApi } = await import('@/api/base-api');
+  // Get CSRF token
+  let headers: HeadersInit = {
+    'X-Requested-With': 'XMLHttpRequest',
+    'Content-Type': 'application/json',
+  };
+      
+  // Add CSRF token if needed for non-GET requests
+  try {
+    if (method !== 'GET') {
+      const { getCsrfToken } = await import('./csrfToken');
+      headers['X-CSRF-Token'] = getCsrfToken();
+    }
+  } catch (error) {
+    console.warn('Failed to get CSRF token:', error);
+  }
+  
+  // Add any custom headers
+  if (options?.headers) {
+    headers = { ...headers, ...options.headers };
+  }
+  
+  // Set up timeout
+  const timeoutMs = options?.timeout || 30000;
+  const controller = options?.abortController || new AbortController();
+  const timeoutId = setTimeout(() => controller.abort('Request timed out'), timeoutMs);
   
   try {
-    const response = await baseApi.apiRequest(method, url, data, options);
-    
-    if (response.error) {
-      throw response.error;
-    }
-    
-    // Create a mock response for compatibility
-    const mockResponse = new Response(JSON.stringify(response.data), {
-      status: response.status,
-      statusText: '',
-      headers: {
-        'Content-Type': 'application/json'
-      }
+    // Execute the request
+    const response = await fetch(url, {
+      method,
+      headers,
+      credentials: 'include',
+      body: data ? JSON.stringify(data) : undefined,
+      signal: controller.signal
     });
     
-    return mockResponse;
+    // Clear timeout
+    clearTimeout(timeoutId);
+    
+    // Return the response directly
+    return response;
   } catch (error) {
-    // Create an error response
-    const errorResponse = new Response(JSON.stringify({ message: error instanceof Error ? error.message : String(error) }), {
+    // Clear timeout
+    clearTimeout(timeoutId);
+    
+    // Retry logic
+    if (options?.retries && options.retries > 0) {
+      console.log(`Request to ${url} failed, retrying... (${options.retries} attempts left)`);
+      
+      // Wait before retrying with exponential backoff
+      const backoffMs = Math.min(1000 * 2 ** (3 - options.retries), 10000);
+      await new Promise(resolve => setTimeout(resolve, backoffMs));
+      
+      // Recursive retry with one less retry attempt
+      return apiRequest(method, url, data, {
+        ...options,
+        retries: options.retries - 1
+      });
+    }
+    
+    // Create an error response if all retries failed
+    const errorResponse = new Response(JSON.stringify({ 
+      message: error instanceof Error ? error.message : String(error) 
+    }), {
       status: (error as any).status || 500,
       statusText: error instanceof Error ? error.message : String(error),
       headers: {
