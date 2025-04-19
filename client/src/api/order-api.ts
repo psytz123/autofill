@@ -1,82 +1,115 @@
 /**
- * Order API service
- * Handles all API calls related to orders
+ * Order API Service
+ * Handles all order-related API requests
  */
 
-import { Order, InsertOrder } from "@shared/schema";
-import { BaseApiService, ApiResponse, ApiRequestOptions } from "./base-api";
+import { Order, OrderStatus, InsertOrder } from '@shared/schema';
+import { ApiService, ApiResponse, ApiRequestOptions } from './base-api';
 
-export class OrderApiService extends BaseApiService {
-  constructor() {
-    super('/api');
-  }
-
+/**
+ * API service for order operations
+ */
+class OrderApi extends ApiService {
   /**
    * Get all orders for the current user
+   * @returns List of user orders
    */
-  async getOrders(options?: ApiRequestOptions): Promise<ApiResponse<Order[]>> {
-    return this.get<Order[]>('/orders', options);
+  async getOrders(): Promise<ApiResponse<Order[]>> {
+    try {
+      return await this.get('/api/orders');
+    } catch (error) {
+      return this.handleError(error, 'Failed to fetch orders');
+    }
   }
-
-  /**
-   * Get recent orders for the current user (limited count)
-   */
-  async getRecentOrders(options?: ApiRequestOptions): Promise<ApiResponse<Order[]>> {
-    return this.get<Order[]>('/recent-orders', options);
-  }
-
+  
   /**
    * Get a specific order by ID
+   * @param orderId Order ID
+   * @returns Order details
    */
-  async getOrder(id: number, options?: ApiRequestOptions): Promise<ApiResponse<Order>> {
-    return this.get<Order>(`/orders/${id}`, options);
+  async getOrder(orderId: number): Promise<ApiResponse<Order>> {
+    try {
+      return await this.get(`/api/orders/${orderId}`);
+    } catch (error) {
+      return this.handleError(error, 'Failed to fetch order details');
+    }
   }
-
+  
+  /**
+   * Get recent orders for the current user
+   * @param limit Maximum number of orders to return
+   * @returns List of recent orders
+   */
+  async getRecentOrders(limit: number = 5): Promise<ApiResponse<Order[]>> {
+    try {
+      return await this.get(`/api/recent-orders?limit=${limit}`);
+    } catch (error) {
+      return this.handleError(error, 'Failed to fetch recent orders');
+    }
+  }
+  
   /**
    * Create a new order
+   * @param order Order details
+   * @returns Created order
    */
-  async createOrder(order: Omit<InsertOrder, "status">, options?: ApiRequestOptions): Promise<ApiResponse<Order>> {
-    return this.post<Order>('/orders', order, options);
+  async createOrder(order: InsertOrder): Promise<ApiResponse<Order>> {
+    try {
+      return await this.post('/api/orders', order);
+    } catch (error) {
+      return this.handleError(error, 'Failed to create order');
+    }
   }
-
+  
   /**
-   * Update an order's status
+   * Update order status
+   * @param orderId Order ID
+   * @param status New status
+   * @returns Updated order
    */
-  async updateOrderStatus(id: number, status: string, options?: ApiRequestOptions): Promise<ApiResponse<Order>> {
-    return this.patch<Order>(`/orders/${id}/status`, { status }, options);
+  async updateOrderStatus(orderId: number, status: OrderStatus): Promise<ApiResponse<Order>> {
+    try {
+      return await this.patch(`/api/orders/${orderId}/status`, { status });
+    } catch (error) {
+      return this.handleError(error, 'Failed to update order status');
+    }
   }
-
+  
   /**
    * Cancel an order
+   * @param orderId Order ID
+   * @param reason Cancellation reason
+   * @returns Updated order
    */
-  async cancelOrder(id: number, options?: ApiRequestOptions): Promise<ApiResponse<Order>> {
-    return this.patch<Order>(`/orders/${id}/cancel`, {}, options);
+  async cancelOrder(orderId: number, reason: string): Promise<ApiResponse<Order>> {
+    try {
+      return await this.patch(`/api/orders/${orderId}/cancel`, { reason });
+    } catch (error) {
+      return this.handleError(error, 'Failed to cancel order');
+    }
   }
-
+  
   /**
    * Get order tracking information
+   * @param orderId Order ID
+   * @returns Tracking information
    */
-  async getOrderTracking(id: number, options?: ApiRequestOptions): Promise<ApiResponse<any>> {
-    return this.get<any>(`/orders/${id}/tracking`, options);
-  }
-
-  /**
-   * Get delivery estimate for an order
-   * @param location Delivery location coordinates
-   */
-  async getDeliveryEstimate(location: { lat: number; lng: number }, options?: ApiRequestOptions): Promise<ApiResponse<{ 
-    estimatedTime: number; 
-    distance: number;
+  async getOrderTracking(orderId: number): Promise<ApiResponse<{
+    orderId: number;
+    status: OrderStatus;
+    driverLocation?: { lat: number; lng: number };
+    estimatedArrival?: string;
+    distance?: number;
+    driverName?: string;
+    driverPhone?: string;
   }>> {
-    return this.get<{ estimatedTime: number; distance: number; }>(`/delivery-estimate`, {
-      ...options,
-      headers: {
-        ...(options?.headers || {}),
-        'Content-Type': 'application/json'
-      }
-    });
+    try {
+      return await this.get(`/api/orders/${orderId}/tracking`);
+    } catch (error) {
+      return this.handleError(error, 'Failed to fetch tracking information');
+    }
   }
 }
 
-// Singleton instance
-export const orderApi = new OrderApiService();
+// Export as singleton
+export const orderApi = new OrderApi();

@@ -22,6 +22,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 import { FuelSelector } from "@/components/order/FuelSelector";
+import { EnhancedFuelSelector } from "@/components/order/EnhancedFuelSelector";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const STEPS = [
@@ -630,8 +631,8 @@ export default function OrderPage() {
             </div>
             
             <div className="mt-4">
-              {/* Use our enhanced fuel selector component with touch-friendly improvements */}
-              <FuelSelector
+              {/* Use our enhanced fuel selector component with visual previews */}
+              <EnhancedFuelSelector
                 fuelType={orderData.fuelType}
                 amount={orderData.amount}
                 onFuelTypeChange={selectFuelType}

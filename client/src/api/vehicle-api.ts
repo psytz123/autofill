@@ -1,73 +1,113 @@
 /**
- * Vehicle API service
- * Handles all API calls related to vehicles
+ * Vehicle API Service
+ * Handles all vehicle-related API requests
  */
 
-import { Vehicle, InsertVehicle } from "@shared/schema";
-import { BaseApiService, ApiResponse, ApiRequestOptions } from "./base-api";
+import { Vehicle, InsertVehicle } from '@shared/schema';
+import { ApiService, ApiResponse, ApiRequestOptions } from './base-api';
 
-export class VehicleApiService extends BaseApiService {
-  constructor() {
-    super('/api');
-  }
-
+/**
+ * API service for vehicle operations
+ */
+class VehicleApi extends ApiService {
   /**
    * Get all vehicles for the current user
+   * @returns List of user vehicles
    */
-  async getVehicles(options?: ApiRequestOptions): Promise<ApiResponse<Vehicle[]>> {
-    return this.get<Vehicle[]>('/vehicles', options);
+  async getVehicles(): Promise<ApiResponse<Vehicle[]>> {
+    try {
+      return await this.get('/api/vehicles');
+    } catch (error) {
+      return this.handleError(error, 'Failed to fetch vehicles');
+    }
   }
-
+  
   /**
    * Get a specific vehicle by ID
+   * @param vehicleId Vehicle ID
+   * @returns Vehicle details
    */
-  async getVehicle(id: number, options?: ApiRequestOptions): Promise<ApiResponse<Vehicle>> {
-    return this.get<Vehicle>(`/vehicles/${id}`, options);
+  async getVehicle(vehicleId: number): Promise<ApiResponse<Vehicle>> {
+    try {
+      return await this.get(`/api/vehicles/${vehicleId}`);
+    } catch (error) {
+      return this.handleError(error, 'Failed to fetch vehicle details');
+    }
   }
-
+  
   /**
-   * Create a new vehicle
+   * Add a new vehicle
+   * @param vehicle Vehicle details
+   * @returns Created vehicle
    */
-  async createVehicle(vehicle: InsertVehicle, options?: ApiRequestOptions): Promise<ApiResponse<Vehicle>> {
-    return this.post<Vehicle>('/vehicles', vehicle, options);
+  async addVehicle(vehicle: InsertVehicle): Promise<ApiResponse<Vehicle>> {
+    try {
+      return await this.post('/api/vehicles', vehicle);
+    } catch (error) {
+      return this.handleError(error, 'Failed to add vehicle');
+    }
   }
-
+  
   /**
-   * Update an existing vehicle
+   * Update vehicle information
+   * @param vehicleId Vehicle ID
+   * @param data Updated vehicle data
+   * @returns Updated vehicle
    */
-  async updateVehicle(id: number, vehicle: Partial<InsertVehicle>, options?: ApiRequestOptions): Promise<ApiResponse<Vehicle>> {
-    return this.patch<Vehicle>(`/vehicles/${id}`, vehicle, options);
+  async updateVehicle(vehicleId: number, data: Partial<Vehicle>): Promise<ApiResponse<Vehicle>> {
+    try {
+      return await this.patch(`/api/vehicles/${vehicleId}`, data);
+    } catch (error) {
+      return this.handleError(error, 'Failed to update vehicle');
+    }
   }
-
+  
   /**
    * Delete a vehicle
+   * @param vehicleId Vehicle ID
+   * @returns Success response
    */
-  async deleteVehicle(id: number, options?: ApiRequestOptions): Promise<ApiResponse<void>> {
-    return this.delete<void>(`/vehicles/${id}`, options);
+  async deleteVehicle(vehicleId: number): Promise<ApiResponse<{ success: boolean }>> {
+    try {
+      return await this.delete(`/api/vehicles/${vehicleId}`);
+    } catch (error) {
+      return this.handleError(error, 'Failed to delete vehicle');
+    }
   }
-
+  
   /**
-   * Set default vehicle for the user
+   * Set a vehicle as the default for fuel orders
+   * @param vehicleId Vehicle ID
+   * @returns Updated vehicle
    */
-  async setDefaultVehicle(id: number, options?: ApiRequestOptions): Promise<ApiResponse<{ success: boolean }>> {
-    return this.post<{ success: boolean }>(`/vehicles/${id}/default`, {}, options);
+  async setDefaultVehicle(vehicleId: number): Promise<ApiResponse<Vehicle>> {
+    try {
+      return await this.post(`/api/vehicles/${vehicleId}/set-default`);
+    } catch (error) {
+      return this.handleError(error, 'Failed to set default vehicle');
+    }
   }
-
+  
   /**
-   * Get vehicle fuel usage statistics
+   * Get vehicle fuel consumption statistics
+   * @param vehicleId Vehicle ID
+   * @param period Time period ('week', 'month', 'year')
+   * @returns Fuel consumption statistics
    */
-  async getVehicleStats(id: number, options?: ApiRequestOptions): Promise<ApiResponse<{
-    totalFuelAmount: number;
-    averageCost: number;
+  async getVehicleStats(vehicleId: number, period: 'week' | 'month' | 'year' = 'month'): Promise<ApiResponse<{
+    totalGallons: number;
+    totalCost: number;
+    fuelEfficiency?: number;
     fillUps: number;
+    costPerGallon: number;
   }>> {
-    return this.get<{
-      totalFuelAmount: number;
-      averageCost: number;
-      fillUps: number;
-    }>(`/vehicles/${id}/stats`, options);
+    try {
+      return await this.get(`/api/vehicles/${vehicleId}/stats?period=${period}`);
+    } catch (error) {
+      return this.handleError(error, 'Failed to fetch vehicle statistics');
+    }
   }
 }
 
-// Singleton instance
-export const vehicleApi = new VehicleApiService();
+// Export as singleton
+export const vehicleApi = new VehicleApi();

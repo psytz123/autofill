@@ -2,7 +2,8 @@ import { useAuth } from "@/hooks/use-auth";
 import { MapPin, DollarSign } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useLocation } from "wouter";
-import { getQueryFn, QUERY_CATEGORIES } from "@/lib/queryClient";
+import { getQueryFn } from "@/lib/queryClient";
+import { QUERY_CATEGORIES } from "@/lib/query-cache-config";
 import { Order, Vehicle, FuelType } from "@shared/schema";
 import VehicleCard from "@/components/vehicles/VehicleCard";
 import { Button } from "@/components/ui/button";
@@ -108,13 +109,23 @@ export default function HomePage() {
               />
             ))}
             
-            <div className="flex justify-center my-3">
+            <div className="flex flex-col space-y-3 my-3">
               <Link href="/vehicles" className="w-full">
                 <Button
                   variant="outline"
-                  className="border-[#FF7433] text-[#FF7433] hover:bg-orange-50 font-medium py-3 px-5 rounded-md"
+                  className="w-full border-[#FF7433] text-[#FF7433] hover:bg-orange-50 font-medium py-3 px-5 rounded-md"
                 >
                   + Add Vehicle/Boat
+                </Button>
+              </Link>
+              
+              {/* Link to Enhanced Fuel Selector Test */}
+              <Link href="/enhanced-fuel-selector-test" className="w-full">
+                <Button
+                  variant="outline"
+                  className="w-full border-blue-500 text-blue-500 hover:bg-blue-50 font-medium py-3 px-5 rounded-md"
+                >
+                  ✨ Try Enhanced Fuel Selector
                 </Button>
               </Link>
             </div>

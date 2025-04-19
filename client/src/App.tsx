@@ -56,6 +56,7 @@ const SubscriptionSuccessPage = importWithPriority("@/pages/subscription-success
 
 // Testing pages (lowest priority)
 const FuelSelectorTest = importWithPriority("@/pages/fuel-selector-test");
+const EnhancedFuelSelectorTest = importWithPriority("@/pages/enhanced-fuel-selector-test");
 
 // Admin module (completely separate chunk)
 const AdminLoginPage = importWithPriority("@/pages/admin/admin-login");
@@ -174,6 +175,10 @@ function CustomerRouter() {
         <SuspenseRoute 
           path="/fuel-selector-test" 
           component={FuelSelectorTest} 
+        />
+        <SuspenseRoute 
+          path="/enhanced-fuel-selector-test" 
+          component={EnhancedFuelSelectorTest} 
         />
       </Switch>
       

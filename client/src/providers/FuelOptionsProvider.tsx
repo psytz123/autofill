@@ -4,7 +4,7 @@ import { FuelType } from "@shared/schema";
 import { Droplet, Droplets, Truck } from "lucide-react";
 import { DEFAULT_FUEL_PRICES, fetchCurrentFuelPrices, type FuelOption } from "@/lib/fuelUtils";
 import { useQuery } from "@tanstack/react-query";
-import { QUERY_CATEGORIES } from "@/lib/queryClient";
+import { QUERY_CATEGORIES } from "@/lib/query-cache-config";
 
 interface FuelOptionsContextType {
   fuelOptions: FuelOption[];

@@ -1,82 +1,139 @@
 /**
- * User API service
- * Handles all API calls related to user authentication and profile
+ * User API Service
+ * Handles all user-related API requests
  */
 
-import { User, InsertUser } from "@shared/schema";
-import { BaseApiService, ApiResponse, ApiRequestOptions } from "./base-api";
+import { User, InsertUser } from '@shared/schema';
+import { ApiService, ApiResponse, ApiRequestOptions } from './base-api';
 
-export interface LoginCredentials {
-  username: string;
-  password: string;
+/**
+ * API response type for authentication operations
+ */
+interface AuthResponse {
+  user: User;
+  token?: string;
 }
 
-export interface RegisterData extends LoginCredentials {
-  name: string;
+/**
+ * Login credentials type
+ */
+interface LoginCredentials {
   email: string;
+  password: string;
+  rememberMe?: boolean;
 }
 
-export class UserApiService extends BaseApiService {
-  constructor() {
-    super('/api');
-  }
-
+/**
+ * API service for user operations
+ */
+class UserApi extends ApiService {
   /**
-   * Get the current authenticated user
+   * Get current logged in user
+   * @returns Current user
    */
-  async getCurrentUser(options?: ApiRequestOptions): Promise<ApiResponse<User>> {
-    return this.get<User>('/user', options);
+  async getCurrentUser(): Promise<ApiResponse<User>> {
+    try {
+      return await this.get('/api/user');
+    } catch (error) {
+      return this.handleError(error, 'Failed to fetch user profile');
+    }
   }
-
+  
   /**
-   * Login with username and password
+   * Login user
+   * @param credentials User credentials
+   * @returns Logged in user
    */
-  async login(credentials: LoginCredentials, options?: ApiRequestOptions): Promise<ApiResponse<User>> {
-    return this.post<User>('/login', credentials, options);
+  async login(credentials: LoginCredentials): Promise<ApiResponse<AuthResponse>> {
+    try {
+      return await this.post('/api/login', credentials);
+    } catch (error) {
+      return this.handleError(error, 'Login failed');
+    }
   }
-
+  
   /**
-   * Register a new user
+   * Register new user
+   * @param userData User registration data
+   * @returns Registered user
    */
-  async register(userData: RegisterData, options?: ApiRequestOptions): Promise<ApiResponse<User>> {
-    return this.post<User>('/register', userData, options);
+  async register(userData: InsertUser): Promise<ApiResponse<AuthResponse>> {
+    try {
+      return await this.post('/api/register', userData);
+    } catch (error) {
+      return this.handleError(error, 'Registration failed');
+    }
   }
-
+  
   /**
-   * Logout the current user
+   * Logout user
+   * @returns Success response
    */
-  async logout(options?: ApiRequestOptions): Promise<ApiResponse<void>> {
-    return this.post<void>('/logout', {}, options);
+  async logout(): Promise<ApiResponse<{ success: boolean }>> {
+    try {
+      return await this.post('/api/logout');
+    } catch (error) {
+      return this.handleError(error, 'Logout failed');
+    }
   }
-
+  
   /**
    * Update user profile
+   * @param userId User ID
+   * @param userData Updated user data
+   * @returns Updated user
    */
-  async updateProfile(data: Partial<User>, options?: ApiRequestOptions): Promise<ApiResponse<User>> {
-    return this.patch<User>('/user', data, options);
+  async updateProfile(userId: number, userData: Partial<User>): Promise<ApiResponse<User>> {
+    try {
+      return await this.patch(`/api/users/${userId}`, userData);
+    } catch (error) {
+      return this.handleError(error, 'Failed to update profile');
+    }
   }
-
+  
   /**
-   * Change user password
+   * Request password reset
+   * @param email User email
+   * @returns Success response
    */
-  async changePassword(data: { currentPassword: string; newPassword: string }, options?: ApiRequestOptions): Promise<ApiResponse<{ success: boolean }>> {
-    return this.post<{ success: boolean }>('/user/change-password', data, options);
+  async requestPasswordReset(email: string): Promise<ApiResponse<{ success: boolean }>> {
+    try {
+      return await this.post('/api/password-reset-request', { email });
+    } catch (error) {
+      return this.handleError(error, 'Failed to request password reset');
+    }
   }
-
+  
   /**
-   * Subscribe to push notifications
+   * Reset password with token
+   * @param token Reset token
+   * @param newPassword New password
+   * @returns Success response
    */
-  async subscribeToPushNotifications(subscription: PushSubscription, options?: ApiRequestOptions): Promise<ApiResponse<{ success: boolean }>> {
-    return this.post<{ success: boolean }>('/push-subscription', subscription, options);
+  async resetPassword(token: string, newPassword: string): Promise<ApiResponse<{ success: boolean }>> {
+    try {
+      return await this.post('/api/password-reset', { token, newPassword });
+    } catch (error) {
+      return this.handleError(error, 'Failed to reset password');
+    }
   }
-
+  
   /**
-   * Unsubscribe from push notifications
+   * Delete user account
+   * @param userId User ID
+   * @param confirmation Confirmation phrase
+   * @returns Success response
    */
-  async unsubscribeFromPushNotifications(endpoint: string, options?: ApiRequestOptions): Promise<ApiResponse<{ success: boolean }>> {
-    return this.delete<{ success: boolean }>(`/push-subscription?endpoint=${encodeURIComponent(endpoint)}`, options);
+  async deleteAccount(userId: number, confirmation: string): Promise<ApiResponse<{ success: boolean }>> {
+    try {
+      return await this.delete(`/api/users/${userId}`, { 
+        body: JSON.stringify({ confirmation }) 
+      });
+    } catch (error) {
+      return this.handleError(error, 'Failed to delete account');
+    }
   }
 }
 
-// Singleton instance
-export const userApi = new UserApiService();
+// Export as singleton
+export const userApi = new UserApi();
