@@ -32,17 +32,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     error,
     isLoading,
     status,
-    isFetched
+    isFetched,
+    refetch: refetchUser
   } = useQuery<SelectUser | null, Error>({
     queryKey: ["/api/user"],
     queryFn: getQueryFn({ 
       on401: "returnNull", 
-      retries: 2,
+      retries: 1,
       timeout: 5000 
     }),
     // Don't refetch too frequently to avoid UI jank
     staleTime: 1000 * 60 * 5, // 5 minutes
-    retry: 1
+    retry: 0
   });
 
   const loginMutation = useMutation({
@@ -50,21 +51,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const res = await apiRequest("POST", "/api/login", credentials, {
         retries: 2
       });
+      
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.message || "Login failed");
+      }
+      
       return await res.json();
     },
     onSuccess: (user: SelectUser) => {
       // Update auth state
       queryClient.setQueryData(["/api/user"], user);
       
-      // Force refetch of any dependent queries
-      queryClient.invalidateQueries({ 
-        queryKey: ["/api/vehicles"], 
-        refetchType: "all" 
-      });
-      queryClient.invalidateQueries({ 
-        queryKey: ["/api/orders"], 
-        refetchType: "all" 
-      });
+      // Refresh the auth state
+      refetchUser();
+      
+      // Invalidate all queries to ensure fresh data
+      queryClient.invalidateQueries();
       
       // Navigate to home page after successful login
       if (location === "/auth") {
@@ -77,9 +80,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
     },
     onError: (error: Error) => {
+      // Clear any stale user data
+      queryClient.setQueryData(["/api/user"], null);
+      
       toast({
         title: "Login failed",
-        description: error.message,
+        description: error.message || "Please check your credentials",
         variant: "destructive",
       });
     },
@@ -90,11 +96,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const res = await apiRequest("POST", "/api/register", credentials, {
         retries: 2
       });
+      
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.message || "Registration failed");
+      }
+      
       return await res.json();
     },
     onSuccess: (user: SelectUser) => {
       // Update auth state
       queryClient.setQueryData(["/api/user"], user);
+      
+      // Refresh the auth state
+      refetchUser();
+      
+      // Invalidate all queries to ensure fresh data
+      queryClient.invalidateQueries();
       
       // Navigate to home page after successful registration
       if (location === "/auth") {
@@ -107,9 +125,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
     },
     onError: (error: Error) => {
+      // Clear any stale user data
+      queryClient.setQueryData(["/api/user"], null);
+      
       toast({
         title: "Registration failed",
-        description: error.message,
+        description: error.message || "Please try again with a different email",
         variant: "destructive",
       });
     },
@@ -117,19 +138,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logoutMutation = useMutation({
     mutationFn: async () => {
-      await apiRequest("POST", "/api/logout", undefined, {
+      const res = await apiRequest("POST", "/api/logout", undefined, {
         retries: 1
       });
+      
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.message || "Logout failed");
+      }
+      
+      return res;
     },
     onSuccess: () => {
-      // Reset auth state and navigate to login page
+      // Reset auth state
       queryClient.setQueryData(["/api/user"], null);
       
       // Clear all cached data on logout to prevent stale data issues
       queryClient.clear();
       
       // Force navigation to auth page
-      navigate("/auth");
+      navigate("/auth", { replace: true });
       
       toast({
         title: "Logged out",
@@ -137,10 +165,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
     },
     onError: (error: Error) => {
+      // Even if logout failed on the server, we still want to clear the local state
+      queryClient.setQueryData(["/api/user"], null);
+      queryClient.clear();
+      navigate("/auth", { replace: true });
+      
       toast({
-        title: "Logout failed",
-        description: error.message,
-        variant: "destructive",
+        title: "Logout issues",
+        description: "Your session has been cleared locally",
+        variant: "default",
       });
     },
   });
