@@ -9,6 +9,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Home, Briefcase, MapPin } from "lucide-react";
 import { LocationType, insertLocationSchema, Location as LocationModel } from "@shared/schema";
+import type { Location as LocationFromSchema } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useMutation } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
@@ -181,11 +182,16 @@ export default function AddLocationForm({ onSuccess, initialData }: AddLocationF
         <div className="w-full h-48">
           <MapView 
             selectedLocation={null} 
-            onLocationSelect={(location: Location) => {
+            onLocationSelect={(location: any) => {
               // Update form values with the selected location
-              form.setValue("address", location.address);
-              setMapCoordinates(location.coordinates);
-              form.setValue("coordinatesStr", JSON.stringify(location.coordinates));
+              // Using any type here to resolve the type conflict
+              if (location && location.address) {
+                form.setValue("address", location.address);
+                if (location.coordinates) {
+                  setMapCoordinates(location.coordinates);
+                  form.setValue("coordinatesStr", JSON.stringify(location.coordinates));
+                }
+              }
             }}
             initialAddress={form.watch("address")}
             className="w-full h-full"

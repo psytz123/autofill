@@ -42,8 +42,13 @@ export default function MapView({
 
   // Initialize geocoder when map is loaded
   useEffect(() => {
-    if (isLoaded && !geocoder) {
-      setGeocoder(new window.google.maps.Geocoder());
+    if (isLoaded && !geocoder && window.google && window.google.maps) {
+      try {
+        console.log("Initializing Google Maps Geocoder");
+        setGeocoder(new window.google.maps.Geocoder());
+      } catch (error) {
+        console.error("Error initializing geocoder:", error);
+      }
     }
   }, [isLoaded, geocoder]);
 

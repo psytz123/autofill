@@ -302,7 +302,23 @@ export default function OrderPage() {
   };
   
   const selectLocation = (location: Location) => {
-    setOrderData(prev => ({ ...prev, location }));
+    console.log("Selected location:", location);
+    // Ensure we have valid location data before updating state
+    if (location && location.id !== undefined) {
+      setOrderData(prev => ({ ...prev, location }));
+      // Clear location validation error if it exists
+      if (formErrors.location) {
+        setFormErrors(prev => ({ ...prev, location: undefined }));
+      }
+      // Show success toast for better user feedback
+      toast({
+        title: "Location selected",
+        description: `Selected ${location.name || 'location'} for delivery`,
+        duration: 2000,
+      });
+    } else {
+      console.error("Invalid location data:", location);
+    }
   };
   
   const selectVehicle = (vehicle: Vehicle) => {
@@ -342,6 +358,20 @@ export default function OrderPage() {
   const [showAddLocation, setShowAddLocation] = useState(false);
   const [showFuelLevel, setShowFuelLevel] = useState(false);
   const [showDeliveryTime, setShowDeliveryTime] = useState(false);
+  
+  // Add an event listener to detect "add-location-requested" events
+  useEffect(() => {
+    const handleAddLocation = () => {
+      console.log("Add location request detected");
+      setShowAddLocation(true);
+    };
+    
+    window.addEventListener('add-location-requested', handleAddLocation);
+    
+    return () => {
+      window.removeEventListener('add-location-requested', handleAddLocation);
+    };
+  }, []);
   
   const renderStepContent = () => {
     switch (currentStep) {
