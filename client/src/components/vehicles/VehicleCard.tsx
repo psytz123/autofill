@@ -58,10 +58,10 @@ function VehicleCard({
         {isSelected && (
           <div className="w-3 bg-autofill-orange absolute top-0 bottom-0 left-0"></div>
         )}
-        <div className={`flex items-center p-4 ${isSelected ? 'pl-6' : ''}`}>
+        <div className={`flex items-center p-3 sm:p-4 ${isSelected ? 'pl-5 sm:pl-6' : ''}`}>
           <div className="flex-grow">
-            <div className="flex justify-between mb-2">
-              <h3 className="font-bold text-xl text-neutral-800">{vehicle.make} {vehicle.model}</h3>
+            <div className="flex justify-between mb-1 sm:mb-2">
+              <h3 className="font-bold text-base sm:text-xl text-neutral-800">{vehicle.make} {vehicle.model}</h3>
               {onEdit && (
                 <Button
                   variant="ghost"
@@ -72,13 +72,13 @@ function VehicleCard({
                   }}
                   className="p-1 h-auto text-neutral-500"
                 >
-                  <Edit className="h-4 w-4" />
+                  <Edit className="h-3 w-3 sm:h-4 sm:w-4" />
                 </Button>
               )}
             </div>
-            <div className="text-sm text-neutral-600 mb-1">Tag: {vehicle.licensePlate}</div>
-            <div className="flex items-center gap-4 mt-2">
-              <div className={`rounded-md py-1 px-3 text-sm font-medium ${getFuelTypeBackground(vehicle.fuelType)}`}>
+            <div className="text-xs sm:text-sm text-neutral-600 mb-1">Tag: {vehicle.licensePlate}</div>
+            <div className="flex flex-wrap items-center gap-2 sm:gap-4 mt-2">
+              <div className={`rounded-md py-0.5 sm:py-1 px-2 sm:px-3 text-xs sm:text-sm font-medium ${getFuelTypeBackground(vehicle.fuelType)}`}>
                 {getFuelTypeLabel(vehicle.fuelType)}
               </div>
               {showActions && (
@@ -90,7 +90,7 @@ function VehicleCard({
                       e.stopPropagation();
                       if (onEdit) onEdit();
                     }}
-                    className="h-8 text-sm py-0 px-2 border-autofill-navy text-autofill-navy"
+                    className="h-7 sm:h-8 text-xs sm:text-sm py-0 px-1.5 sm:px-2 border-autofill-navy text-autofill-navy"
                   >
                     Edit
                   </Button>
@@ -101,7 +101,7 @@ function VehicleCard({
                       e.stopPropagation();
                       setShowDeleteDialog(true);
                     }}
-                    className="h-8 text-sm py-0 px-2 border-destructive text-destructive"
+                    className="h-7 sm:h-8 text-xs sm:text-sm py-0 px-1.5 sm:px-2 border-destructive text-destructive"
                   >
                     Delete
                   </Button>
@@ -112,18 +112,18 @@ function VehicleCard({
           
           {onSelect && (
             <div 
-              className="ml-4" 
+              className="ml-3 sm:ml-4" 
               onClick={(e) => {
                 e.stopPropagation();
                 if (onSelect) onSelect();
               }}
             >
               {isSelected ? (
-                <div className="w-6 h-6 rounded-sm bg-autofill-orange flex items-center justify-center">
-                  <Check className="h-4 w-4 text-white" />
+                <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-sm bg-autofill-orange flex items-center justify-center">
+                  <Check className="h-3 w-3 sm:h-4 sm:w-4 text-white" />
                 </div>
               ) : (
-                <Checkbox className="h-6 w-6 rounded-sm border-autofill-navy" />
+                <Checkbox className="h-5 w-5 sm:h-6 sm:w-6 rounded-sm border-autofill-navy" />
               )}
             </div>
           )}

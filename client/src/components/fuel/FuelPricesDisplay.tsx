@@ -39,37 +39,39 @@ export function FuelPricesDisplay() {
   };
 
   return (
-    <Card className="mb-6">
-      <CardHeader className="pb-2">
+    <Card className="mb-4 sm:mb-6">
+      <CardHeader className="pb-1 sm:pb-2 pt-3 sm:pt-4 px-3 sm:px-6">
         <div className="flex justify-between items-center">
-          <CardTitle className="text-lg">Current Fuel Prices</CardTitle>
+          <CardTitle className="text-base sm:text-lg">Current Fuel Prices</CardTitle>
           <Button 
             variant="outline" 
             size="sm" 
             onClick={() => refreshPrices()}
             disabled={isLoading}
-            className="h-8"
+            className="h-7 sm:h-8 text-xs sm:text-sm py-0 px-2"
           >
-            <RefreshCw className={`h-4 w-4 mr-1 ${isLoading ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`h-3 w-3 sm:h-4 sm:w-4 mr-1 ${isLoading ? 'animate-spin' : ''}`} />
             {isLoading ? 'Updating...' : 'Refresh'}
           </Button>
         </div>
-        <p className="text-xs text-muted-foreground mt-1">
+        <p className="text-[10px] sm:text-xs text-muted-foreground mt-1">
           Last updated: {formatUpdateTime(lastUpdated)}
         </p>
       </CardHeader>
-      <CardContent>
-        <div className="grid grid-cols-3 gap-2">
+      <CardContent className="pt-1 pb-3 px-3 sm:px-6">
+        <div className="grid grid-cols-3 gap-1 sm:gap-2">
           {fuelOptions.map(option => (
-            <div key={option.value} className={`rounded-lg p-3 ${option.color}`}>
+            <div key={option.value} className={`rounded-lg p-2 sm:p-3 ${option.color}`}>
               <div className="flex flex-col items-center">
-                <div className="mb-1">
-                  {option.icon}
+                <div className="mb-0.5 sm:mb-1">
+                  {React.cloneElement(option.icon as React.ReactElement, { 
+                    className: `h-4 w-4 sm:h-5 sm:w-5 ${(option.icon as React.ReactElement).props.className}` 
+                  })}
                 </div>
-                <div className="text-lg font-bold">
+                <div className="text-base sm:text-lg font-bold">
                   {formatPrice(option.pricePerGallon)}
                 </div>
-                <div className="text-xs font-medium text-center">
+                <div className="text-[10px] sm:text-xs font-medium text-center">
                   {option.label}
                 </div>
               </div>

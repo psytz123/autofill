@@ -36,7 +36,7 @@ const TabButton = memo(({
     <PreloadLink 
       href={path}
       prefetch={true}
-      className="h-full w-full"
+      className="h-full w-full no-tap-highlight"
     >
       <div 
         className={`h-full w-full flex flex-col items-center justify-center cursor-pointer transition-colors ${isActive ? color : 'text-neutral-500 hover:text-neutral-800'}`}
@@ -47,7 +47,7 @@ const TabButton = memo(({
           : ''}`}>
           {icon}
         </div>
-        <span className="text-xs mt-1.5 font-medium text-center w-full px-1 truncate">{label}</span>
+        <span className="text-xs sm:text-[11px] mt-1 sm:mt-1.5 font-medium text-center w-full px-1 truncate">{label}</span>
       </div>
     </PreloadLink>
   );
@@ -105,7 +105,7 @@ function TabBar() {
   ], [handleHoverHome, handleHoverOrder, handleHoverOrders, handleHoverSubscription, handleHoverAccount]);
 
   return (
-    <nav className="bg-white border-t border-neutral-200 shadow-lg fixed bottom-0 left-0 right-0 h-20 z-50">
+    <nav className="bg-white border-t border-neutral-200 shadow-lg fixed bottom-0 left-0 right-0 h-16 md:h-20 z-50 safe-bottom">
       <div className="grid grid-cols-5 h-full max-w-screen-lg mx-auto">
         {tabButtons.map((tab) => (
           <TabButton 

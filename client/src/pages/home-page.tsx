@@ -47,54 +47,54 @@ export default function HomePage() {
   };
   
   return (
-    <div className="h-screen-minus-tab overflow-y-auto bg-slate-50">
+    <div className="h-screen-minus-tab overflow-y-auto bg-slate-50 touch-scroll hide-scrollbar">
       {/* Top Logo Navigation */}
-      <header className="bg-white shadow-sm p-4">
+      <header className="bg-white shadow-sm p-3 sm:p-4 safe-top">
         <div className="flex flex-col items-center mb-2">
           <Logo size="md" className="mb-1" />
           <div className="text-xs text-neutral-500 text-center">ON-DEMAND GASOLINE</div>
         </div>
         
-        <div className="flex items-center justify-between mt-4">
+        <div className="flex items-center justify-between mt-3 sm:mt-4">
           <div className="flex-1">
-            <h1 className="text-xl font-bold autofill-navy">
+            <h1 className="text-lg sm:text-xl font-bold autofill-navy">
               Hi, {user?.name?.split(' ')[0] || user?.username?.split('@')[0] || 'User'}
             </h1>
-            <div className="flex items-center text-sm autofill-orange">
-              <MapPin className="h-4 w-4 mr-1" />
+            <div className="flex items-center text-xs sm:text-sm autofill-orange">
+              <MapPin className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
               <span>Current Location</span>
-              <svg className="h-4 w-4 ml-1" viewBox="0 0 24 24" fill="none">
+              <svg className="h-3 w-3 sm:h-4 sm:w-4 ml-1" viewBox="0 0 24 24" fill="none">
                 <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
             </div>
           </div>
           <div>
-            <Button variant="ghost" size="icon" className="rounded-full bg-autofill-navy text-white shadow-sm">
-              <DollarSign className="h-5 w-5" />
+            <Button variant="ghost" size="icon" className="rounded-full bg-autofill-navy text-white shadow-sm h-9 w-9 sm:h-10 sm:w-10">
+              <DollarSign className="h-4 w-4 sm:h-5 sm:w-5" />
             </Button>
           </div>
         </div>
       </header>
       
       {/* Real-time Fuel Prices Display */}
-      <section className="px-4 pt-4 bg-white">
+      <section className="px-3 sm:px-4 pt-3 sm:pt-4 bg-white">
         <FuelPricesDisplay />
       </section>
       
       {/* Vehicle Selection - Main Content */}
-      <section className="px-4 py-2 bg-white flex-1 overflow-y-auto">
-        <h2 className="text-xl font-bold autofill-navy mb-4">Which vehicles would you like to fill?</h2>
+      <section className="px-3 sm:px-4 py-2 bg-white flex-1 overflow-y-auto">
+        <h2 className="text-lg sm:text-xl font-bold autofill-navy mb-3 sm:mb-4">Which vehicles would you like to fill?</h2>
         
         {vehiclesLoading ? (
-          <div className="text-center py-8">
-            <p>Loading your vehicles...</p>
+          <div className="text-center py-6 sm:py-8">
+            <p className="text-sm sm:text-base">Loading your vehicles...</p>
           </div>
         ) : vehicles.length === 0 ? (
-          <div className="text-center py-6">
-            <p className="text-neutral-500 mb-4">You haven't added any vehicles yet</p>
+          <div className="text-center py-5 sm:py-6">
+            <p className="text-neutral-500 mb-3 sm:mb-4 text-sm sm:text-base">You haven't added any vehicles yet</p>
             <div className="flex justify-center">
               <Link href="/vehicles">
-                <Button className="bg-[#FF7433] text-white hover:bg-orange-500 rounded-md py-3 px-5">Add Your Vehicle</Button>
+                <Button className="bg-[#FF7433] text-white hover:bg-orange-500 rounded-md py-2.5 sm:py-3 px-4 sm:px-5 text-sm sm:text-base">Add Your Vehicle</Button>
               </Link>
             </div>
           </div>
@@ -109,11 +109,11 @@ export default function HomePage() {
               />
             ))}
             
-            <div className="flex flex-col space-y-3 my-3">
+            <div className="flex flex-col space-y-2 sm:space-y-3 my-2 sm:my-3">
               <Link href="/vehicles" className="w-full">
                 <Button
                   variant="outline"
-                  className="w-full border-[#FF7433] text-[#FF7433] hover:bg-orange-50 font-medium py-3 px-5 rounded-md"
+                  className="w-full border-[#FF7433] text-[#FF7433] hover:bg-orange-50 font-medium py-2.5 sm:py-3 px-4 sm:px-5 rounded-md text-sm sm:text-base"
                 >
                   + Add Vehicle/Boat
                 </Button>
@@ -123,7 +123,7 @@ export default function HomePage() {
               <Link href="/enhanced-fuel-selector-test" className="w-full">
                 <Button
                   variant="outline"
-                  className="w-full border-blue-500 text-blue-500 hover:bg-blue-50 font-medium py-3 px-5 rounded-md"
+                  className="w-full border-blue-500 text-blue-500 hover:bg-blue-50 font-medium py-2.5 sm:py-3 px-4 sm:px-5 rounded-md text-sm sm:text-base"
                 >
                   ✨ Try Enhanced Fuel Selector
                 </Button>
@@ -134,11 +134,11 @@ export default function HomePage() {
       </section>
       
       {/* Order Button - Fixed at Bottom */}
-      <div className="px-4 py-5 bg-white border-t border-gray-100 mt-auto">
+      <div className="px-3 sm:px-4 py-4 sm:py-5 bg-white border-t border-gray-100 mt-auto">
         <div className="flex justify-center">
           <Link href="/order" className="block w-full">
             <Button 
-              className="w-full bg-[#FF7433] text-white hover:bg-orange-500 font-bold py-6 text-lg shadow-md rounded-md"
+              className="w-full bg-[#FF7433] text-white hover:bg-orange-500 font-bold py-4 sm:py-6 text-base sm:text-lg shadow-md rounded-md"
               disabled={!selectedVehicleId}
             >
               ORDER FUEL NOW
