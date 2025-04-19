@@ -3,7 +3,7 @@
  * Fetches and manages CSRF tokens for API requests
  */
 
-// Store CSRF token in memory
+// Store CSRF token in memory and localStorage
 let csrfToken: string | null = null;
 
 /**
@@ -20,12 +20,62 @@ function generateToken(): string {
 }
 
 /**
+ * Register a CSRF token with the server
+ * @param token The token to register
+ */
+async function registerTokenWithServer(token: string): Promise<void> {
+  try {
+    // Send a GET request to register the token with the server
+    await fetch('/api/ping', {
+      method: 'GET',
+      headers: {
+        'X-CSRF-Token': token,
+        'X-Requested-With': 'XMLHttpRequest'
+      },
+      credentials: 'include'
+    });
+    
+    // Store in localStorage for persistence across page reloads
+    localStorage.setItem('csrfToken', token);
+    
+    console.log('CSRF token registered with server');
+  } catch (error) {
+    console.error('Failed to register CSRF token with server:', error);
+    // If registration fails, reset the token so we'll try again next time
+    csrfToken = null;
+    localStorage.removeItem('csrfToken');
+  }
+}
+
+/**
+ * Initialize the CSRF token on application load
+ */
+export async function initCsrfToken(): Promise<void> {
+  // Check for an existing token in localStorage
+  const storedToken = localStorage.getItem('csrfToken');
+  
+  if (storedToken) {
+    csrfToken = storedToken;
+    // Re-register in case server has restarted
+    await registerTokenWithServer(storedToken);
+  } else {
+    // Generate and register a new token
+    const newToken = generateToken();
+    csrfToken = newToken;
+    await registerTokenWithServer(newToken);
+  }
+}
+
+/**
  * Get the current CSRF token, generating a new one if needed
  * @returns The current CSRF token
  */
 export function getCsrfToken(): string {
   if (!csrfToken) {
+    // If no token is available, generate one and schedule registration
     csrfToken = generateToken();
+    // Register the token asynchronously
+    registerTokenWithServer(csrfToken).catch(console.error);
   }
   return csrfToken;
 }
@@ -46,4 +96,7 @@ export function addCsrfHeader(headers: HeadersInit = {}): HeadersInit {
  */
 export function resetCsrfToken(): void {
   csrfToken = null;
+  localStorage.removeItem('csrfToken');
+  // Generate and register a new token
+  getCsrfToken();
 }

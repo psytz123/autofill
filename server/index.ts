@@ -42,7 +42,9 @@ app.use((req, res, next) => {
     // Admin routes - ensure we match all admin paths
     '/admin/',
     // WebSocket path
-    '/ws'
+    '/ws',
+    // Ping route for CSRF token registration
+    '/api/ping'
   ];
   
   // Helper function to check if the path should be excluded
@@ -50,10 +52,20 @@ app.use((req, res, next) => {
     return excludedPaths.some(excludedPath => path.startsWith(excludedPath));
   };
   
-  // For GET requests, just store the token if provided
-  if (req.method === 'GET' && req.headers['x-csrf-token']) {
-    csrfTokens.add(req.headers['x-csrf-token'] as string);
-    return next();
+  // For GET requests, always store the token if provided
+  if (req.headers['x-csrf-token']) {
+    const token = req.headers['x-csrf-token'] as string;
+    if (token && token.length > 16) { // Only store valid tokens
+      csrfTokens.add(token);
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`CSRF token registered: ${token.substring(0, 5)}...`);
+      }
+    }
+    
+    // If it's a GET request, continue
+    if (req.method === 'GET') {
+      return next();
+    }
   }
   
   // Skip CSRF checks for excluded paths
@@ -66,6 +78,16 @@ app.use((req, res, next) => {
     const csrfToken = req.headers['x-csrf-token'] as string;
     
     if (!csrfToken || !csrfTokens.has(csrfToken)) {
+      // Log the error in development
+      if (process.env.NODE_ENV === 'development') {
+        console.error('CSRF validation failed:', {
+          token: csrfToken ? `${csrfToken.substring(0, 5)}...` : 'missing',
+          path: req.path,
+          method: req.method,
+          knownTokensCount: csrfTokens.size
+        });
+      }
+      
       // For API routes, return a JSON error
       if (req.path.startsWith('/api')) {
         res.set('X-CSRF-Valid', 'false');
@@ -79,15 +101,15 @@ app.use((req, res, next) => {
     
     // For valid tokens, add header and continue
     res.set('X-CSRF-Valid', 'true');
-    
-    // Clean up old tokens periodically (keep set size manageable)
-    if (csrfTokens.size > 1000) {
-      const tokensArray = Array.from(csrfTokens);
-      csrfTokens.clear();
-      tokensArray.slice(Math.max(0, tokensArray.length - 500)).forEach(token => {
-        csrfTokens.add(token);
-      });
-    }
+  }
+  
+  // Clean up old tokens periodically (keep set size manageable)
+  if (csrfTokens.size > 1000) {
+    const tokensArray = Array.from(csrfTokens);
+    csrfTokens.clear();
+    tokensArray.slice(Math.max(0, tokensArray.length - 500)).forEach(token => {
+      csrfTokens.add(token);
+    });
   }
   
   next();

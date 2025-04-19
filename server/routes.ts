@@ -32,6 +32,11 @@ function isAuthenticated(req: Request, res: Response, next: Function) {
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Simple ping endpoint that also registers CSRF tokens
+  app.get('/api/ping', (req, res) => {
+    res.status(200).json({ status: 'ok', serverTime: new Date().toISOString() });
+  });
+
   // Setup authentication routes
   setupAuth(app);
   
