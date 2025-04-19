@@ -58,14 +58,28 @@ class OrderTrackingService {
       }
       
       // Create WebSocket URL with CSRF token if available
-      // Fix: For Replit URLs, we need to ensure we use the correct domain and don't try to use localhost
-      const host = window.location.host.includes('replit') ? window.location.host : 'localhost:5000';
-      const wsUrl = `${protocol}//${host}/ws${csrfToken ? `?csrf=${csrfToken}` : ''}`;
+      // Handle both Replit and local development environments
+      let wsUrl;
+      
+      if (window.location.href.includes('replit.dev')) {
+        // For Replit, use the exact same host as the current page
+        const replitUrl = new URL(window.location.href);
+        wsUrl = `${protocol}//${replitUrl.host}/ws${csrfToken ? `?csrf=${csrfToken}` : ''}`;
+      } else {
+        // For local development
+        wsUrl = `${protocol}//localhost:5000/ws${csrfToken ? `?csrf=${csrfToken}` : ''}`;
+      }
       
       console.log('Connecting to WebSocket at:', wsUrl);
       
-      // Create new WebSocket connection
-      this.socket = new WebSocket(wsUrl);
+      // Create new WebSocket connection with error handling
+      try {
+        this.socket = new WebSocket(wsUrl);
+      } catch (error) {
+        console.error('Failed to create WebSocket connection:', error);
+        this.socket = null;
+        throw error;
+      }
       
       // Set up event handlers
       this.socket.onopen = this.handleOpen.bind(this);

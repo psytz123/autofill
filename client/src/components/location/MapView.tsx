@@ -36,7 +36,7 @@ export default function MapView({
   // Load Google Maps API
   const { isLoaded, loadError } = useJsApiLoader({
     id: 'google-map-script',
-    googleMapsApiKey: import.meta.env.GOOGLE_MAPS_API_KEY || "",
+    googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY || "",
   });
 
   // Initialize geocoder when map is loaded
@@ -176,14 +176,35 @@ export default function MapView({
     setMap(null);
   }, []);
 
-  if (loadError) {
+  if (loadError || !import.meta.env.VITE_GOOGLE_MAPS_API_KEY) {
     return (
       <Card className={`relative overflow-hidden ${className}`}>
         <div className="absolute inset-0 flex items-center justify-center bg-neutral-100">
           <div className="text-center text-red-500">
             <MapPin className="h-8 w-8 mx-auto mb-2" />
             <p>Error loading map</p>
-            <p className="text-xs">Please check your internet connection</p>
+            <p className="text-xs">
+              {!import.meta.env.VITE_GOOGLE_MAPS_API_KEY 
+                ? "Missing Google Maps API key" 
+                : loadError?.toString() || "Please check your internet connection"}
+            </p>
+            
+            {/* Fallback location selection */}
+            <button 
+              className="mt-4 px-3 py-1 text-xs bg-primary text-white rounded-full hover:bg-primary/90" 
+              onClick={() => {
+                // Create a fallback location with default coordinates
+                const defaultLocation = createLocationFromCoordinates(
+                  DEFAULT_MAP_CONFIG.center,
+                  "Default Location",
+                  "Selected Location",
+                  LocationType.OTHER
+                );
+                onLocationSelect(defaultLocation);
+              }}
+            >
+              Use Default Location
+            </button>
           </div>
         </div>
       </Card>
