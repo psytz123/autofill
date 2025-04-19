@@ -140,35 +140,35 @@ function CustomerRouter() {
           path="/auth" 
           component={AuthPage} 
         />
-        <ProtectedSuspenseRoute 
+        <ProtectedRoute 
           path="/" 
           component={HomePage} 
         />
-        <ProtectedSuspenseRoute 
+        <ProtectedRoute 
           path="/order" 
           component={OrderPage} 
         />
-        <ProtectedSuspenseRoute 
+        <ProtectedRoute 
           path="/orders" 
           component={OrdersPage} 
         />
-        <ProtectedSuspenseRoute 
+        <ProtectedRoute 
           path="/vehicles" 
           component={VehiclesPage} 
         />
-        <ProtectedSuspenseRoute 
+        <ProtectedRoute 
           path="/account" 
           component={AccountPage} 
         />
-        <ProtectedSuspenseRoute 
+        <ProtectedRoute 
           path="/payment-methods" 
           component={PaymentMethodsPage} 
         />
-        <ProtectedSuspenseRoute 
+        <ProtectedRoute 
           path="/subscription" 
           component={SubscriptionPage} 
         />
-        <ProtectedSuspenseRoute 
+        <ProtectedRoute 
           path="/subscription-success" 
           component={SubscriptionSuccessPage} 
         />

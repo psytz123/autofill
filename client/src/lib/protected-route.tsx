@@ -1,9 +1,16 @@
 import { useAuth } from "@/hooks/use-auth";
 import { Loader2 } from "lucide-react";
 import { Redirect, Route, useLocation } from "wouter";
-import { ComponentType, LazyExoticComponent, useEffect } from "react";
+import { ComponentType, LazyExoticComponent, Suspense, useEffect } from "react";
 
 type ComponentProp = LazyExoticComponent<() => JSX.Element> | ComponentType<any>;
+
+// Loading component for Suspense fallback
+const PageLoader = () => (
+  <div className="flex items-center justify-center min-h-screen">
+    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+  </div>
+);
 
 export function ProtectedRoute({
   path,
@@ -15,21 +22,11 @@ export function ProtectedRoute({
   const { user, isLoading } = useAuth();
   const [location, navigate] = useLocation();
 
-  // Enhanced navigation with better auth handling
-  useEffect(() => {
-    // If we're not loading anymore and there's no user, redirect to auth
-    if (!isLoading && !user && location.startsWith(path)) {
-      navigate("/auth", { replace: true });
-    }
-  }, [user, isLoading, location, navigate, path]);
-
   // Show loading state while checking authentication
   if (isLoading) {
     return (
       <Route path={path}>
-        <div className="flex items-center justify-center min-h-screen">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        </div>
+        <PageLoader />
       </Route>
     );
   }
@@ -44,9 +41,14 @@ export function ProtectedRoute({
   }
 
   // Render the protected component if authenticated
+  // Wrap in Suspense to handle lazy loading
   return (
     <Route path={path}>
-      {(params) => <Component {...params} />}
+      {(params) => (
+        <Suspense fallback={<PageLoader />}>
+          <Component {...params} />
+        </Suspense>
+      )}
     </Route>
   );
 }
