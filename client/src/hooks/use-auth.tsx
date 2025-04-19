@@ -45,12 +45,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
       
       try {
-        const result = await fetchFn(context);
+        const result = await fetchFn(context) as SelectUser | null;
         console.log("Auth state fetched:", result ? "Authenticated" : "Not authenticated");
         return result;
       } catch (error) {
         console.error("Error fetching auth state:", error);
-        throw error;
+        return null;
       }
     },
     // Don't refetch too frequently to avoid UI jank

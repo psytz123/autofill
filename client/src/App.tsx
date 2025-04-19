@@ -40,32 +40,32 @@ const AuthPage = lazy(() => import("@/pages/auth-page"));
 const HomePage = lazy(() => import("@/pages/home-page"));
 
 // Order feature bundle (loaded when needed)
-const OrderPage = importWithPriority("@/pages/order-page", 'high');
-const OrdersPage = importWithPriority("@/pages/orders-page", 'high');
+const OrderPage = lazy(() => import("@/pages/order-page"));
+const OrdersPage = lazy(() => import("@/pages/orders-page"));
 
 // Vehicle management bundle (lower priority)
-const VehiclesPage = importWithPriority("@/pages/vehicles-page");
+const VehiclesPage = lazy(() => import("@/pages/vehicles-page"));
 
 // Account management bundle (lower priority)
-const AccountPage = importWithPriority("@/pages/account-page");
-const PaymentMethodsPage = importWithPriority("@/pages/payment-methods-page");
+const AccountPage = lazy(() => import("@/pages/account-page"));
+const PaymentMethodsPage = lazy(() => import("@/pages/payment-methods-page"));
 
 // Subscription feature bundle (lower priority)
-const SubscriptionPage = importWithPriority("@/pages/subscription-page");
-const SubscriptionSuccessPage = importWithPriority("@/pages/subscription-success");
+const SubscriptionPage = lazy(() => import("@/pages/subscription-page"));
+const SubscriptionSuccessPage = lazy(() => import("@/pages/subscription-success"));
 
 // Testing pages (lowest priority)
-const FuelSelectorTest = importWithPriority("@/pages/fuel-selector-test");
-const EnhancedFuelSelectorTest = importWithPriority("@/pages/enhanced-fuel-selector-test");
+const FuelSelectorTest = lazy(() => import("@/pages/fuel-selector-test"));
+const EnhancedFuelSelectorTest = lazy(() => import("@/pages/enhanced-fuel-selector-test"));
 
 // Admin module (completely separate chunk)
-const AdminLoginPage = importWithPriority("@/pages/admin/admin-login");
-const AdminDashboardPage = importWithPriority("@/pages/admin/admin-dashboard");
-const AdminOrdersPage = importWithPriority("@/pages/admin/admin-orders");
-const AdminDriversPage = importWithPriority("@/pages/admin/admin-drivers");
-const AdminProfilePage = importWithPriority("@/pages/admin/admin-profile");
-const AdminCustomersPage = importWithPriority("@/pages/admin/admin-customers");
-const AdminAnalyticsPage = importWithPriority("@/pages/admin/admin-analytics");
+const AdminLoginPage = lazy(() => import("@/pages/admin/admin-login"));
+const AdminDashboardPage = lazy(() => import("@/pages/admin/admin-dashboard"));
+const AdminOrdersPage = lazy(() => import("@/pages/admin/admin-orders"));
+const AdminDriversPage = lazy(() => import("@/pages/admin/admin-drivers"));
+const AdminProfilePage = lazy(() => import("@/pages/admin/admin-profile"));
+const AdminCustomersPage = lazy(() => import("@/pages/admin/admin-customers"));
+const AdminAnalyticsPage = lazy(() => import("@/pages/admin/admin-analytics"));
 
 // Loading fallback component
 const PageLoader = () => (

@@ -249,10 +249,15 @@ export async function apiRequest(
     clearTimeout(timeoutId);
     
     // Log response details
+    const headerObj: Record<string, string> = {};
+    response.headers.forEach((value, key) => {
+      headerObj[key] = value;
+    });
+    
     console.log(`Response from ${url}:`, {
       status: response.status,
       statusText: response.statusText,
-      headers: Object.fromEntries([...response.headers.entries()]),
+      headers: headerObj,
       ok: response.ok
     });
     
