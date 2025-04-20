@@ -213,14 +213,8 @@ export default function DriverTrackingMap({ onAssignDriver }: DriverTrackingMapP
 
     // Clean up when component unmounts
     return () => {
-      //orderTrackingService.off("connected");
-      //orderTrackingService.off("disconnected");
-      //orderTrackingService.off("error");
-      //orderTrackingService.off("driverLocation");
-      if (directions) {
-        setDirections(null);
-      }
       clearInterval(intervalId);
+      setDirections(null);
     };
   }, [isLoaded]);
 
@@ -230,33 +224,56 @@ export default function DriverTrackingMap({ onAssignDriver }: DriverTrackingMapP
 
     const directionsService = new google.maps.DirectionsService();
 
-    directionsService.route(
-      {
-        origin: new google.maps.LatLng(driver.location.lat, driver.location.lng),
-        destination: new google.maps.LatLng(order.location.lat, order.location.lng),
-        travelMode: google.maps.TravelMode.DRIVING,
-      },
-      (result, status) => {
-        if (status === google.maps.DirectionsStatus.OK) {
-          setDirections(result);
-        } else {
-          toast({
-            title: "Directions error",
-            description: `Could not calculate directions: ${status}`,
-            variant: "destructive",
-          });
+    try {
+      directionsService.route(
+        {
+          origin: new google.maps.LatLng(driver.location.lat, driver.location.lng),
+          destination: new google.maps.LatLng(order.location.lat, order.location.lng),
+          travelMode: google.maps.TravelMode.DRIVING,
+        },
+        (result, status) => {
+          if (status === google.maps.DirectionsStatus.OK) {
+            setDirections(result);
+          } else if (status === google.maps.DirectionsStatus.OVER_QUERY_LIMIT) {
+            toast({
+              title: "Rate limit exceeded",
+              description: "Please try again in a few moments",
+              variant: "destructive",
+            });
+          } else {
+            toast({
+              title: "Directions error",
+              description: `Could not calculate directions: ${status}`,
+              variant: "destructive",
+            });
+            console.error("[MapError] Direction calculation failed:", status);
+          }
         }
-      }
-    );
+      );
+    } catch (error) {
+      console.error("[MapError] Direction service error:", error);
+      toast({
+        title: "Map service error",
+        description: "Failed to calculate route",
+        variant: "destructive",
+      });
+    }
   }, [isLoaded, toast]);
 
-  // Clear directions when changing selections
+  // Handle directions calculation and cleanup
   useEffect(() => {
+    let mounted = true;
+
     if (selectedDriver && selectedOrder) {
       calculateDirections(selectedDriver, selectedOrder);
     } else {
       setDirections(null);
     }
+
+    return () => {
+      mounted = false;
+      setDirections(null);
+    };
   }, [selectedDriver, selectedOrder, calculateDirections]);
 
   // Update map center when driver or order is selected
