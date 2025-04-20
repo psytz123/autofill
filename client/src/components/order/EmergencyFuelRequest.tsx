@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect } from "react";
 import { useLocation } from "wouter";
 import { AlertCircle } from "lucide-react";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { FuelType, Location, Vehicle } from "@shared/schema";
+import { FuelType, Location, Vehicle, LocationType } from "@shared/schema";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, getQueryFn, queryClient } from "@/lib/queryClient";
@@ -154,7 +154,7 @@ export function EmergencyFuelRequest({ className = "" }: EmergencyFuelRequestPro
         userId: -1, // Temporary ID, will be replaced by server
         name: "Emergency Location",
         address,
-        type: "OTHER",
+        type: LocationType.OTHER,
         coordinates: coords,
         createdAt: new Date(),
       };
