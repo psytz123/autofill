@@ -48,9 +48,9 @@ export function EnhancedFuelSelector({
   // Detect fuel type mismatch between vehicle and selection
   const fuelTypeMismatch = vehicle && vehicle.fuelType !== fuelType;
 
-  // Get the appropriate tank capacity based on the selected fuel type
+  // Get the appropriate tank capacity from the vehicle object or use defaults
   const tankCapacity = vehicle
-    ? DEFAULT_TANK_CAPACITY[vehicle.fuelType]
+    ? (vehicle.tankSize || DEFAULT_TANK_CAPACITY[vehicle.fuelType])
     : estimateTankCapacity(fuelType);
 
   // Update the total price whenever fuel type or amount changes
