@@ -419,6 +419,71 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // TEST ENDPOINT - For development and testing only
+  // This endpoint allows testing the points awarding functionality
+  if (process.env.NODE_ENV === 'development') {
+    app.post("/api/points/test/award", isAuthenticated, async (req, res) => {
+      try {
+        const { amount = 10, subscriptionType = 'BASIC' } = req.body;
+        
+        // Create a mock order to test with
+        const mockOrder = {
+          id: Date.now(),  // Just a unique ID for testing
+          userId: req.user!.id,
+          amount: amount,  // Gallons of fuel
+          status: OrderStatus.COMPLETED
+        };
+        
+        // Store the current points before the award
+        const userBefore = await storage.getUser(req.user!.id);
+        const pointsBefore = userBefore?.points || 0;
+        
+        // Calculate what should happen
+        let pointsMultiplier = 5; // Default for BASIC
+        if (subscriptionType === 'PREMIUM') {
+          pointsMultiplier = 10;
+        } else if (subscriptionType === 'UNLIMITED') {
+          pointsMultiplier = 20;
+        }
+        
+        const expectedAward = Math.round(amount * pointsMultiplier);
+        
+        // Call the award function (the same one used in production)
+        await awardPointsForOrder({
+          ...mockOrder
+        });
+        
+        // Get the new points balance
+        const userAfter = await storage.getUser(req.user!.id);
+        const pointsAfter = userAfter?.points || 0;
+        
+        // Return the results of the test
+        res.json({
+          success: true,
+          test: {
+            amount: amount,
+            subscriptionType: subscriptionType,
+            pointsMultiplier: pointsMultiplier,
+            expectedAward: expectedAward
+          },
+          points: {
+            before: pointsBefore,
+            after: pointsAfter,
+            difference: pointsAfter - pointsBefore
+          },
+          verified: (pointsAfter - pointsBefore) === expectedAward
+        });
+      } catch (error) {
+        console.error("Error in test points award:", error);
+        res.status(500).json({ 
+          success: false, 
+          message: "Failed to run points award test",
+          error: error instanceof Error ? error.message : String(error)
+        });
+      }
+    });
+  }
+
   // Create HTTP server
   const httpServer = createServer(app);
 
