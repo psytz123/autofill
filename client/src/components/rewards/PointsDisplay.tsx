@@ -1,37 +1,43 @@
-import { usePoints } from "@/hooks/use-points";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { formatDistanceToNow } from "date-fns";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { GiftIcon, CoinsIcon, TrendingUpIcon, StarIcon } from "lucide-react";
 import { PointsTransactionType } from "@shared/schema";
-import { formatDistanceToNow } from "date-fns";
+import { usePoints } from "@/hooks/use-points";
+import { 
+  CoinsIcon, 
+  ShoppingCartIcon, 
+  GiftIcon, 
+  UserPlusIcon, 
+  AwardIcon 
+} from "lucide-react";
 
-// Helper function to get transaction type display information
+// Helper function to get appropriate icon and info for transaction types
 const getTransactionTypeInfo = (type: PointsTransactionType) => {
   switch (type) {
     case "EARN_PURCHASE":
       return { 
         label: "Purchase", 
-        icon: <CoinsIcon className="h-4 w-4" />, 
+        icon: <ShoppingCartIcon className="h-4 w-4" />, 
         color: "bg-green-500" 
-      };
-    case "EARN_MILESTONE":
-      return { 
-        label: "Milestone", 
-        icon: <TrendingUpIcon className="h-4 w-4" />, 
-        color: "bg-blue-500" 
       };
     case "EARN_REFERRAL":
       return { 
         label: "Referral", 
-        icon: <StarIcon className="h-4 w-4" />, 
-        color: "bg-purple-500" 
+        icon: <UserPlusIcon className="h-4 w-4" />, 
+        color: "bg-blue-500" 
       };
     case "EARN_SIGNUP":
       return { 
-        label: "Sign Up", 
-        icon: <StarIcon className="h-4 w-4" />, 
-        color: "bg-teal-500" 
+        label: "Sign Up Bonus", 
+        icon: <UserPlusIcon className="h-4 w-4" />, 
+        color: "bg-purple-500" 
+      };
+    case "EARN_MILESTONE":
+      return { 
+        label: "Milestone", 
+        icon: <AwardIcon className="h-4 w-4" />, 
+        color: "bg-yellow-500" 
       };
     case "REDEEM_DISCOUNT":
     case "REDEEM_FREE_DELIVERY":

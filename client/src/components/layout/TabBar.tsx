@@ -135,11 +135,11 @@ function TabBar() {
         onHover: handleHoverOrders,
       },
       {
-        path: "/subscription",
-        label: "Plans",
-        icon: <CreditCard className="h-6 w-6" />,
+        path: "/rewards",
+        label: "Rewards",
+        icon: <CoinsIcon className="h-6 w-6" />,
         color: "autofill-orange",
-        onHover: handleHoverSubscription,
+        onHover: handleHoverRewards,
       },
       {
         path: "/account",
@@ -153,7 +153,7 @@ function TabBar() {
       handleHoverHome,
       handleHoverOrder,
       handleHoverOrders,
-      handleHoverSubscription,
+      handleHoverRewards,
       handleHoverAccount,
     ],
   );

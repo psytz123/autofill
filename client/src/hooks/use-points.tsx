@@ -1,63 +1,74 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { queryClient, apiRequest } from "@/lib/queryClient";
-import { PointsTransaction, PointsReward } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { PointsTransaction, PointsReward } from "@shared/schema";
 
 export function usePoints() {
   const { toast } = useToast();
 
   // Get user's current points balance
-  const pointsQuery = useQuery({
-    queryKey: ["/api/points"],
+  const { 
+    data: points, 
+    isLoading: isLoadingPoints 
+  } = useQuery({
+    queryKey: ["/api/points/balance"],
     queryFn: async () => {
-      const res = await apiRequest("GET", "/api/points");
+      const res = await apiRequest("GET", "/api/points/balance");
       const data = await res.json();
-      return data.points || 0;
-    },
+      return data.points;
+    }
   });
 
-  // Get user's points transaction history
-  const transactionsQuery = useQuery({
+  // Get user's points transactions
+  const { 
+    data: transactions = [],
+    isLoading: isLoadingTransactions
+  } = useQuery<PointsTransaction[]>({
     queryKey: ["/api/points/transactions"],
     queryFn: async () => {
       const res = await apiRequest("GET", "/api/points/transactions");
-      return res.json() as Promise<PointsTransaction[]>;
-    },
+      return res.json();
+    }
   });
 
   // Get available rewards
-  const rewardsQuery = useQuery({
-    queryKey: ["/api/rewards"],
+  const {
+    data: rewards = [],
+    isLoading: isLoadingRewards
+  } = useQuery<PointsReward[]>({
+    queryKey: ["/api/points/rewards"],
     queryFn: async () => {
-      const res = await apiRequest("GET", "/api/rewards");
-      return res.json() as Promise<PointsReward[]>;
-    },
+      const res = await apiRequest("GET", "/api/points/rewards");
+      return res.json();
+    }
   });
 
   // Redeem a reward
-  const redeemMutation = useMutation({
+  const {
+    mutate: redeemReward,
+    isPending: isRedeeming
+  } = useMutation({
     mutationFn: async (rewardId: number) => {
-      const res = await apiRequest(
-        "POST", 
-        `/api/rewards/redeem/${rewardId}`,
-        {}
-      );
-      return res.json() as Promise<PointsTransaction>;
+      const res = await apiRequest("POST", `/api/points/redeem/${rewardId}`);
+      return res.json();
     },
     onSuccess: () => {
-      // Invalidate queries to update data
-      queryClient.invalidateQueries({ queryKey: ["/api/points"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/points/transactions"] });
+      // Invalidate the points balance and transactions after redeeming
+      queryClient.invalidateQueries({
+        queryKey: ["/api/points/balance"]
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["/api/points/transactions"]
+      });
       
       toast({
-        title: "Reward Redeemed",
-        description: "Your reward has been successfully redeemed",
-        variant: "default",
+        title: "Reward redeemed",
+        description: "Your points have been used to redeem this reward",
       });
     },
     onError: (error: Error) => {
       toast({
-        title: "Failed to Redeem Reward",
+        title: "Failed to redeem reward",
         description: error.message,
         variant: "destructive",
       });
@@ -65,16 +76,13 @@ export function usePoints() {
   });
 
   return {
-    points: pointsQuery.data || 0,
-    isLoadingPoints: pointsQuery.isLoading,
-    
-    transactions: transactionsQuery.data || [],
-    isLoadingTransactions: transactionsQuery.isLoading,
-    
-    rewards: rewardsQuery.data || [],
-    isLoadingRewards: rewardsQuery.isLoading,
-    
-    redeemReward: redeemMutation.mutate,
-    isRedeeming: redeemMutation.isPending,
+    points,
+    isLoadingPoints,
+    transactions,
+    isLoadingTransactions,
+    rewards,
+    isLoadingRewards,
+    redeemReward,
+    isRedeeming
   };
 }

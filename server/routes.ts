@@ -336,7 +336,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Points and Rewards API
-  app.get("/api/points", isAuthenticated, async (req, res) => {
+  app.get("/api/points/balance", isAuthenticated, async (req, res) => {
     try {
       const points = await storage.getUserPoints(req.user!.id);
       res.json({ points });
@@ -356,7 +356,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/rewards", isAuthenticated, async (req, res) => {
+  app.get("/api/points/rewards", isAuthenticated, async (req, res) => {
     try {
       const rewards = await storage.getAvailableRewards();
       res.json(rewards);
@@ -366,7 +366,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/rewards/redeem/:id", isAuthenticated, async (req, res, next) => {
+  app.post("/api/points/redeem/:id", isAuthenticated, async (req, res, next) => {
     try {
       const rewardId = parseInt(req.params.id);
       const transaction = await storage.redeemReward(req.user!.id, rewardId);

@@ -1,40 +1,50 @@
 import { usePoints } from "@/hooks/use-points";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { 
   GiftIcon, 
-  TagIcon, 
   TruckIcon, 
-  Fuel, 
-  LoaderIcon 
+  FuelIcon, 
+  PercentIcon, 
+  CoinsIcon 
 } from "lucide-react";
+import { useState } from "react";
+import { useToast } from "@/hooks/use-toast";
 import { PointsTransactionType } from "@shared/schema";
 
-// Helper function to get reward icon
 const getRewardIcon = (type: PointsTransactionType) => {
   switch (type) {
-    case "REDEEM_DISCOUNT":
-      return <TagIcon className="h-4 w-4" />;
     case "REDEEM_FREE_DELIVERY":
-      return <TruckIcon className="h-4 w-4" />;
+      return <TruckIcon className="h-5 w-5" />;
     case "REDEEM_FUEL_DISCOUNT":
-      return <Fuel className="h-4 w-4" />;
+      return <FuelIcon className="h-5 w-5" />;
+    case "REDEEM_DISCOUNT":
+      return <PercentIcon className="h-5 w-5" />;
     default:
-      return <GiftIcon className="h-4 w-4" />;
+      return <GiftIcon className="h-5 w-5" />;
   }
 };
 
 export function RewardsCard() {
-  const {
-    points,
-    isLoadingPoints,
-    rewards,
-    isLoadingRewards,
-    redeemReward,
-    isRedeeming
-  } = usePoints();
+  const { rewards, isLoadingRewards, redeemReward, isRedeeming, points } = usePoints();
+  const { toast } = useToast();
+  const [selectedReward, setSelectedReward] = useState<number | null>(null);
+
+  const handleRedeem = (rewardId: number, pointsCost: number) => {
+    if (!points || points < pointsCost) {
+      toast({
+        title: "Not enough points",
+        description: `You need ${pointsCost} points to redeem this reward`,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setSelectedReward(rewardId);
+    redeemReward(rewardId);
+  };
 
   return (
     <Card>
@@ -44,7 +54,7 @@ export function RewardsCard() {
           Available Rewards
         </CardTitle>
         <CardDescription>
-          Redeem your points for these rewards
+          Redeem your points for discounts and perks
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -52,47 +62,58 @@ export function RewardsCard() {
           <div className="space-y-4">
             <Skeleton className="h-24 w-full" />
             <Skeleton className="h-24 w-full" />
+            <Skeleton className="h-24 w-full" />
           </div>
         ) : rewards.length === 0 ? (
-          <p className="text-sm text-muted-foreground py-4 text-center">
-            No rewards available at this time.
-          </p>
+          <div className="text-center py-6">
+            <GiftIcon className="h-12 w-12 mx-auto mb-2 text-muted-foreground" />
+            <p className="text-muted-foreground">No rewards available at the moment</p>
+          </div>
         ) : (
-          <div className="space-y-4">
-            {rewards.map((reward) => {
-              const icon = getRewardIcon(reward.type);
-              const canRedeem = !isLoadingPoints && points >= reward.pointsCost;
-              
-              return (
-                <div 
-                  key={reward.id} 
-                  className="border rounded-lg p-4 flex flex-col sm:flex-row items-start sm:items-center gap-4 justify-between"
-                >
-                  <div className="flex items-start gap-3">
-                    <div className="bg-primary/10 p-2 rounded-lg">
-                      {icon}
+          <div className="grid gap-4 sm:grid-cols-2">
+            {rewards.filter(r => r.active).map((reward) => (
+              <div 
+                key={reward.id} 
+                className="border rounded-lg p-4 hover:border-primary transition-colors"
+              >
+                <div className="flex items-start justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <div className="p-1.5 rounded-full bg-primary/10 text-primary">
+                      {getRewardIcon(reward.type)}
                     </div>
-                    <div>
-                      <h3 className="font-medium">{reward.name}</h3>
-                      <p className="text-sm text-muted-foreground">{reward.description}</p>
-                      <Badge variant="outline" className="mt-2">
-                        {reward.pointsCost} points
-                      </Badge>
-                    </div>
+                    <h3 className="font-medium">{reward.name}</h3>
                   </div>
-                  <Button
-                    variant={canRedeem ? "default" : "outline"}
-                    size="sm"
-                    disabled={!canRedeem || isRedeeming}
-                    onClick={() => redeemReward(reward.id)}
-                    className="whitespace-nowrap"
-                  >
-                    {isRedeeming && <LoaderIcon className="mr-2 h-4 w-4 animate-spin" />}
-                    {canRedeem ? "Redeem Reward" : `Need ${reward.pointsCost - (points || 0)} more points`}
-                  </Button>
+                  <Badge variant="outline" className="flex items-center gap-1">
+                    <CoinsIcon className="h-3 w-3" />
+                    {reward.pointsCost}
+                  </Badge>
                 </div>
-              );
-            })}
+                <p className="text-sm text-muted-foreground mb-3">
+                  {reward.description}
+                </p>
+                <Button 
+                  variant="default" 
+                  size="sm" 
+                  className="w-full"
+                  onClick={() => handleRedeem(reward.id, reward.pointsCost)}
+                  disabled={
+                    isRedeeming || 
+                    selectedReward === reward.id || 
+                    !points || 
+                    points < reward.pointsCost
+                  }
+                >
+                  {isRedeeming && selectedReward === reward.id ? (
+                    <span className="flex items-center gap-1">
+                      <span className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      Redeeming...
+                    </span>
+                  ) : (
+                    points && points >= reward.pointsCost ? 'Redeem Reward' : 'Not Enough Points'
+                  )}
+                </Button>
+              </div>
+            ))}
           </div>
         )}
       </CardContent>
