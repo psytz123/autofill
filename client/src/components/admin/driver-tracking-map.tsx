@@ -826,94 +826,94 @@ export default function DriverTrackingMap({ onAssignDriver }: DriverTrackingMapP
       </div>
     </div>
     
-    {/* Auto-assignment results dialog */}
-    <Dialog open={showResultsDialog} onOpenChange={setShowResultsDialog}>
-      <DialogContent className="max-w-3xl">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Brain className="h-5 w-5 text-primary" />
-            AI-Powered Order Assignment Results
-          </DialogTitle>
-          <DialogDescription>
-            {assignmentResults?.success 
-              ? `Successfully assigned ${assignmentResults?.totalAssigned} orders to drivers.`
-              : "The auto-assignment process encountered some issues."}
-          </DialogDescription>
-        </DialogHeader>
-        
-        {assignmentResults && (
+      {/* Auto-assignment results dialog */}
+      <Dialog open={showResultsDialog} onOpenChange={setShowResultsDialog}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Brain className="h-5 w-5 text-primary" />
+              AI-Powered Order Assignment Results
+            </DialogTitle>
+            <DialogDescription>
+              {assignmentResults?.success 
+                ? `Successfully assigned ${assignmentResults?.totalAssigned} orders to drivers.`
+                : "The auto-assignment process encountered some issues."}
+            </DialogDescription>
+          </DialogHeader>
+          
+          {assignmentResults && (
             <div className="space-y-4">
               {/* Explanation */}
               <div>
                 <h4 className="font-medium mb-2">Assignment Strategy:</h4>
                 <p className="text-gray-700 text-sm whitespace-pre-line">{assignmentResults.explanation}</p>
               </div>
-              
-              <Separator />
-              
-              {/* Assignments */}
-              {assignmentResults.assignments.length > 0 && (
-                <div>
-                  <h4 className="font-medium mb-2">Successful Assignments:</h4>
-                  <ScrollArea className="h-[200px]">
-                    <div className="space-y-3">
-                      {assignmentResults.assignments.map((assignment) => (
-                        <div 
-                          key={`assign-${assignment.orderId}-${assignment.driverId}`}
-                          className="p-3 border rounded-md bg-green-50"
-                        >
-                          <div className="flex justify-between">
-                            <div>
-                              <p className="font-medium">Order #{assignment.orderId}</p>
-                              <div className="flex items-center text-sm text-gray-600">
-                                <Truck className="h-3.5 w-3.5 mr-1 text-gray-500" />
-                                <span>Assigned to: {assignment.driverName}</span>
-                              </div>
-                            </div>
-                            <div className="text-sm text-gray-600">
-                              <div className="text-right">{assignment.distanceKm.toFixed(1)} km away</div>
-                              <div className="text-right">ETA: {assignment.estimatedTimeMinutes} mins</div>
+            
+            <Separator />
+            
+            {/* Assignments */}
+            {assignmentResults.assignments.length > 0 && (
+              <div>
+                <h4 className="font-medium mb-2">Successful Assignments:</h4>
+                <ScrollArea className="h-[200px]">
+                  <div className="space-y-3">
+                    {assignmentResults.assignments.map((assignment) => (
+                      <div 
+                        key={`assign-${assignment.orderId}-${assignment.driverId}`}
+                        className="p-3 border rounded-md bg-green-50"
+                      >
+                        <div className="flex justify-between">
+                          <div>
+                            <p className="font-medium">Order #{assignment.orderId}</p>
+                            <div className="flex items-center text-sm text-gray-600">
+                              <Truck className="h-3.5 w-3.5 mr-1 text-gray-500" />
+                              <span>Assigned to: {assignment.driverName}</span>
                             </div>
                           </div>
+                          <div className="text-sm text-gray-600">
+                            <div className="text-right">{assignment.distanceKm.toFixed(1)} km away</div>
+                            <div className="text-right">ETA: {assignment.estimatedTimeMinutes} mins</div>
+                          </div>
                         </div>
-                      ))}
-                    </div>
-                  </ScrollArea>
-                </div>
-              )}
-              
-              {/* Unassigned orders */}
-              {assignmentResults.unassignedOrders.length > 0 && (
-                <div>
-                  <h4 className="font-medium mb-2">Unassigned Orders:</h4>
-                  <div className="flex flex-wrap gap-2">
-                    {assignmentResults.unassignedOrders.map((orderId) => (
-                      <Badge 
-                        key={`unassigned-${orderId}`} 
-                        variant="outline"
-                        className="bg-red-50"
-                      >
-                        Order #{orderId}
-                      </Badge>
+                      </div>
                     ))}
                   </div>
+                </ScrollArea>
+              </div>
+            )}
+            
+            {/* Unassigned orders */}
+            {assignmentResults.unassignedOrders.length > 0 && (
+              <div>
+                <h4 className="font-medium mb-2">Unassigned Orders:</h4>
+                <div className="flex flex-wrap gap-2">
+                  {assignmentResults.unassignedOrders.map((orderId) => (
+                    <Badge 
+                      key={`unassigned-${orderId}`} 
+                      variant="outline"
+                      className="bg-red-50"
+                    >
+                      Order #{orderId}
+                    </Badge>
+                  ))}
                 </div>
-              )}
-            </div>
-          )}
+              </div>
+            )}
+          </div>
+        )}
           
-          <DialogFooter className="flex items-center justify-between">
-            <div>
-              {assignmentResults?.success && (
-                <span className="text-sm text-gray-500">
-                  Refreshing tracking data automatically...
-                </span>
-              )}
-            </div>
-            <Button onClick={() => setShowResultsDialog(false)}>Close</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </div>
+        <DialogFooter className="flex items-center justify-between">
+          <div>
+            {assignmentResults?.success && (
+              <span className="text-sm text-gray-500">
+                Refreshing tracking data automatically...
+              </span>
+            )}
+          </div>
+          <Button onClick={() => setShowResultsDialog(false)}>Close</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  </div>
   );
 }
