@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   StyleSheet,
   Text,
@@ -11,12 +11,12 @@ import {
   Alert,
   Platform,
 } from "react-native";
+import * as Location from "expo-location";
 import Card from "../components/Card";
 import Button from "../components/Button";
 import { vehicles, orders, fuel, locations } from "../utils/api";
 import { Vehicle, Order, FuelType, LocationType } from "../utils/types";
 import { HomeScreenProps } from "../types/navigation";
-import * as Location from 'expo-location';
 
 const HomeScreen: React.FC<Partial<HomeScreenProps>> = ({ navigation }) => {
   const [userVehicles, setUserVehicles] = useState<Vehicle[]>([]);
@@ -295,17 +295,34 @@ const HomeScreen: React.FC<Partial<HomeScreenProps>> = ({ navigation }) => {
 
           {/* Emergency Fuel Button */}
           <TouchableOpacity
-            style={styles.emergencyButton}
+            style={[
+              styles.emergencyButton,
+              processingEmergency && styles.emergencyButtonProcessing
+            ]}
             onPress={handleEmergencyFuel}
             disabled={processingEmergency}
           >
             <View style={styles.emergencyButtonContent}>
-              <Text style={styles.emergencyButtonText}>
-                {processingEmergency ? "Processing..." : "Emergency Fuel (One-Tap)"}
-              </Text>
-              <Text style={styles.emergencyButtonSubtext}>
-                Instantly request fuel to your current location
-              </Text>
+              {processingEmergency ? (
+                <>
+                  <ActivityIndicator size="small" color="#ffffff" style={styles.emergencyButtonLoader} />
+                  <Text style={styles.emergencyButtonText}>
+                    Processing Emergency Request...
+                  </Text>
+                  <Text style={styles.emergencyButtonSubtext}>
+                    Locating your position and sending help
+                  </Text>
+                </>
+              ) : (
+                <>
+                  <Text style={styles.emergencyButtonText}>
+                    Emergency Fuel (One-Tap)
+                  </Text>
+                  <Text style={styles.emergencyButtonSubtext}>
+                    Instantly request fuel to your current location
+                  </Text>
+                </>
+              )}
             </View>
           </TouchableOpacity>
         </View>
@@ -395,16 +412,18 @@ const HomeScreen: React.FC<Partial<HomeScreenProps>> = ({ navigation }) => {
 const getStatusColor = (status: string): string => {
   switch (status.toUpperCase()) {
     case "COMPLETED":
-      return "#10b981";
+      return "#10b981"; // Green
+    case "CONFIRMED":
+      return "#8b5cf6"; // Purple
     case "IN_PROGRESS":
     case "EN_ROUTE":
-      return "#3b82f6";
+      return "#3b82f6"; // Blue
     case "PENDING":
-      return "#f59e0b";
+      return "#f59e0b"; // Amber
     case "CANCELLED":
-      return "#ef4444";
+      return "#ef4444"; // Red
     default:
-      return "#6b7280";
+      return "#6b7280"; // Gray
   }
 };
 
@@ -521,6 +540,13 @@ const styles = StyleSheet.create({
     fontSize: 14,
     opacity: 0.9,
     textAlign: "center",
+  },
+  emergencyButtonProcessing: {
+    backgroundColor: "#b91c1c", // Darker red when processing
+    opacity: 0.9,
+  },
+  emergencyButtonLoader: {
+    marginBottom: 8,
   },
   emptyStateContainer: {
     backgroundColor: "#ffffff",

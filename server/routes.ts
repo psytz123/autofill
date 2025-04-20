@@ -193,7 +193,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         vehicleId,
         locationId: savedLocation.id,
         paymentMethodId: null, // Use default payment method or pass null
-        status: OrderStatus.CONFIRMED, // Skip the PENDING status for emergency orders
+        status: OrderStatus.CONFIRMED, // Use the CONFIRMED status for emergency orders
         fuelType: fuelType as FuelType,
         amount: Number(amount),
         price: fuelPrice,
