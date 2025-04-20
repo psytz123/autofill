@@ -345,6 +345,7 @@ export default function MapView({
           className="absolute inset-0 z-0" 
           ref={mapContainerRef}
           id="google-map-container"
+          style={{ width: '100%', height: '100%', minHeight: '150px' }}
         >
           <GoogleMap
             mapContainerStyle={{

@@ -129,6 +129,59 @@ export default function AddLocationForm({
     addLocationMutation.mutate(data);
   };
 
+  // Keep a stable reference to initial address to avoid continuous re-rendering
+  const [initialAddress, setInitialAddress] = useState<string | undefined>(
+    initialData?.address
+  );
+
+  // Handle location selection from map
+  const handleLocationSelect = (location: any) => {
+    // Only update if we haven't initialized yet or if user explicitly changed location on map
+    if (location && location.address) {
+      if (!hasInitializedLocation.current) {
+        console.log("[Location] Initial location set from map");
+        
+        // Update form fields
+        form.setValue("address", location.address);
+        
+        if (location.coordinates) {
+          setMapCoordinates(location.coordinates);
+          form.setValue(
+            "coordinatesStr",
+            JSON.stringify(location.coordinates),
+          );
+        }
+        
+        // Only set default name if user hasn't entered one
+        const currentName = form.getValues("name");
+        if (!currentName || currentName.trim() === "") {
+          form.setValue("name", "My Location");
+        }
+        
+        // Set the flag to mark we've initialized
+        hasInitializedLocation.current = true;
+      } else {
+        // For subsequent changes (explicit user interaction with map)
+        console.log("[Location] Updated location from map interaction");
+        
+        // Update coordinates and address directly from user map interaction
+        if (location.coordinates) {
+          setMapCoordinates(location.coordinates);
+          form.setValue(
+            "coordinatesStr", 
+            JSON.stringify(location.coordinates)
+          );
+        }
+        
+        // Only update address if it's actually different to avoid loops
+        const currentAddress = form.getValues("address");
+        if (location.address !== currentAddress) {
+          form.setValue("address", location.address);
+        }
+      }
+    }
+  };
+
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
@@ -233,7 +286,20 @@ export default function AddLocationForm({
             <FormItem>
               <FormLabel>Address</FormLabel>
               <FormControl>
-                <Input placeholder="123 Main St, City, State" {...field} />
+                <Input 
+                  placeholder="123 Main St, City, State" 
+                  {...field}
+                  onChange={(e) => {
+                    field.onChange(e);
+                    // When user manually changes address, allow geocoding on map
+                    if (hasInitializedLocation.current && e.target.value) {
+                      if (e.target.value !== initialAddress) {
+                        console.log("[Location] Address changed by user input, updating initialAddress");
+                        setInitialAddress(e.target.value);
+                      }
+                    }
+                  }}
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -243,34 +309,21 @@ export default function AddLocationForm({
         {/* Interactive Map */}
         <div className="w-full h-48">
           <MapView
-            selectedLocation={null}
-            onLocationSelect={(location: any) => {
-              // We'll use a flag to only accept location data on initial load
-              // This prevents overwriting user edits
-              if (!hasInitializedLocation.current && location && location.address) {
-                console.log("Setting initial location data from map");
-                // Only update the address and coordinates on initial load
-                form.setValue("address", location.address);
-                if (location.coordinates) {
-                  setMapCoordinates(location.coordinates);
-                  form.setValue(
-                    "coordinatesStr",
-                    JSON.stringify(location.coordinates),
-                  );
-                }
-                
-                // Don't update the name field if user has already entered a value
-                const currentName = form.getValues("name");
-                if (!currentName || currentName.trim() === "") {
-                  // Only set a default name if the user hasn't provided one
-                  form.setValue("name", "My Location");
-                }
-                
-                // Set the flag to prevent future overwrites from the map
-                hasInitializedLocation.current = true;
-              }
-            }}
-            initialAddress={form.watch("address")}
+            selectedLocation={
+              mapCoordinates
+                ? {
+                    id: 0,
+                    name: form.getValues("name"),
+                    address: form.getValues("address"),
+                    coordinates: mapCoordinates,
+                    type: form.getValues("type") || LocationType.HOME,
+                    userId: 0, // Default value to satisfy the type
+                    createdAt: new Date()
+                  } as LocationFromSchema
+                : null
+            }
+            onLocationSelect={handleLocationSelect}
+            initialAddress={initialAddress}
             className="w-full h-full"
           />
         </div>
