@@ -195,6 +195,18 @@ export const orders = {
     return apiRequest<Order>('/orders', 'POST', orderData);
   },
 
+  createEmergency: async (orderData: {
+    vehicleId: number;
+    location: {
+      address: string;
+      coordinates: { lat: number; lng: number };
+    };
+    fuelType: FuelType;
+    amount: number;
+  }): Promise<Order> => {
+    return apiRequest<Order>('/orders/emergency', 'POST', orderData);
+  },
+
   updateStatus: async (id: number, status: OrderStatus): Promise<Order> => {
     return apiRequest<Order>(`/orders/${id}/status`, 'PATCH', { status });
   },
