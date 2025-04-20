@@ -1,15 +1,25 @@
 import React from "react";
 import {
   StyleSheet,
-  View,
+  View as RNView,
   ViewStyle,
-  TouchableOpacity,
+  TouchableOpacity as RNTouchableOpacity,
   TouchableOpacityProps,
+  StyleProp,
 } from "react-native";
+import { 
+  SafeView, 
+  SafeTouchableOpacity, 
+  composeStyles 
+} from "../utils/component-types";
+
+// Use our safe component types
+const View = RNView as SafeView;
+const TouchableOpacity = RNTouchableOpacity as SafeTouchableOpacity;
 
 interface CardProps {
   children: React.ReactNode;
-  style?: ViewStyle;
+  style?: StyleProp<ViewStyle>;
   onPress?: () => void;
   touchableProps?: TouchableOpacityProps;
 }
@@ -17,15 +27,15 @@ interface CardProps {
 // Card.Header component
 interface CardHeaderProps {
   children: React.ReactNode;
-  style?: ViewStyle;
+  style?: StyleProp<ViewStyle>;
 }
 
 const CardHeader: React.FC<CardHeaderProps> = ({ children, style }) => {
-  const headerStyles = [styles.cardHeader];
-
-  if (style) {
-    headerStyles.push(style);
-  }
+  // Use our safe style composition helper
+  const headerStyles = composeStyles<ViewStyle>(
+    styles.cardHeader,
+    style as ViewStyle
+  );
 
   return <View style={headerStyles}>{children}</View>;
 };
@@ -33,15 +43,15 @@ const CardHeader: React.FC<CardHeaderProps> = ({ children, style }) => {
 // Card.Content component
 interface CardContentProps {
   children: React.ReactNode;
-  style?: ViewStyle;
+  style?: StyleProp<ViewStyle>;
 }
 
 const CardContent: React.FC<CardContentProps> = ({ children, style }) => {
-  const contentStyles = [styles.cardContent];
-
-  if (style) {
-    contentStyles.push(style);
-  }
+  // Use our safe style composition helper
+  const contentStyles = composeStyles<ViewStyle>(
+    styles.cardContent,
+    style as ViewStyle
+  );
 
   return <View style={contentStyles}>{children}</View>;
 };
@@ -49,15 +59,15 @@ const CardContent: React.FC<CardContentProps> = ({ children, style }) => {
 // Card.Footer component
 interface CardFooterProps {
   children: React.ReactNode;
-  style?: ViewStyle;
+  style?: StyleProp<ViewStyle>;
 }
 
 const CardFooter: React.FC<CardFooterProps> = ({ children, style }) => {
-  const footerStyles = [styles.cardFooter];
-
-  if (style) {
-    footerStyles.push(style);
-  }
+  // Use our safe style composition helper
+  const footerStyles = composeStyles<ViewStyle>(
+    styles.cardFooter,
+    style as ViewStyle
+  );
 
   return <View style={footerStyles}>{children}</View>;
 };
@@ -71,11 +81,11 @@ interface CardComponent extends React.FC<CardProps> {
 
 // Main Card component
 const Card: CardComponent = ({ children, style, onPress, touchableProps }) => {
-  const cardStyles = [styles.card];
-
-  if (style) {
-    cardStyles.push(style);
-  }
+  // Use our safe style composition helper
+  const cardStyles = composeStyles<ViewStyle>(
+    styles.card,
+    style as ViewStyle
+  );
 
   if (onPress) {
     return (

@@ -1,13 +1,26 @@
 import React from "react";
 import {
   StyleSheet,
-  TouchableOpacity,
-  Text,
-  ActivityIndicator,
+  TouchableOpacity as RNTouchableOpacity,
+  Text as RNText,
+  ActivityIndicator as RNActivityIndicator,
   TouchableOpacityProps,
   ViewStyle,
   TextStyle,
+  StyleProp,
 } from "react-native";
+import { 
+  SafeTouchableOpacity, 
+  SafeText, 
+  SafeActivityIndicator,
+  mergeStyles,
+  composeStyles
+} from "../utils/component-types";
+
+// Use our safe component types
+const TouchableOpacity = RNTouchableOpacity as SafeTouchableOpacity;
+const Text = RNText as SafeText;
+const ActivityIndicator = RNActivityIndicator as SafeActivityIndicator;
 
 export interface ButtonProps extends TouchableOpacityProps {
   title: string;
@@ -15,8 +28,8 @@ export interface ButtonProps extends TouchableOpacityProps {
   disabled?: boolean;
   variant?: "primary" | "secondary" | "outline";
   size?: "small" | "medium" | "large";
-  style?: ViewStyle;
-  textStyle?: TextStyle;
+  style?: StyleProp<ViewStyle>;
+  textStyle?: StyleProp<TextStyle>;
   onPress?: () => void;
 }
 
@@ -32,87 +45,81 @@ const Button: React.FC<ButtonProps> = ({
   ...props
 }) => {
   const getButtonStyle = () => {
-    let baseStyle = [styles.button];
+    // Start with base button style
+    let computedStyle = { ...styles.button };
 
     // Add variant styles
     switch (variant) {
       case "primary":
-        baseStyle.push(styles.primaryButton);
+        computedStyle = mergeStyles(computedStyle, styles.primaryButton);
         break;
       case "secondary":
-        baseStyle.push(styles.secondaryButton);
+        computedStyle = mergeStyles(computedStyle, styles.secondaryButton);
         break;
       case "outline":
-        baseStyle.push(styles.outlineButton);
+        computedStyle = mergeStyles(computedStyle, styles.outlineButton);
         break;
     }
 
     // Add size styles
     switch (size) {
       case "small":
-        baseStyle.push(styles.smallButton);
+        computedStyle = mergeStyles(computedStyle, styles.smallButton);
         break;
       case "medium":
-        baseStyle.push(styles.mediumButton);
+        computedStyle = mergeStyles(computedStyle, styles.mediumButton);
         break;
       case "large":
-        baseStyle.push(styles.largeButton);
+        computedStyle = mergeStyles(computedStyle, styles.largeButton);
         break;
     }
 
     // Add disabled style
     if (disabled || loading) {
-      baseStyle.push(styles.disabledButton);
+      computedStyle = mergeStyles(computedStyle, styles.disabledButton);
     }
 
     // Add custom style
-    if (style) {
-      baseStyle.push(style);
-    }
-
-    return baseStyle;
+    return composeStyles<ViewStyle>(computedStyle, style as ViewStyle);
   };
 
   const getTextStyle = () => {
-    let baseStyle = [styles.buttonText];
+    // Start with base text style
+    let computedStyle = { ...styles.buttonText };
 
     // Add variant text styles
     switch (variant) {
       case "primary":
-        baseStyle.push(styles.primaryButtonText);
+        computedStyle = mergeStyles(computedStyle, styles.primaryButtonText);
         break;
       case "secondary":
-        baseStyle.push(styles.secondaryButtonText);
+        computedStyle = mergeStyles(computedStyle, styles.secondaryButtonText);
         break;
       case "outline":
-        baseStyle.push(styles.outlineButtonText);
+        computedStyle = mergeStyles(computedStyle, styles.outlineButtonText);
         break;
     }
 
     // Add size text styles
     switch (size) {
       case "small":
-        baseStyle.push(styles.smallButtonText);
+        computedStyle = mergeStyles(computedStyle, styles.smallButtonText);
         break;
       case "medium":
-        baseStyle.push(styles.mediumButtonText);
+        computedStyle = mergeStyles(computedStyle, styles.mediumButtonText);
         break;
       case "large":
-        baseStyle.push(styles.largeButtonText);
+        computedStyle = mergeStyles(computedStyle, styles.largeButtonText);
         break;
     }
 
     // Add disabled text style
     if (disabled || loading) {
-      baseStyle.push(styles.disabledButtonText);
+      computedStyle = mergeStyles(computedStyle, styles.disabledButtonText);
     }
 
     // Add custom text style
-    if (textStyle) {
-      baseStyle.push(textStyle);
-    }
-
-    return baseStyle;
+    return composeStyles<TextStyle>(computedStyle, textStyle as TextStyle);
   };
 
   return (
@@ -138,8 +145,8 @@ const Button: React.FC<ButtonProps> = ({
 const styles = StyleSheet.create({
   button: {
     borderRadius: 8,
-    alignItems: "center",
-    justifyContent: "center",
+    alignItems: "center" as "center",
+    justifyContent: "center" as "center",
   },
   primaryButton: {
     backgroundColor: "#f97316",
@@ -168,8 +175,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 32,
   },
   buttonText: {
-    fontWeight: "600",
-    textAlign: "center",
+    fontWeight: "600" as "600",
+    textAlign: "center" as "center",
   },
   primaryButtonText: {
     color: "#ffffff",
