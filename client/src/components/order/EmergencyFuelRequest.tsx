@@ -61,7 +61,8 @@ export function EmergencyFuelRequest({ className = "" }: EmergencyFuelRequestPro
   // Create order mutation
   const createOrderMutation = useMutation({
     mutationFn: async (orderData: any) => {
-      const res = await apiRequest("POST", "/api/orders", orderData);
+      // Use the special emergency endpoint
+      const res = await apiRequest("POST", "/api/orders/emergency", orderData);
       return await res.json();
     },
     onSuccess: (data) => {
