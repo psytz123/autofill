@@ -17,6 +17,9 @@ import {
   paymentMethods,
   locations,
   subscriptionPlans,
+  FuelType,
+  OrderStatus,
+  LocationType
 } from "@shared/schema";
 import session from "express-session";
 import createMemoryStore from "memorystore";
@@ -193,7 +196,11 @@ export class DatabaseStorage implements IStorage {
     const [order] = await db.select().from(orders).where(eq(orders.id, id));
 
     if (order) {
-      const result = { ...order } as any;
+      const result: Partial<Order> = { 
+        ...order,
+        fuelType: order.fuelType as FuelType,
+        status: order.status as OrderStatus
+      };
 
       // Load related entities if needed
       if (order.vehicleId) {
@@ -202,7 +209,10 @@ export class DatabaseStorage implements IStorage {
           .from(vehicles)
           .where(eq(vehicles.id, order.vehicleId));
         if (vehicle) {
-          result.vehicle = vehicle as Vehicle;
+          result.vehicle = {
+            ...vehicle,
+            fuelType: vehicle.fuelType as FuelType
+          };
         }
       }
 
@@ -212,7 +222,11 @@ export class DatabaseStorage implements IStorage {
           .from(locations)
           .where(eq(locations.id, order.locationId));
         if (location) {
-          result.location = location as Location;
+          result.location = {
+            ...location,
+            coordinates: location.coordinates as { lat: number; lng: number },
+            type: location.type as LocationType
+          };
         }
       }
 
@@ -241,8 +255,12 @@ export class DatabaseStorage implements IStorage {
 
     // Load vehicles for each order
     const results = await Promise.all(
-      orderList.map(async (order: any) => {
-        const result = { ...order } as any;
+      orderList.map(async (order) => {
+        const result: Partial<Order> = { 
+          ...order,
+          fuelType: order.fuelType as FuelType,
+          status: order.status as OrderStatus
+        };
 
         if (order.vehicleId) {
           const [vehicle] = await db
@@ -250,7 +268,10 @@ export class DatabaseStorage implements IStorage {
             .from(vehicles)
             .where(eq(vehicles.id, order.vehicleId));
           if (vehicle) {
-            result.vehicle = vehicle as Vehicle;
+            result.vehicle = {
+              ...vehicle,
+              fuelType: vehicle.fuelType as FuelType
+            };
           }
         }
 
@@ -274,8 +295,12 @@ export class DatabaseStorage implements IStorage {
 
     // Load vehicles for each order
     const results = await Promise.all(
-      orderList.map(async (order: any) => {
-        const result = { ...order } as any;
+      orderList.map(async (order) => {
+        const result: Partial<Order> = { 
+          ...order,
+          fuelType: order.fuelType as FuelType,
+          status: order.status as OrderStatus
+        };
 
         if (order.vehicleId) {
           const [vehicle] = await db
@@ -283,7 +308,10 @@ export class DatabaseStorage implements IStorage {
             .from(vehicles)
             .where(eq(vehicles.id, order.vehicleId));
           if (vehicle) {
-            result.vehicle = vehicle as Vehicle;
+            result.vehicle = {
+              ...vehicle,
+              fuelType: vehicle.fuelType as FuelType
+            };
           }
         }
 
@@ -296,10 +324,10 @@ export class DatabaseStorage implements IStorage {
 
   async createOrder(insertOrder: InsertOrder): Promise<Order> {
     // Calculate total price based on fuel type and amount
-    const fuelPrices = {
-      REGULAR_UNLEADED: 3.99,
-      PREMIUM_UNLEADED: 4.59,
-      DIESEL: 4.29,
+    const fuelPrices: Record<FuelType, number> = {
+      [FuelType.REGULAR_UNLEADED]: 3.99,
+      [FuelType.PREMIUM_UNLEADED]: 4.59,
+      [FuelType.DIESEL]: 4.29,
     };
 
     const fuelPrice = fuelPrices[insertOrder.fuelType] || 3.99;
@@ -313,14 +341,18 @@ export class DatabaseStorage implements IStorage {
       })
       .returning();
 
-    return order as Order;
+    return {
+      ...order,
+      fuelType: order.fuelType as FuelType,
+      status: order.status as OrderStatus
+    } as Order;
   }
 
-  async updateOrderStatus(id: number, status: string): Promise<Order> {
+  async updateOrderStatus(id: number, status: OrderStatus): Promise<Order> {
     const [order] = await db
       .update(orders)
       .set({
-        status: status as any,
+        status,
         updatedAt: new Date(),
       })
       .where(eq(orders.id, id))
@@ -330,7 +362,11 @@ export class DatabaseStorage implements IStorage {
       throw new Error("Order not found");
     }
 
-    return order as Order;
+    return {
+      ...order,
+      fuelType: order.fuelType as FuelType,
+      status: order.status as OrderStatus
+    } as Order;
   }
 
   // Payment method methods
@@ -369,7 +405,14 @@ export class DatabaseStorage implements IStorage {
       .select()
       .from(locations)
       .where(eq(locations.id, id));
-    return location as Location;
+    
+    if (!location) return undefined;
+    
+    return {
+      ...location,
+      coordinates: location.coordinates as { lat: number; lng: number },
+      type: location.type as LocationType
+    };
   }
 
   async getLocationsByUserId(userId: number): Promise<Location[]> {
@@ -377,7 +420,12 @@ export class DatabaseStorage implements IStorage {
       .select()
       .from(locations)
       .where(eq(locations.userId, userId));
-    return results as Location[];
+    
+    return results.map(location => ({
+      ...location,
+      coordinates: location.coordinates as { lat: number; lng: number },
+      type: location.type as LocationType
+    }));
   }
 
   async createLocation(insertLocation: InsertLocation): Promise<Location> {
@@ -385,7 +433,12 @@ export class DatabaseStorage implements IStorage {
       .insert(locations)
       .values(insertLocation)
       .returning();
-    return location as Location;
+    
+    return {
+      ...location,
+      coordinates: location.coordinates as { lat: number; lng: number },
+      type: location.type as LocationType
+    };
   }
 
   async deleteLocation(id: number): Promise<void> {
