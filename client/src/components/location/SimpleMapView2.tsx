@@ -1,13 +1,20 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { Card } from "@/components/ui/card";
-import { MapPin, Loader2, AlertCircle } from "lucide-react";
-import { Location, LocationType } from "@shared/schema";
-import {
-  MAP_CONTAINER_STYLE,
-  DEFAULT_MAP_CONFIG,
-  createLocationFromCoordinates,
-  formatCoordinates,
-} from "@/lib/mapUtils";
+import { Loader2, AlertCircle } from "lucide-react";
+import { LocationType } from "@shared/schema";
+import { DEFAULT_MAP_CONFIG } from "@/lib/googleMapsConfig";
+import { formatCoordinates, createLocationFromCoordinates } from "@/lib/mapUtils";
+
+interface Location {
+  id?: number;
+  name: string;
+  address: string;
+  coordinates: {
+    lat: number;
+    lng: number;
+  };
+  type?: string;
+}
 
 interface MapViewProps {
   selectedLocation: Location | null;
@@ -16,29 +23,30 @@ interface MapViewProps {
   initialAddress?: string;
 }
 
-export default function SimpleMapView({
+export default function SimpleMapView2({
   selectedLocation,
   onLocationSelect,
   className = "",
   initialAddress,
 }: MapViewProps) {
+  // Refs
   const mapRef = useRef<HTMLDivElement>(null);
   const googleMapRef = useRef<google.maps.Map | null>(null);
   const markerRef = useRef<google.maps.Marker | null>(null);
   const geocoderRef = useRef<google.maps.Geocoder | null>(null);
-
+  
+  // State
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [address, setAddress] = useState<string>(selectedLocation?.address || "");
+  const [address, setAddress] = useState<string>(selectedLocation?.address || initialAddress || "");
   const [markerPosition, setMarkerPosition] = useState<google.maps.LatLngLiteral | null>(
     selectedLocation?.coordinates || null
   );
 
   // Initialize the map
-  const initializeMap = useCallback(async () => {
-    // Wait a tiny bit to ensure the DOM element is fully rendered
-    // This helps with the "map container ref not available" issue
-    setTimeout(() => {
+  const initializeMap = useCallback(() => {
+    // Short delay to ensure the DOM is ready
+    const timer = setTimeout(() => {
       if (!mapRef.current) {
         console.log("[SimpleMap] Map container ref not available");
         return;
@@ -59,147 +67,134 @@ export default function SimpleMapView({
           disableDefaultUI: false,
           zoomControl: true,
         };
-
+        
+        console.log("[SimpleMap] Creating map with options:", mapOptions);
         const map = new window.google.maps.Map(mapRef.current, mapOptions);
         googleMapRef.current = map;
 
         // Create geocoder
         geocoderRef.current = new window.google.maps.Geocoder();
 
-    try {
-      // Create map instance
-      const mapOptions = {
-        ...DEFAULT_MAP_CONFIG.options,
-        center: markerPosition || DEFAULT_MAP_CONFIG.center,
-        zoom: DEFAULT_MAP_CONFIG.zoom,
-        clickableIcons: true,
-        disableDefaultUI: false,
-        zoomControl: true,
-      };
+        // Create marker if we have a position
+        if (markerPosition) {
+          markerRef.current = new window.google.maps.Marker({
+            position: markerPosition,
+            map,
+          });
+        }
 
-      const map = new window.google.maps.Map(mapRef.current, mapOptions);
-      googleMapRef.current = map;
+        // Add click listener
+        map.addListener("click", async (e: google.maps.MapMouseEvent) => {
+          if (e.latLng) {
+            const clickedPos = {
+              lat: e.latLng.lat(),
+              lng: e.latLng.lng(),
+            };
+            setMarkerPosition(clickedPos);
 
-      // Create geocoder
-      geocoderRef.current = new window.google.maps.Geocoder();
-
-      // Create marker if we have a position
-      if (markerPosition) {
-        markerRef.current = new window.google.maps.Marker({
-          position: markerPosition,
-          map,
-        });
-      }
-
-      // Add click listener
-      map.addListener("click", async (e: google.maps.MapMouseEvent) => {
-        if (e.latLng) {
-          const clickedPos = {
-            lat: e.latLng.lat(),
-            lng: e.latLng.lng(),
-          };
-          setMarkerPosition(clickedPos);
-
-          // Update marker
-          if (markerRef.current) {
-            markerRef.current.setPosition(clickedPos);
-          } else {
-            markerRef.current = new window.google.maps.Marker({
-              position: clickedPos,
-              map,
-            });
-          }
-
-          // Reverse geocode
-          if (geocoderRef.current) {
-            try {
-              const response = await geocoderRef.current.geocode({
-                location: clickedPos,
+            // Update marker
+            if (markerRef.current) {
+              markerRef.current.setPosition(clickedPos);
+            } else {
+              markerRef.current = new window.google.maps.Marker({
+                position: clickedPos,
+                map,
               });
+            }
 
-              if (response.results && response.results[0]) {
-                const newAddress = response.results[0].formatted_address;
-                setAddress(newAddress);
+            // Reverse geocode
+            if (geocoderRef.current) {
+              try {
+                const response = await geocoderRef.current.geocode({
+                  location: clickedPos,
+                });
 
-                // Create a location object and notify parent
-                const newLocation = createLocationFromCoordinates(
-                  clickedPos,
-                  newAddress,
-                  "Selected Location",
-                  LocationType.HOME
-                );
-                onLocationSelect(newLocation);
+                if (response.results && response.results[0]) {
+                  const newAddress = response.results[0].formatted_address;
+                  setAddress(newAddress);
+
+                  // Create a location object and notify parent
+                  const newLocation = createLocationFromCoordinates(
+                    clickedPos,
+                    newAddress,
+                    "Selected Location",
+                    LocationType.HOME
+                  );
+                  onLocationSelect(newLocation);
+                }
+              } catch (error) {
+                console.error("Geocoding error:", error);
               }
-            } catch (error) {
-              console.error("Geocoding error:", error);
             }
           }
-        }
-      });
+        });
 
-      // Get user's location if no location is provided
-      if (!markerPosition) {
-        if (navigator.geolocation) {
-          navigator.geolocation.getCurrentPosition(
-            async (position) => {
-              const currentLocation = {
-                lat: position.coords.latitude,
-                lng: position.coords.longitude,
-              };
-              setMarkerPosition(currentLocation);
+        // Get user's location if no location is provided
+        if (!markerPosition) {
+          if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+              async (position) => {
+                const currentLocation = {
+                  lat: position.coords.latitude,
+                  lng: position.coords.longitude,
+                };
+                setMarkerPosition(currentLocation);
 
-              // Update map center
-              map.setCenter(currentLocation);
+                // Update map center
+                map.setCenter(currentLocation);
 
-              // Create or update marker
-              if (markerRef.current) {
-                markerRef.current.setPosition(currentLocation);
-              } else {
-                markerRef.current = new window.google.maps.Marker({
-                  position: currentLocation,
-                  map,
-                });
-              }
-
-              // Reverse geocode
-              if (geocoderRef.current) {
-                try {
-                  const response = await geocoderRef.current.geocode({
-                    location: currentLocation,
+                // Create or update marker
+                if (markerRef.current) {
+                  markerRef.current.setPosition(currentLocation);
+                } else {
+                  markerRef.current = new window.google.maps.Marker({
+                    position: currentLocation,
+                    map,
                   });
-
-                  if (response.results && response.results[0]) {
-                    const newAddress = response.results[0].formatted_address;
-                    setAddress(newAddress);
-
-                    // Create a location object and notify parent
-                    const newLocation = createLocationFromCoordinates(
-                      currentLocation,
-                      newAddress,
-                      "Current Location",
-                      LocationType.OTHER
-                    );
-                    onLocationSelect(newLocation);
-                  }
-                } catch (error) {
-                  console.error("Geocoding error:", error);
                 }
-              }
-            },
-            (error) => {
-              console.error("Error getting current location:", error);
-            }
-          );
-        }
-      }
 
-      console.log("[SimpleMap] Map initialized successfully");
-      setIsLoading(false);
-    } catch (err) {
-      console.error("[SimpleMap] Error initializing map:", err);
-      setError(`Failed to initialize map: ${err instanceof Error ? err.message : String(err)}`);
-      setIsLoading(false);
-    }
+                // Reverse geocode
+                if (geocoderRef.current) {
+                  try {
+                    const response = await geocoderRef.current.geocode({
+                      location: currentLocation,
+                    });
+
+                    if (response.results && response.results[0]) {
+                      const newAddress = response.results[0].formatted_address;
+                      setAddress(newAddress);
+
+                      // Create a location object and notify parent
+                      const newLocation = createLocationFromCoordinates(
+                        currentLocation,
+                        newAddress,
+                        "Current Location",
+                        LocationType.OTHER
+                      );
+                      onLocationSelect(newLocation);
+                    }
+                  } catch (error) {
+                    console.error("Geocoding error:", error);
+                  }
+                }
+              },
+              (error) => {
+                console.error("Error getting current location:", error);
+              }
+            );
+          }
+        }
+
+        console.log("[SimpleMap] Map initialized successfully");
+        setIsLoading(false);
+      } catch (err) {
+        console.error("[SimpleMap] Error initializing map:", err);
+        setError(`Failed to initialize map: ${err instanceof Error ? err.message : String(err)}`);
+        setIsLoading(false);
+      }
+    }, 100); // Small delay to ensure DOM is ready
+    
+    return () => clearTimeout(timer);
   }, [markerPosition, onLocationSelect]);
 
   // Load Google Maps script
@@ -259,7 +254,7 @@ export default function SimpleMapView({
       }, 100);
       
       // Clear interval after 10 seconds to avoid infinite checking
-      setTimeout(() => {
+      const timeoutId = setTimeout(() => {
         clearInterval(checkIfLoaded);
         if (!window.google || !window.google.maps) {
           console.error("[SimpleMap] Timeout waiting for Google Maps to load");
@@ -271,6 +266,7 @@ export default function SimpleMapView({
       // Clean up interval on unmount
       return () => {
         clearInterval(checkIfLoaded);
+        clearTimeout(timeoutId);
       };
     }
     
@@ -284,9 +280,6 @@ export default function SimpleMapView({
       
       googleMapRef.current = null;
       geocoderRef.current = null;
-      
-      // Note: We don't remove the script element on unmount anymore
-      // This ensures the script stays loaded for other map instances
     };
   }, [initializeMap]);
 
@@ -297,8 +290,7 @@ export default function SimpleMapView({
         <div className="absolute inset-0 flex items-center justify-center bg-neutral-100">
           <div className="text-center text-red-500">
             <AlertCircle className="h-8 w-8 mx-auto mb-2" />
-            <p>Error with map</p>
-            <p className="text-xs">{error}</p>
+            <p>Map error: {error}</p>
             
             <button
               className="mt-4 px-3 py-1 text-xs bg-primary text-white rounded-full hover:bg-primary/90"
