@@ -7,7 +7,7 @@ import { formatDistanceToNow } from "date-fns";
 import { getFuelTypeDisplayName } from "@/lib/fuelUtils";
 import { formatPrice } from "@/lib/fuelUtils";
 import { ReactNode, memo, useCallback, useMemo, useState } from "react";
-import { ChevronDown, MapPin, Check } from "lucide-react";
+import { ChevronDown, MapPin, Clock, MessageSquare, Car } from "lucide-react";
 
 interface OrderCardProps {
   order: Order;
@@ -18,15 +18,16 @@ interface OrderCardProps {
 }
 
 // Status badge configuration - defined outside component to prevent recreation
-const STATUS_CONFIG = {
-  COMPLETED: { className: "bg-success text-white", label: "Completed" },
-  IN_PROGRESS: { className: "bg-secondary text-white", label: "In Progress" },
-  CANCELLED: { className: "bg-destructive text-white", label: "Cancelled" },
+const STATUS_CONFIG: Record<OrderStatus, { className: string; label: string }> = {
+  [OrderStatus.COMPLETED]: { className: "bg-success text-white", label: "Completed" },
+  [OrderStatus.IN_PROGRESS]: { className: "bg-secondary text-white", label: "In Progress" },
+  [OrderStatus.CANCELLED]: { className: "bg-destructive text-white", label: "Cancelled" },
+  [OrderStatus.CONFIRMED]: { className: "bg-primary text-white", label: "Confirmed" },
 };
 
 // Memoized status badge component to prevent unnecessary re-renders
 const StatusBadge = memo(({ status }: { status: OrderStatus }) => {
-  const config = STATUS_CONFIG[status] || { className: "", label: "Unknown" };
+  const config = STATUS_CONFIG[status] || { className: "bg-muted text-muted-foreground", label: "Unknown" };
   return <Badge className={config.className}>{config.label}</Badge>;
 });
 
@@ -45,7 +46,11 @@ const VehicleInfo = memo(({ vehicle }: { vehicle: any }) => {
 // Add display name for debugging
 VehicleInfo.displayName = "VehicleInfo";
 
-// Create a memoized OrderCard component to prevent re-renders when parent components change
+/**
+ * OrderCard Component
+ * 
+ * A card that displays order information with an expandable details section
+ */
 function OrderCard({
   order,
   showViewDetails = false,
@@ -69,124 +74,129 @@ function OrderCard({
   }, [order.createdAt]);
 
   // Toggle expanded state
-  const toggleExpanded = useCallback(() => {
+  const toggleExpanded = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
     setExpanded(prev => !prev);
   }, []);
 
-  // Format delivery address if available
-  const deliveryAddress = useMemo(() => {
-    return order.location?.address || "No delivery address";
-  }, [order.location]);
-
-  // Format delivery date if available
-  const formattedDeliveryDate = useMemo(() => {
-    if (!order.deliveryDate) return "Delivery date not specified";
-    return new Date(order.deliveryDate).toLocaleDateString("en-US", {
-      weekday: "long",
-      month: "short",
-      day: "numeric",
-    });
-  }, [order.deliveryDate]);
+  // Format price with dollar sign
+  const formattedPrice = useMemo(() => {
+    return typeof order.totalPrice === 'number' ? 
+      `$${(order.totalPrice / 100).toFixed(2)}` : 
+      `$${order.totalPrice}`;
+  }, [order.totalPrice]);
 
   return (
-    <Card className={`mb-4 ${className}`}>
-      <CardContent className="p-4">
+    <Card className={`mb-4 ${className} overflow-hidden`}>
+      <CardContent className="p-0">
+        {/* Header Section */}
+        <div className="p-4">
+          <div className="flex justify-between items-start mb-2">
+            <div>
+              <h3 className="font-semibold text-neutral-800">
+                Order #{order.id}
+              </h3>
+              <p className="text-xs text-neutral-500">{formattedDate}</p>
+            </div>
+            <StatusBadge status={order.status} />
+          </div>
+
+          <div className="flex items-center text-sm mb-2">
+            <VehicleInfo vehicle={order.vehicle} />
+            <span className="text-neutral-500">
+              • {getFuelTypeDisplayName(order.fuelType)}
+            </span>
+          </div>
+
+          <div className="flex justify-between items-center text-sm">
+            <span className="text-neutral-500">{order.amount} gallons</span>
+            <span className="font-medium">{formattedPrice}</span>
+          </div>
+        </div>
+        
+        {/* Divider with Chevron */}
         <div 
-          className="flex justify-between items-start mb-3 cursor-pointer" 
+          className="flex items-center justify-center py-2 border-t border-neutral-100 cursor-pointer hover:bg-neutral-50 transition-colors"
           onClick={toggleExpanded}
         >
-          <div>
-            <h3 className="font-semibold text-neutral-800">
-              Order #{order.id}
-            </h3>
-            <p className="text-xs text-neutral-500">{formattedDate}</p>
-          </div>
-          <div className="flex items-center">
-            <StatusBadge status={order.status} />
-            <ChevronDown className={`h-5 w-5 text-neutral-500 ml-2 transition-transform ${expanded ? "rotate-180" : ""}`} />
-          </div>
+          <ChevronDown 
+            className={`h-5 w-5 text-neutral-400 transition-transform duration-200 ${expanded ? "rotate-180" : ""}`} 
+          />
         </div>
-
-        <div className="flex items-center text-sm mb-3">
-          <VehicleInfo vehicle={order.vehicle} />
-          <span className="text-neutral-500">
-            • {getFuelTypeDisplayName(order.fuelType)}
-          </span>
-        </div>
-
-        <div className="flex justify-between text-sm mb-3">
-          <span className="text-neutral-500">{order.amount} gallons</span>
-          <span className="font-medium">${order.totalPrice}</span>
-        </div>
-
-        {/* Expanded details section */}
+        
+        {/* Expanded Details Section */}
         {expanded && (
-          <div className="mt-2 pt-3 border-t border-neutral-100">
-            <div className="space-y-2">
-              <div className="flex items-start">
-                <MapPin className="h-4 w-4 text-neutral-500 mr-2 mt-0.5" />
-                <div>
-                  <p className="text-sm font-medium">Delivery Location</p>
-                  <p className="text-xs text-neutral-600">{deliveryAddress}</p>
-                </div>
-              </div>
-              
-              <div className="flex items-start">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4 text-neutral-500 mr-2 mt-0.5">
-                  <circle cx="12" cy="12" r="10" />
-                  <polyline points="12 6 12 12 16 14" />
-                </svg>
-                <div>
-                  <p className="text-sm font-medium">Delivery Time</p>
-                  <p className="text-xs text-neutral-600">
-                    {formattedDeliveryDate}
-                    {order.deliveryTimeSlot ? ` • ${order.deliveryTimeSlot}` : ''}
-                  </p>
-                </div>
-              </div>
-              
-              {order.notes && (
+          <div className="bg-neutral-50 p-4 border-t border-neutral-100">
+            <div className="space-y-3">
+              {order.location && (
                 <div className="flex items-start">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4 text-neutral-500 mr-2 mt-0.5">
-                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-                  </svg>
+                  <MapPin className="h-4 w-4 text-neutral-500 mr-2 mt-0.5 flex-shrink-0" />
                   <div>
-                    <p className="text-sm font-medium">Notes</p>
-                    <p className="text-xs text-neutral-600">{order.notes}</p>
+                    <p className="text-sm font-medium">Delivery Location</p>
+                    <p className="text-xs text-neutral-600 break-words">
+                      {order.location.name && <span className="font-medium">{order.location.name} - </span>}
+                      {order.location.address}
+                    </p>
                   </div>
                 </div>
               )}
+              
+              {order.vehicle && (
+                <div className="flex items-start">
+                  <Car className="h-4 w-4 text-neutral-500 mr-2 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <p className="text-sm font-medium">Vehicle</p>
+                    <p className="text-xs text-neutral-600">
+                      {order.vehicle.make} {order.vehicle.model} ({order.vehicle.year})
+                      {order.vehicle.licensePlate && ` • ${order.vehicle.licensePlate}`}
+                    </p>
+                  </div>
+                </div>
+              )}
+              
+              <div className="flex items-start">
+                <Clock className="h-4 w-4 text-neutral-500 mr-2 mt-0.5 flex-shrink-0" />
+                <div>
+                  <p className="text-sm font-medium">Order Status</p>
+                  <p className="text-xs text-neutral-600">
+                    {STATUS_CONFIG[order.status]?.label || order.status}
+                    {order.updatedAt && ` • Last updated ${formatDistanceToNow(new Date(order.updatedAt), { addSuffix: true })}`}
+                  </p>
+                </div>
+              </div>
             </div>
+            
+            {/* Action Button */}
+            {showViewDetails && (
+              <div className="mt-4">
+                {onViewDetails ? (
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                    onClick={handleViewDetails}
+                  >
+                    View Order Details
+                  </Button>
+                ) : (
+                  <Link href={`/orders/${order.id}`} className="w-full block">
+                    <Button variant="outline" className="w-full">
+                      View Order Details
+                    </Button>
+                  </Link>
+                )}
+              </div>
+            )}
           </div>
         )}
-
-        {/* Custom actions or default view details button */}
-        {actions ? (
-          <div className="mt-3">{actions}</div>
-        ) : (
-          showViewDetails &&
-          (onViewDetails ? (
-            <Button
-              variant="outline"
-              className="w-full mt-3"
-              onClick={handleViewDetails}
-            >
-              View Details
-            </Button>
-          ) : (
-            <Link href={`/orders/${order.id}`}>
-              <Button variant="outline" className="w-full mt-3">
-                View Details
-              </Button>
-            </Link>
-          ))
-        )}
+        
+        {/* Custom actions if provided */}
+        {actions && <div className="p-4 border-t border-neutral-100">{actions}</div>}
       </CardContent>
     </Card>
   );
 }
 
-// Implement a custom arePropsEqual function to determine when to re-render
+// Implement a custom arePropsEqual function for memoization
 function arePropsEqual(prevProps: OrderCardProps, nextProps: OrderCardProps) {
   // Compare critical props to determine if a re-render is needed
   return (
