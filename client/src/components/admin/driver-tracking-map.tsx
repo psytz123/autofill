@@ -211,7 +211,17 @@ export default function DriverTrackingMap({ onAssignDriver }: DriverTrackingMapP
       refreshLocations();
     }, 30000);
 
-    return () => clearInterval(intervalId);
+    // Clean up when component unmounts
+    return () => {
+      //orderTrackingService.off("connected");
+      //orderTrackingService.off("disconnected");
+      //orderTrackingService.off("error");
+      //orderTrackingService.off("driverLocation");
+      if (directions) {
+        setDirections(null);
+      }
+      clearInterval(intervalId);
+    };
   }, [isLoaded]);
 
   // Calculate directions between driver and order
