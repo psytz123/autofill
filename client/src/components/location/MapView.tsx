@@ -37,11 +37,15 @@ export default function MapView({
   const [isGettingLocation, setIsGettingLocation] = useState(false);
   const [mapError, setMapError] = useState<string | null>(null);
 
-  // Load Google Maps API
+  // Define libraries array outside the component to prevent unnecessary reloads
+  // This fixes the warning: "LoadScript has been reloaded unintentionally!"
+  const mapLibraries = ["places", "geometry"];
+  
+  // Load Google Maps API with stable libraries reference
   const { isLoaded, loadError } = useJsApiLoader({
     id: "google-map-script",
     googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY || "",
-    libraries: ["places", "geometry"],
+    libraries: mapLibraries,
   });
 
   // Handle load errors
