@@ -455,14 +455,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
             const pointsToAward = Math.round(order.amount * pointsMultiplier);
             
             if (pointsToAward > 0) {
-              // Create a points transaction
-              await storage.addPointsTransaction({
-                userId: order.userId,
-                orderId: order.id,
-                type: PointsTransactionType.EARN_PURCHASE,
-                amount: pointsToAward,
-                description: `Test: Earned ${pointsToAward} points for purchasing ${order.amount} gallons of fuel (${overrideSubscriptionType} plan)`
-              });
+              // For testing purposes, we'll update the user's points directly
+              // rather than creating a transaction with an order ID
+              // that doesn't exist in the database
+              await storage.updateUserPoints(order.userId, pointsToAward);
+              
+              console.log(`[Points Test] Added ${pointsToAward} points directly to user ${order.userId} (test mode)`)
               
               console.log(`[Points Test] Awarded ${pointsToAward} points to user ${order.userId} for mock order ${order.id}`);
             }

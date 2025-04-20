@@ -670,22 +670,32 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Points management methods
-  async updateUserPoints(userId: number, points: number): Promise<User> {
+  async updateUserPoints(userId: number, pointsToAdd: number): Promise<User> {
+    // First get current user to access current points
+    const currentUser = await this.getUser(userId);
+    if (!currentUser) {
+      throw new Error("User not found");
+    }
+    
+    // Add to the existing points balance
+    const newPointsTotal = (currentUser.points || 0) + pointsToAdd;
+    
     // Update user's points balance
-    const [user] = await db
+    const [updatedUser] = await db
       .update(users)
       .set({
-        points,
+        points: newPointsTotal,
         updatedAt: new Date(),
       })
       .where(eq(users.id, userId))
       .returning();
 
-    if (!user) {
-      throw new Error("User not found");
+    if (!updatedUser) {
+      throw new Error("Failed to update user points");
     }
 
-    return user;
+    console.log(`[Points] Updated user ${userId} points: ${currentUser.points || 0} + ${pointsToAdd} = ${newPointsTotal}`);
+    return updatedUser;
   }
 
   async getUserPoints(userId: number): Promise<number> {
