@@ -1,5 +1,6 @@
 import { FuelType } from "@shared/schema";
 import { log } from "./vite";
+import { randomInt } from "crypto";
 
 /**
  * API response interfaces with comprehensive TypeScript definitions
@@ -30,6 +31,7 @@ interface PriceCache {
   rateLimitExpiry: number; // When to try API again after rate limit
   requestCount: number; // Track API request volume
   lastRequestTime: number; // Last time we made a request
+  consecutiveFailures: number; // Track consecutive API failures
 }
 
 // Current default prices - April 2025
@@ -44,9 +46,11 @@ const CACHE_EXPIRY = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
 const CACHE_STALE_WARNING = 12 * 60 * 60 * 1000; // 12 hours in milliseconds
 
 // Rate limiting configuration
-const RATE_LIMIT_BACKOFF = 15 * 60 * 1000; // 15 minutes backoff
-const RATE_LIMIT_EXTENDED_BACKOFF = 60 * 60 * 1000; // 1 hour for severe rate limiting
-const MAX_REQUESTS_PER_MINUTE = 5; // Maximum requests per minute to prevent rate limiting
+const RATE_LIMIT_BACKOFF_MIN = 15 * 60 * 1000; // 15 minutes minimum backoff
+const RATE_LIMIT_BACKOFF_MAX = 4 * 60 * 60 * 1000; // 4 hours maximum backoff
+const RATE_LIMIT_EXTENDED_FACTOR = 2; // Double the backoff time on consecutive rate limits
+const MAX_REQUESTS_PER_MINUTE = 3; // Reduced from 5 to be more conservative
+const REQUEST_THROTTLE_WINDOW = 60 * 1000; // 1 minute window for throttling
 
 // Initialize cache with default values
 let priceCache: PriceCache = {
@@ -57,62 +61,90 @@ let priceCache: PriceCache = {
   rateLimitExpiry: 0,
   requestCount: 0,
   lastRequestTime: 0,
+  consecutiveFailures: 0
 };
 
 /**
- * Retry a function multiple times with exponential backoff
+ * Generates a random delay with jitter for more effective backoff
+ * @param baseDelayMs Base delay in milliseconds
+ * @param jitterFactor Amount of randomness (0-1)
+ * @returns Delay time in milliseconds with jitter applied
+ */
+function getDelayWithJitter(baseDelayMs: number, jitterFactor = 0.3): number {
+  const jitterAmount = baseDelayMs * jitterFactor;
+  return baseDelayMs + randomInt(-Math.floor(jitterAmount), Math.floor(jitterAmount));
+}
+
+/**
+ * Retry a function multiple times with exponential backoff and jitter
  * @param fn Function to retry
  * @param retries Number of retries
- * @param delay Initial delay in ms
+ * @param initialDelay Initial delay in ms
  */
 async function retry<T>(
   fn: () => Promise<T>,
   retries: number,
-  delay: number,
+  initialDelay: number,
 ): Promise<T> {
-  try {
-    return await fn();
-  } catch (error: any) {
-    if (retries <= 0) {
-      throw error;
+  let currentDelay = initialDelay;
+  let attempt = 0;
+
+  while (true) {
+    try {
+      attempt++;
+      return await fn();
+    } catch (error: any) {
+      if (attempt > retries) {
+        throw error; // We've exhausted our retries
+      }
+
+      const errorMessage = error.message || String(error);
+      log(
+        `Retrying after error: ${errorMessage}. Attempt ${attempt} of ${retries + 1}`,
+        "fuel-api",
+      );
+
+      // Add jitter to avoid thundering herd problem when multiple instances retry at once
+      const delayWithJitter = getDelayWithJitter(currentDelay);
+      log(`Waiting ${Math.round(delayWithJitter / 1000)} seconds before next attempt`, "fuel-api");
+      
+      // Wait for the delay before retrying
+      await new Promise((resolve) => setTimeout(resolve, delayWithJitter));
+
+      // Increase delay for next attempt with a max cap to prevent excessive waits
+      currentDelay = Math.min(currentDelay * 2, 30000); // Max 30 seconds between retries
     }
-
-    const errorMessage = error.message || String(error);
-    log(
-      `Retrying after error: ${errorMessage}. Attempts left: ${retries}`,
-      "fuel-api",
-    );
-
-    // Wait for the delay before retrying
-    await new Promise((resolve) => setTimeout(resolve, delay));
-
-    // Retry with exponential backoff (double the delay each time)
-    return retry(fn, retries - 1, delay * 2);
   }
 }
 
 /**
  * Determine if we should throttle requests to avoid rate limiting
+ * Smart throttling based on recent API behavior
  * @returns boolean indicating if we should skip making API request
  */
 function shouldThrottleRequest(): boolean {
   const now = Date.now();
 
-  // If this is the first request or it's been more than a minute since the last one,
-  // reset the counter
+  // If we've had consecutive failures, be more conservative
+  const dynamicMaxRequests = Math.max(
+    1, // Minimum 1 request allowed
+    MAX_REQUESTS_PER_MINUTE - Math.min(2, priceCache.consecutiveFailures) // Reduce by up to 2 based on failures
+  );
+
+  // If this is the first request or it's been more than our throttle window, reset the counter
   if (
     priceCache.lastRequestTime === 0 ||
-    now - priceCache.lastRequestTime > 60000
+    now - priceCache.lastRequestTime > REQUEST_THROTTLE_WINDOW
   ) {
     priceCache.requestCount = 1;
     priceCache.lastRequestTime = now;
     return false;
   }
 
-  // If we've made too many requests in the last minute, throttle
-  if (priceCache.requestCount >= MAX_REQUESTS_PER_MINUTE) {
+  // If we've made too many requests in the throttle window, apply throttling
+  if (priceCache.requestCount >= dynamicMaxRequests) {
     log(
-      `Throttling API request (${priceCache.requestCount} requests in the last minute)`,
+      `Throttling API request (${priceCache.requestCount} requests in the last minute, max ${dynamicMaxRequests})`,
       "fuel-api",
     );
     return true;
@@ -122,6 +154,25 @@ function shouldThrottleRequest(): boolean {
   priceCache.requestCount++;
   priceCache.lastRequestTime = now;
   return false;
+}
+
+/**
+ * Calculate appropriate backoff time based on failure history
+ * Implements progressive backoff with increasing severity
+ */
+function calculateBackoffTime(): number {
+  // Base backoff increases with consecutive failures
+  const backoffMultiplier = Math.min(
+    Math.pow(RATE_LIMIT_EXTENDED_FACTOR, priceCache.consecutiveFailures),
+    RATE_LIMIT_BACKOFF_MAX / RATE_LIMIT_BACKOFF_MIN // Cap the multiplier
+  );
+  
+  // Calculate backoff time with some randomness
+  const baseBackoff = RATE_LIMIT_BACKOFF_MIN * backoffMultiplier;
+  const maxBackoff = Math.min(baseBackoff, RATE_LIMIT_BACKOFF_MAX);
+  const backoffWithJitter = getDelayWithJitter(maxBackoff, 0.2); // 20% jitter
+  
+  return backoffWithJitter;
 }
 
 /**
@@ -145,8 +196,9 @@ export async function getFuelPrices(
 
   // Check if we're currently rate limited
   if (priceCache.rateLimited && now < priceCache.rateLimitExpiry) {
+    const minutesRemaining = Math.ceil((priceCache.rateLimitExpiry - now) / (60 * 1000));
     log(
-      `API currently rate limited, using cached prices until ${new Date(priceCache.rateLimitExpiry).toLocaleTimeString()}`,
+      `API currently rate limited, using cached prices. Rate limit expires in ${minutesRemaining} minutes`,
       "fuel-api",
     );
     return priceCache.prices;
@@ -161,13 +213,15 @@ export async function getFuelPrices(
   ) {
     // Log different message if cache is getting stale
     if (now - priceCache.lastUpdated > CACHE_STALE_WARNING) {
+      const hoursOld = Math.round((now - priceCache.lastUpdated) / 3600000);
       log(
-        `Using stale cached fuel prices from ${new Date(priceCache.lastUpdated).toLocaleTimeString()} (${Math.round((now - priceCache.lastUpdated) / 3600000)} hours old)`,
+        `Using stale cached fuel prices (${hoursOld} hours old)`,
         "fuel-api",
       );
     } else {
+      const minutesOld = Math.round((now - priceCache.lastUpdated) / 60000);
       log(
-        `Using cached fuel prices from ${new Date(priceCache.lastUpdated).toLocaleTimeString()}`,
+        `Using cached fuel prices (${minutesOld} minutes old)`,
         "fuel-api",
       );
     }
@@ -194,7 +248,7 @@ export async function getFuelPrices(
       async () => {
         // Set timeout for request
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+        const timeoutId = setTimeout(() => controller.abort(), 8000); // 8 second timeout (reduced from 10s)
 
         try {
           const response = await fetch(
@@ -204,6 +258,9 @@ export async function getFuelPrices(
               headers: {
                 "Content-Type": "application/json",
                 Authorization: `apikey ${process.env.COLLECTAPI_KEY}`,
+                // Add cache control headers to prevent caching issues
+                "Cache-Control": "no-cache",
+                "Pragma": "no-cache"
               },
               signal: controller.signal,
             },
@@ -235,9 +292,9 @@ export async function getFuelPrices(
           throw error;
         }
       },
-      3,
-      1000,
-    ); // Try up to 3 times with 1s initial delay
+      2, // Reduced from 3 to 2 retries to avoid excessive API load
+      1500, // Increased initial delay from 1000ms to 1500ms
+    );
 
     // Detailed validation of API response
     if (!data) {
@@ -275,6 +332,9 @@ export async function getFuelPrices(
       throw new Error("Calculated invalid fuel prices");
     }
 
+    // Reset consecutive failures on success
+    priceCache.consecutiveFailures = 0;
+
     // Update cache with validated prices while preserving request tracking
     priceCache = {
       ...priceCache,
@@ -286,6 +346,7 @@ export async function getFuelPrices(
       // Keep the existing requestCount and lastRequestTime
       requestCount: priceCache.requestCount,
       lastRequestTime: priceCache.lastRequestTime,
+      consecutiveFailures: 0, // Reset failures on success
     };
 
     log(
@@ -296,16 +357,21 @@ export async function getFuelPrices(
   } catch (error: any) {
     log(`Error fetching fuel prices: ${error.message || error}`, "fuel-api");
 
+    // Increment consecutive failures counter
+    priceCache.consecutiveFailures += 1;
+    
+    // Log consecutive failure count
+    log(`Consecutive API failures: ${priceCache.consecutiveFailures}`, "fuel-api");
+
     // Determine if this is a rate limiting error (status 429)
     const isRateLimitError = error.message && error.message.includes("429");
 
     if (isRateLimitError) {
-      log("Rate limit detected, backing off for a while", "fuel-api");
+      log("Rate limit detected, implementing smart backoff strategy", "fuel-api");
 
-      // Use extended backoff if we've hit rate limits multiple times
-      const backoffTime = priceCache.rateLimited
-        ? RATE_LIMIT_EXTENDED_BACKOFF
-        : RATE_LIMIT_BACKOFF;
+      // Calculate appropriate backoff based on failure history
+      const backoffTime = calculateBackoffTime();
+      const backoffMinutes = Math.round(backoffTime / (60 * 1000));
 
       // Update cache with rate limit info, maintaining tracking fields
       priceCache = {
@@ -314,22 +380,24 @@ export async function getFuelPrices(
         rateLimitExpiry: now + backoffTime,
         requestCount: priceCache.requestCount,
         lastRequestTime: priceCache.lastRequestTime,
+        consecutiveFailures: priceCache.consecutiveFailures,
       };
 
       log(
-        `Rate limit set, will not try again until ${new Date(priceCache.rateLimitExpiry).toLocaleTimeString()}`,
+        `Rate limit backoff set for ${backoffMinutes} minutes due to consecutive failures: ${priceCache.consecutiveFailures}`,
         "fuel-api",
       );
     }
 
     // If we have cached data, return it even if expired
     if (priceCache.lastUpdated > 0) {
-      log("Using existing cached prices", "fuel-api");
+      const cacheAgeMinutes = Math.round((now - priceCache.lastUpdated) / (60 * 1000));
+      log(`Using existing cached prices (${cacheAgeMinutes} minutes old)`, "fuel-api");
       return priceCache.prices;
     }
 
     // Otherwise use default prices
-    log("Using default fuel prices", "fuel-api");
+    log("Using default fuel prices - no cache available", "fuel-api");
     return DEFAULT_PRICES;
   }
 }
