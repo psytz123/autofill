@@ -43,7 +43,7 @@ export default function MapView({
   const { isLoaded, loadError } = useJsApiLoader({
     id: "google-map-script",
     googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY || "",
-    libraries: GOOGLE_MAPS_LIBRARIES,
+    libraries: GOOGLE_MAPS_LIBRARIES as any, // Cast to any to avoid TypeScript error
   });
 
   // Handle load errors

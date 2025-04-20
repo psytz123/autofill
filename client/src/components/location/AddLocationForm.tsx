@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -56,6 +56,10 @@ export default function AddLocationForm({
       ? JSON.parse(initialData.coordinatesStr)
       : { lat: 37.7749, lng: -122.4194 }, // Default to San Francisco
   );
+  
+  // Add a flag to track whether we've already initialized location data from the map
+  // This prevents overwriting user edits after initial load
+  const hasInitializedLocation = useRef(false);
 
   const form = useForm<LocationFormValues>({
     resolver: zodResolver(locationFormSchema),
@@ -241,10 +245,11 @@ export default function AddLocationForm({
           <MapView
             selectedLocation={null}
             onLocationSelect={(location: any) => {
-              // Update form values with the selected location
-              // Using any type here to resolve the type conflict
-              if (location && location.address) {
-                // Only update the address and coordinates, preserving user's custom name
+              // We'll use a flag to only accept location data on initial load
+              // This prevents overwriting user edits
+              if (!hasInitializedLocation.current && location && location.address) {
+                console.log("Setting initial location data from map");
+                // Only update the address and coordinates on initial load
                 form.setValue("address", location.address);
                 if (location.coordinates) {
                   setMapCoordinates(location.coordinates);
@@ -255,12 +260,14 @@ export default function AddLocationForm({
                 }
                 
                 // Don't update the name field if user has already entered a value
-                // This preserves the user's custom name entry
                 const currentName = form.getValues("name");
                 if (!currentName || currentName.trim() === "") {
                   // Only set a default name if the user hasn't provided one
                   form.setValue("name", "My Location");
                 }
+                
+                // Set the flag to prevent future overwrites from the map
+                hasInitializedLocation.current = true;
               }
             }}
             initialAddress={form.watch("address")}
