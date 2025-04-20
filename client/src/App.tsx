@@ -63,6 +63,7 @@ const FuelSelectorTest = lazy(() => import("@/pages/fuel-selector-test"));
 const EnhancedFuelSelectorTest = lazy(
   () => import("@/pages/enhanced-fuel-selector-test"),
 );
+const TestPointsPage = lazy(() => import("@/pages/test-points-page"));
 
 // Admin module (completely separate chunk)
 const AdminLoginPage = lazy(() => import("@/pages/admin/admin-login"));
@@ -168,6 +169,10 @@ function CustomerRouter() {
         <SuspenseRoute
           path="/enhanced-fuel-selector-test"
           component={EnhancedFuelSelectorTest}
+        />
+        <ProtectedRoute
+          path="/test-points"
+          component={TestPointsPage}
         />
       </Switch>
 
