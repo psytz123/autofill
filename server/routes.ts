@@ -64,7 +64,7 @@ async function awardPointsForOrder(order: any) {
       await storage.addPointsTransaction({
         userId: order.userId,
         orderId: order.id,
-        type: PointsTransactionType.PURCHASE,
+        type: PointsTransactionType.EARN_PURCHASE,
         amount: pointsToAward,
         description: `Earned ${pointsToAward} points for purchasing ${order.amount} gallons of fuel`
       });
