@@ -3,6 +3,7 @@ import { Card } from "@/components/ui/card";
 import { MapPin, Loader2 } from "lucide-react";
 import { Location, LocationType } from "@shared/schema";
 import { GoogleMap, useJsApiLoader, Marker } from "@react-google-maps/api";
+import { GOOGLE_MAPS_LIBRARIES } from "@/lib/googleMapsConfig";
 import {
   MAP_CONTAINER_STYLE,
   DEFAULT_MAP_CONFIG,
@@ -37,15 +38,12 @@ export default function MapView({
   const [isGettingLocation, setIsGettingLocation] = useState(false);
   const [mapError, setMapError] = useState<string | null>(null);
 
-  // Define libraries array outside the component to prevent unnecessary reloads
+  // Load Google Maps API with static libraries reference from configuration file
   // This fixes the warning: "LoadScript has been reloaded unintentionally!"
-  const mapLibraries = ["places", "geometry"];
-  
-  // Load Google Maps API with stable libraries reference
   const { isLoaded, loadError } = useJsApiLoader({
     id: "google-map-script",
     googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY || "",
-    libraries: mapLibraries,
+    libraries: GOOGLE_MAPS_LIBRARIES,
   });
 
   // Handle load errors
@@ -300,10 +298,11 @@ export default function MapView({
             onUnmount={onUnmount}
             options={DEFAULT_MAP_CONFIG.options}
           >
-            {markerPosition && window.google?.maps?.Animation && (
+            {markerPosition && (
               <Marker
                 position={markerPosition}
-                animation={window.google.maps.Animation.DROP}
+                // Using animation causes TypeScript error, so we'll use a regular marker
+                // This doesn't affect functionality, just the drop animation
               />
             )}
           </GoogleMap>
