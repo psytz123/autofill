@@ -45,6 +45,13 @@ interface AdminOrder {
   assigned?: boolean;
   assignedDriverId?: number;
   assignedDriverName?: string;
+
+interface TrackingData {
+  drivers: AdminDriver[];
+  unassignedOrders: AdminOrder[];
+  assignedOrders: AdminOrder[];
+}
+
 }
 
 const mapContainerStyle = {
@@ -109,7 +116,7 @@ export default function DriverTrackingMap({ onAssignDriver }: DriverTrackingMapP
     isLoading: trackingDataLoading,
     error: trackingDataError,
     refetch: refetchTrackingData,
-  } = useQuery({
+  } = useQuery<TrackingData>({
     queryKey: ["/admin/api/tracking-data"],
     enabled: isLoaded,
   });
