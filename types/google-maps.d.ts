@@ -91,9 +91,18 @@ declare module '@react-google-maps/api' {
     types?: string[];
   }
 
+  export interface DirectionsRendererProps {
+    directions: google.maps.DirectionsResult;
+    options?: google.maps.DirectionsRendererOptions;
+    onLoad?: (directionsRenderer: google.maps.DirectionsRenderer) => void;
+    onUnmount?: (directionsRenderer: google.maps.DirectionsRenderer) => void;
+  }
+
   export interface Geocoder {
     geocode(request: google.maps.GeocoderRequest): Promise<google.maps.GeocoderResponse>;
   }
+
+  export const DirectionsRenderer: ComponentType<DirectionsRendererProps>;
 
   export const LoadScript: ComponentType<LoadScriptProps>;
   export const GoogleMap: ComponentType<GoogleMapProps>;
