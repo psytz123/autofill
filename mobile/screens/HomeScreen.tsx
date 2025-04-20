@@ -8,12 +8,15 @@ import {
   ActivityIndicator,
   RefreshControl,
   TouchableOpacity,
+  Alert,
+  Platform,
 } from "react-native";
 import Card from "../components/Card";
 import Button from "../components/Button";
-import { vehicles, orders, fuel } from "../utils/api";
-import { Vehicle, Order, FuelType } from "../utils/types";
+import { vehicles, orders, fuel, locations } from "../utils/api";
+import { Vehicle, Order, FuelType, LocationType } from "../utils/types";
 import { HomeScreenProps } from "../types/navigation";
+import * as Location from 'expo-location';
 
 const HomeScreen: React.FC<Partial<HomeScreenProps>> = ({ navigation }) => {
   const [userVehicles, setUserVehicles] = useState<Vehicle[]>([]);
@@ -23,11 +26,27 @@ const HomeScreen: React.FC<Partial<HomeScreenProps>> = ({ navigation }) => {
   );
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [processingEmergency, setProcessingEmergency] = useState(false);
+  const [locationPermissionStatus, setLocationPermissionStatus] = useState<
+    'granted' | 'denied' | 'undetermined'
+  >('undetermined');
 
-  // Fetch data when component mounts
+  // Fetch data when component mounts and check location permissions
   useEffect(() => {
     fetchInitialData();
+    checkLocationPermission();
   }, []);
+
+  // Check location permission
+  const checkLocationPermission = async () => {
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      setLocationPermissionStatus(status as 'granted' | 'denied' | 'undetermined');
+    } catch (error) {
+      console.error("Error checking location permission:", error);
+      setLocationPermissionStatus('denied');
+    }
+  };
 
   const fetchInitialData = async () => {
     setLoading(true);
@@ -57,6 +76,174 @@ const HomeScreen: React.FC<Partial<HomeScreenProps>> = ({ navigation }) => {
 
   const handleNewOrder = () => {
     navigation?.navigate("Order");
+  };
+  
+  // Handle emergency fuel request
+  const handleEmergencyFuel = async () => {
+    if (userVehicles.length === 0) {
+      Alert.alert(
+        "No Vehicles Found",
+        "Please add a vehicle before requesting emergency fuel.",
+        [{ text: "OK" }]
+      );
+      return;
+    }
+    
+    if (locationPermissionStatus !== 'granted') {
+      Alert.alert(
+        "Location Permission Required",
+        "AutoFill needs your location to send emergency fuel to you.",
+        [
+          { text: "Cancel" },
+          { 
+            text: "Grant Permission", 
+            onPress: async () => {
+              const { status } = await Location.requestForegroundPermissionsAsync();
+              setLocationPermissionStatus(status as 'granted' | 'denied' | 'undetermined');
+              if (status === 'granted') {
+                handleEmergencyFuel();
+              }
+            } 
+          }
+        ]
+      );
+      return;
+    }
+
+    // Select vehicle if multiple vehicles exist
+    const selectedVehicle = userVehicles.length === 1 
+      ? userVehicles[0] 
+      : await selectVehiclePrompt();
+    
+    if (!selectedVehicle) return;
+
+    setProcessingEmergency(true);
+    
+    try {
+      // Get current location
+      const location = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.High
+      });
+      
+      // Get address from coordinates
+      const [addressData] = await Location.reverseGeocodeAsync({
+        latitude: location.coords.latitude,
+        longitude: location.coords.longitude
+      });
+      
+      const address = formatAddress(addressData);
+      
+      // Confirm emergency request
+      Alert.alert(
+        "Confirm Emergency Fuel Request",
+        `We'll send fuel to:\n${address}\n\nVehicle: ${selectedVehicle.make} ${selectedVehicle.model}\nFuel: ${formatFuelType(selectedVehicle.fuelType)}`,
+        [
+          { 
+            text: "Cancel",
+            style: "cancel",
+            onPress: () => setProcessingEmergency(false)
+          },
+          {
+            text: "Send Help Now",
+            style: "destructive",
+            onPress: () => processEmergencyOrder(selectedVehicle, {
+              address,
+              coordinates: {
+                lat: location.coords.latitude,
+                lng: location.coords.longitude
+              }
+            })
+          }
+        ]
+      );
+    } catch (error) {
+      console.error("Error processing emergency fuel request:", error);
+      Alert.alert(
+        "Location Error",
+        "Unable to determine your current location. Please try again or use the standard order process.",
+        [{ text: "OK" }]
+      );
+      setProcessingEmergency(false);
+    }
+  };
+  
+  // Format address data from geocoding result
+  const formatAddress = (address: Location.LocationGeocodedAddress): string => {
+    const parts = [
+      address.name,
+      address.street,
+      address.city,
+      address.region,
+      address.postalCode,
+      address.country
+    ].filter(Boolean);
+    
+    return parts.join(", ");
+  };
+  
+  // Prompt user to select a vehicle if they have multiple
+  const selectVehiclePrompt = (): Promise<Vehicle | null> => {
+    return new Promise((resolve) => {
+      const options = userVehicles.map(vehicle => 
+        `${vehicle.make} ${vehicle.model} (${vehicle.year})`
+      );
+      
+      options.push("Cancel");
+      
+      Alert.alert(
+        "Select Vehicle for Emergency Fuel",
+        "Which vehicle needs fuel?",
+        options.map((option, index) => ({
+          text: option,
+          onPress: () => {
+            if (index === options.length - 1) {
+              // User selected Cancel
+              resolve(null);
+            } else {
+              resolve(userVehicles[index]);
+            }
+          },
+          style: index === options.length - 1 ? "cancel" : "default"
+        }))
+      );
+    });
+  };
+  
+  // Process the emergency order
+  const processEmergencyOrder = async (
+    vehicle: Vehicle,
+    location: { address: string; coordinates: { lat: number; lng: number } }
+  ) => {
+    try {
+      // Default to 5 gallons for emergency
+      const fuelAmount = 5;
+      
+      // Create emergency order
+      const response = await orders.createEmergency({
+        vehicleId: vehicle.id,
+        location,
+        fuelType: vehicle.fuelType,
+        amount: fuelAmount
+      });
+      
+      // Refresh data and show success message
+      await fetchInitialData();
+      
+      Alert.alert(
+        "Emergency Fuel Request Sent!",
+        "Your request has been confirmed. A driver will be dispatched to your location shortly.",
+        [{ text: "OK" }]
+      );
+    } catch (error) {
+      console.error("Error creating emergency order:", error);
+      Alert.alert(
+        "Request Failed",
+        "There was an error sending your emergency fuel request. Please try again.",
+        [{ text: "OK" }]
+      );
+    } finally {
+      setProcessingEmergency(false);
+    }
   };
 
   if (loading) {
@@ -105,6 +292,22 @@ const HomeScreen: React.FC<Partial<HomeScreenProps>> = ({ navigation }) => {
               </View>
             </Card.Content>
           </Card>
+
+          {/* Emergency Fuel Button */}
+          <TouchableOpacity
+            style={styles.emergencyButton}
+            onPress={handleEmergencyFuel}
+            disabled={processingEmergency}
+          >
+            <View style={styles.emergencyButtonContent}>
+              <Text style={styles.emergencyButtonText}>
+                {processingEmergency ? "Processing..." : "Emergency Fuel (One-Tap)"}
+              </Text>
+              <Text style={styles.emergencyButtonSubtext}>
+                Instantly request fuel to your current location
+              </Text>
+            </View>
+          </TouchableOpacity>
         </View>
 
         <View style={styles.section}>
@@ -263,6 +466,7 @@ const styles = StyleSheet.create({
   },
   orderCard: {
     backgroundColor: "#ffffff",
+    marginBottom: 12,
   },
   orderCardContent: {
     flexDirection: "row",
@@ -291,6 +495,32 @@ const styles = StyleSheet.create({
     color: "#0f172a",
     fontWeight: "600",
     fontSize: 14,
+  },
+  emergencyButton: {
+    backgroundColor: "#ef4444",
+    borderRadius: 12,
+    padding: 16,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  emergencyButtonContent: {
+    alignItems: "center",
+  },
+  emergencyButtonText: {
+    color: "#ffffff",
+    fontSize: 18,
+    fontWeight: "700",
+    marginBottom: 4,
+    textAlign: "center",
+  },
+  emergencyButtonSubtext: {
+    color: "#ffffff",
+    fontSize: 14,
+    opacity: 0.9,
+    textAlign: "center",
   },
   emptyStateContainer: {
     backgroundColor: "#ffffff",

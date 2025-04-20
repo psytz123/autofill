@@ -21,6 +21,7 @@ export enum FuelType {
 
 export enum OrderStatus {
   IN_PROGRESS = "IN_PROGRESS",
+  CONFIRMED = "CONFIRMED",
   COMPLETED = "COMPLETED",
   CANCELLED = "CANCELLED",
 }
