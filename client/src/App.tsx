@@ -71,6 +71,7 @@ const AdminLoginPage = lazy(() => import("@/pages/admin/admin-login"));
 const AdminDashboardPage = lazy(() => import("@/pages/admin/admin-dashboard"));
 const AdminOrdersPage = lazy(() => import("@/pages/admin/admin-orders"));
 const AdminDriversPage = lazy(() => import("@/pages/admin/admin-drivers"));
+const AdminDriverTrackingPage = lazy(() => import("@/pages/admin/driver-tracking"));
 const AdminProfilePage = lazy(() => import("@/pages/admin/admin-profile"));
 const AdminCustomersPage = lazy(() => import("@/pages/admin/admin-customers"));
 const AdminAnalyticsPage = lazy(() => import("@/pages/admin/admin-analytics"));
@@ -218,6 +219,10 @@ function AdminRouter() {
       />
       <AdminSuspenseRoute path="/admin/orders" component={AdminOrdersPage} />
       <AdminSuspenseRoute path="/admin/drivers" component={AdminDriversPage} />
+      <AdminSuspenseRoute 
+        path="/admin/driver-tracking" 
+        component={AdminDriverTrackingPage} 
+      />
       <AdminSuspenseRoute
         path="/admin/customers"
         component={AdminCustomersPage}

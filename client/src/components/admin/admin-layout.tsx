@@ -12,6 +12,7 @@ import {
   X,
   UserCircle,
   BarChart3,
+  MapPin,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -37,15 +38,19 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
       switch (location) {
         case "/admin/dashboard":
           preloadComponent(() => import("@/pages/admin/admin-orders"));
-          preloadComponent(() => import("@/pages/admin/admin-customers"));
+          preloadComponent(() => import("@/pages/admin/driver-tracking"));
           break;
         case "/admin/orders":
           preloadComponent(() => import("@/pages/admin/admin-drivers"));
-          preloadComponent(() => import("@/pages/admin/admin-customers"));
+          preloadComponent(() => import("@/pages/admin/driver-tracking"));
           break;
         case "/admin/drivers":
-          preloadComponent(() => import("@/pages/admin/admin-profile"));
+          preloadComponent(() => import("@/pages/admin/driver-tracking"));
           preloadComponent(() => import("@/pages/admin/admin-customers"));
+          break;
+        case "/admin/driver-tracking":
+          preloadComponent(() => import("@/pages/admin/admin-drivers"));
+          preloadComponent(() => import("@/pages/admin/admin-orders"));
           break;
         case "/admin/customers":
           preloadComponent(() => import("@/pages/admin/admin-analytics"));
@@ -86,6 +91,11 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
       href: "/admin/drivers",
     },
     {
+      label: "Driver Tracking",
+      icon: <MapPin className="h-5 w-5" />,
+      href: "/admin/driver-tracking",
+    },
+    {
       label: "Customers",
       icon: <Users className="h-5 w-5" />,
       href: "/admin/customers",
@@ -116,6 +126,9 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
           break;
         case "/admin/drivers":
           preloadComponent(() => import("@/pages/admin/admin-drivers"));
+          break;
+        case "/admin/driver-tracking":
+          preloadComponent(() => import("@/pages/admin/driver-tracking"));
           break;
         case "/admin/customers":
           preloadComponent(() => import("@/pages/admin/admin-customers"));
