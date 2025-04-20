@@ -7,6 +7,8 @@ import {
   ActivityIndicator,
   Alert
 } from 'react-native';
+
+import type { ViewStyle, TextStyle } from 'react-native';
 import { MapView as MapViewType, Marker as MarkerType, PROVIDER_GOOGLE, Region } from 'react-native-maps';
 import * as Location from 'expo-location';
 
@@ -183,6 +185,7 @@ const LocationMap: React.FC<LocationMapProps> = ({
 
   return (
     <View style={styles.container}>
+
       {loading ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#f97316" />
