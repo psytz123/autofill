@@ -77,9 +77,13 @@ export default function AddLocationForm({
         // Refresh CSRF token to ensure it's registered with the server
         await initCsrfToken();
 
+        // Get current form values to ensure we have the latest user input
+        const formValues = form.getValues();
+        
         // Convert from our form schema to the API schema
         const apiData = {
-          name: data.name,
+          // Use the user's entered name, ensuring it takes precedence
+          name: formValues.name.trim() || data.name,
           address: data.address,
           type: data.type,
           // Pass the coordinates object directly as expected by the API
@@ -240,6 +244,7 @@ export default function AddLocationForm({
               // Update form values with the selected location
               // Using any type here to resolve the type conflict
               if (location && location.address) {
+                // Only update the address and coordinates, preserving user's custom name
                 form.setValue("address", location.address);
                 if (location.coordinates) {
                   setMapCoordinates(location.coordinates);
@@ -247,6 +252,14 @@ export default function AddLocationForm({
                     "coordinatesStr",
                     JSON.stringify(location.coordinates),
                   );
+                }
+                
+                // Don't update the name field if user has already entered a value
+                // This preserves the user's custom name entry
+                const currentName = form.getValues("name");
+                if (!currentName || currentName.trim() === "") {
+                  // Only set a default name if the user hasn't provided one
+                  form.setValue("name", "My Location");
                 }
               }
             }}
