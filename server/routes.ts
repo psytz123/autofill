@@ -139,7 +139,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json(orders);
   });
 
-  app.post("/api/orders", isAuthenticated, async (req, res) => {
+  app.post("/api/orders", isAuthenticated, async (req, res, next) => {
     try {
       const data = insertOrderSchema.parse({
         ...req.body,
@@ -152,21 +152,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (error instanceof z.ZodError) {
         return res.status(400).json({ errors: error.errors });
       }
-      res.status(500).json({ message: "Failed to create order" });
+      next(error);
     }
   });
 
   // Emergency fuel request endpoint - simplified flow with auto-location
-  app.post("/api/orders/emergency", isAuthenticated, async (req, res) => {
+  app.post("/api/orders/emergency", isAuthenticated, async (req, res, next) => {
     try {
       console.log("Emergency order request:", req.body);
 
       const { vehicleId, location, fuelType, amount } = req.body;
 
       if (!vehicleId || !location || !fuelType || !amount) {
-        return res.status(400).json({
-          message: "Missing required fields for emergency order",
-        });
+        // Throw a ValidationError that will be caught by the error handler middleware
+        const validationErrors = [];
+        if (!vehicleId) validationErrors.push({ field: "vehicleId", message: "Vehicle ID is required", code: "REQUIRED_FIELD" });
+        if (!location) validationErrors.push({ field: "location", message: "Location is required", code: "REQUIRED_FIELD" });
+        if (!fuelType) validationErrors.push({ field: "fuelType", message: "Fuel type is required", code: "REQUIRED_FIELD" });
+        if (!amount) validationErrors.push({ field: "amount", message: "Fuel amount is required", code: "REQUIRED_FIELD" });
+        
+        throw new ValidationError("Missing required fields for emergency order", validationErrors);
       }
 
       // Create a temporary location for this emergency request
@@ -212,6 +217,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       } catch (error) {
         console.error("Error fetching fuel prices:", error);
         
+        // Log price API failure but continue with default prices
+        console.warn("Using fallback fuel prices due to API failure");
+        
         // Fallback to a default price if fuel API fails
         const defaultFuelPrice = 3.75;
         const total = parseFloat((amount * defaultFuelPrice).toFixed(2));
@@ -235,9 +243,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
     } catch (error) {
       console.error("Error creating emergency order:", error);
-      res
-        .status(500)
-        .json({ message: "Failed to create emergency fuel request" });
+      next(error);
     }
   });
 
@@ -247,7 +253,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json(methods);
   });
 
-  app.post("/api/payment-methods", isAuthenticated, async (req, res) => {
+  app.post("/api/payment-methods", isAuthenticated, async (req, res, next) => {
     try {
       console.log("Payment method creation request:", req.body);
 
@@ -267,9 +273,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Payment method creation error:", error);
       if (error instanceof z.ZodError) {
-        return res.status(400).json({ errors: error.errors });
+        // Convert Zod validation errors to our ValidationError format
+        const validationErrors = error.errors.map(err => ({
+          field: err.path.join('.'),
+          message: err.message,
+          code: 'INVALID_FORMAT'
+        }));
+        next(new ValidationError("Invalid payment method data", validationErrors));
+      } else {
+        next(error);
       }
-      res.status(500).json({ message: "Failed to create payment method" });
     }
   });
 
@@ -295,7 +308,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json(locations);
   });
 
-  app.post("/api/locations", isAuthenticated, async (req, res) => {
+  app.post("/api/locations", isAuthenticated, async (req, res, next) => {
     try {
       console.log("POST /api/locations request body:", req.body);
 
@@ -311,9 +324,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Location creation error:", error);
       if (error instanceof z.ZodError) {
-        return res.status(400).json({ errors: error.errors });
+        // Convert Zod validation errors to our ValidationError format
+        const validationErrors = error.errors.map(err => ({
+          field: err.path.join('.'),
+          message: err.message,
+          code: 'INVALID_FORMAT'
+        }));
+        next(new ValidationError("Invalid location data", validationErrors));
+      } else {
+        next(error);
       }
-      res.status(500).json({ message: "Failed to create location" });
     }
   });
 
@@ -494,19 +514,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
   }
 
   // Add endpoint to update order status (for admin/drivers)
-  app.post("/api/orders/:id/status", isAuthenticated, async (req, res) => {
+  app.post("/api/orders/:id/status", isAuthenticated, async (req, res, next) => {
     try {
       const orderId = parseInt(req.params.id);
       const order = await storage.getOrder(orderId);
 
       if (!order) {
-        return res.status(404).json({ message: "Order not found" });
+        throw new NotFoundError("Order", orderId.toString());
       }
 
       // In production, add additional checks for authorization
       const status = req.body.status;
       if (!Object.values(OrderStatus).includes(status)) {
-        return res.status(400).json({ message: "Invalid status" });
+        throw new ValidationError("Invalid order status", [
+          {
+            field: "status",
+            message: `Status must be one of: ${Object.values(OrderStatus).join(", ")}`,
+            code: "INVALID_ENUM"
+          }
+        ]);
       }
 
       const updatedOrder = await storage.updateOrderStatus(orderId, status);
@@ -528,25 +554,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       res.json(updatedOrder);
     } catch (error) {
-      res.status(500).json({ message: "Failed to update order status" });
+      console.error("Error updating order status:", error);
+      next(error);
     }
   });
 
   // Stripe Payment Integration
 
   // Create a payment intent for a new order
-  app.post("/api/create-payment-intent", isAuthenticated, async (req, res) => {
+  app.post("/api/create-payment-intent", isAuthenticated, async (req, res, next) => {
     try {
       const { amount, orderId } = req.body;
 
       if (!amount || amount <= 0) {
-        return res.status(400).json({ message: "Invalid amount" });
+        throw new ValidationError("Invalid payment amount", [
+          {
+            field: "amount",
+            message: "Amount must be greater than zero",
+            code: "INVALID_AMOUNT"
+          }
+        ]);
       }
 
       if (!process.env.STRIPE_SECRET_KEY) {
-        return res.status(503).json({
-          message: "Payment service is not configured. Please contact support.",
-        });
+        throw new ServiceUnavailableError("Payment service");
       }
 
       // Create a PaymentIntent with the order amount and currency
@@ -569,17 +600,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       } catch (stripeError: any) {
         console.error("Stripe error:", stripeError);
-        res.status(400).json({
+        // Create a more specific API error from the Stripe error
+        throw new ApiError({
           message: "Payment service unavailable. Please try again later.",
-          error:
-            process.env.NODE_ENV === "development"
-              ? stripeError.message
-              : undefined,
+          statusCode: 400,
+          code: "STRIPE_ERROR",
+          data: process.env.NODE_ENV === "development" ? { 
+            message: stripeError.message,
+            type: stripeError.type 
+          } : undefined,
+          cause: stripeError
         });
       }
     } catch (error) {
       console.error("Error creating payment intent:", error);
-      res.status(500).json({ message: "Failed to process payment" });
+      next(error);
     }
   });
 
