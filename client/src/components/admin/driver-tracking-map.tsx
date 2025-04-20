@@ -736,8 +736,8 @@ export default function DriverTrackingMap({ onAssignDriver }: DriverTrackingMapP
                                     driver.status === "AVAILABLE"
                                       ? "outline"
                                       : driver.status === "BUSY"
-                                      ? "secondary"
-                                      : "outline"
+                                        ? "secondary"
+                                        : "outline"
                                   }
                                   className={driver.status === "AVAILABLE" ? "bg-green-100 text-green-800 hover:bg-green-200" : ""}
                                 >
@@ -770,8 +770,8 @@ export default function DriverTrackingMap({ onAssignDriver }: DriverTrackingMapP
                               selectedDriver.status === "AVAILABLE"
                                 ? "outline"
                                 : selectedDriver.status === "BUSY"
-                                ? "secondary"
-                                : "outline"
+                                  ? "secondary"
+                                  : "outline"
                             }
                             className={selectedDriver.status === "AVAILABLE" ? "bg-green-100 text-green-800 hover:bg-green-200" : ""}
                           >
@@ -956,8 +956,8 @@ export default function DriverTrackingMap({ onAssignDriver }: DriverTrackingMapP
                   </div>
                 </div>
               )}
-          </div>
-        )}
+            </div>
+          )}
 
           <DialogFooter className="flex items-center justify-between">
             <div>
