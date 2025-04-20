@@ -7,7 +7,8 @@ import { registerAdminRoutes } from "./admin-routes";
 import { storage } from "./storage";
 import { z } from "zod";
 import Stripe from "stripe";
-import { getFuelPrices } from "./fuel-api";
+import { getFuelPrices } from "./utils/fuel-api";
+import { handleApiError } from "./utils/error-handler";
 import {
   insertUserSchema,
   insertVehicleSchema,
@@ -36,6 +37,7 @@ function isAuthenticated(req: Request, res: Response, next: Function) {
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Register all routes before error handler middleware
   // Simple ping endpoint that also registers CSRF tokens
   app.get("/api/ping", (req, res) => {
     res
@@ -53,14 +55,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   registerAdminRoutes(app);
 
   // Fuel Prices API
-  app.get("/api/fuel-prices", async (req, res) => {
+  app.get("/api/fuel-prices", async (req, res, next) => {
     try {
       const stateCode = (req.query.state as string) || "FL";
-      const prices = await getFuelPrices(stateCode);
+      const forceRefresh = req.query.forceRefresh === "true";
+      const prices = await getFuelPrices(stateCode, forceRefresh);
       res.json(prices);
     } catch (error) {
-      console.error("Error fetching fuel prices:", error);
-      res.status(500).json({ message: "Failed to fetch fuel prices" });
+      next(error);
     }
   });
 
@@ -180,32 +182,57 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const savedLocation = await storage.createLocation(locationData);
 
       // Get current fuel prices
-      const stateCode = "FL"; // Default to Florida if we can't determine state
-      const prices = await getFuelPrices(stateCode);
-      const fuelPrice = prices[fuelType as FuelType] || 3.75; // Cast to FuelType and provide default
+      try {
+        const stateCode = "FL"; // Default to Florida if we can't determine state
+        const prices = await getFuelPrices(stateCode);
+        const fuelPrice = prices[fuelType as FuelType] || 3.75; // Cast to FuelType and provide default
 
-      // Calculate total
-      const total = parseFloat((amount * fuelPrice).toFixed(2));
+        // Calculate total
+        const total = parseFloat((amount * fuelPrice).toFixed(2));
 
-      // Create the emergency order with high priority
-      const orderData = {
-        userId: req.user!.id,
-        vehicleId,
-        locationId: savedLocation.id,
-        paymentMethodId: null, // Use default payment method or pass null
-        status: OrderStatus.CONFIRMED, // Use the CONFIRMED status for emergency orders
-        fuelType: fuelType as FuelType,
-        amount: Number(amount),
-        price: fuelPrice,
-        total,
-        isEmergency: true, // Flag this as an emergency request for special handling
-      };
+        // Create the emergency order with high priority
+        const orderData = {
+          userId: req.user!.id,
+          vehicleId,
+          locationId: savedLocation.id,
+          paymentMethodId: null, // Use default payment method or pass null
+          status: OrderStatus.CONFIRMED, // Use the CONFIRMED status for emergency orders
+          fuelType: fuelType as FuelType,
+          amount: Number(amount),
+          price: fuelPrice,
+          total,
+          isEmergency: true, // Flag this as an emergency request for special handling
+        };
 
-      console.log("Creating emergency order:", orderData);
-      const order = await storage.createOrder(orderData);
+        console.log("Creating emergency order:", orderData);
+        const order = await storage.createOrder(orderData);
 
-      // Return the created order
-      res.status(201).json(order);
+        // Return the created order
+        res.status(201).json(order);
+      } catch (error) {
+        console.error("Error fetching fuel prices:", error);
+        
+        // Fallback to a default price if fuel API fails
+        const defaultFuelPrice = 3.75;
+        const total = parseFloat((amount * defaultFuelPrice).toFixed(2));
+        
+        // Create the emergency order with default prices
+        const orderData = {
+          userId: req.user!.id,
+          vehicleId,
+          locationId: savedLocation.id,
+          paymentMethodId: null,
+          status: OrderStatus.CONFIRMED,
+          fuelType: fuelType as FuelType,
+          amount: Number(amount),
+          price: defaultFuelPrice,
+          total,
+          isEmergency: true,
+        };
+        
+        const order = await storage.createOrder(orderData);
+        res.status(201).json(order);
+      }
     } catch (error) {
       console.error("Error creating emergency order:", error);
       res
@@ -815,5 +842,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Register global error handler middleware
+  app.use(handleApiError);
+  
   return httpServer;
 }
