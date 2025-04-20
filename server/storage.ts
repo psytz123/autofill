@@ -22,7 +22,14 @@ import {
   LocationType,
   pushSubscriptions,
   InsertPushSubscription,
-  PushSubscription
+  PushSubscription,
+  pointsTransactions,
+  pointsRewards,
+  InsertPointsTransaction,
+  PointsTransaction,
+  InsertPointsReward,
+  PointsReward,
+  PointsTransactionType
 } from "@shared/schema";
 import session from "express-session";
 import createMemoryStore from "memorystore";

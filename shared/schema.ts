@@ -38,6 +38,8 @@ export const users = pgTable("users", {
   username: text("username").notNull().unique(),
   password: text("password").notNull(),
   name: text("name").notNull(),
+  // Reward points
+  points: integer("points").notNull().default(0),
   // Stripe related fields
   stripeCustomerId: text("stripe_customer_id"),
   stripeSubscriptionId: text("stripe_subscription_id"),
@@ -289,3 +291,86 @@ export const pushSubscriptionsRelations = relations(
     }),
   }),
 );
+
+// Points Transaction Types
+export enum PointsTransactionType {
+  EARN_PURCHASE = "EARN_PURCHASE",
+  EARN_REFERRAL = "EARN_REFERRAL",
+  EARN_SIGNUP = "EARN_SIGNUP",
+  EARN_MILESTONE = "EARN_MILESTONE",
+  REDEEM_DISCOUNT = "REDEEM_DISCOUNT",
+  REDEEM_FREE_DELIVERY = "REDEEM_FREE_DELIVERY",
+  REDEEM_FUEL_DISCOUNT = "REDEEM_FUEL_DISCOUNT",
+}
+
+// Points Transactions
+export const pointsTransactions = pgTable("points_transactions", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id")
+    .notNull()
+    .references(() => users.id),
+  orderId: integer("order_id")
+    .references(() => orders.id),
+  type: text("type").notNull(),
+  amount: integer("amount").notNull(),
+  description: text("description").notNull(),
+  balance: integer("balance").notNull(), // Running balance after this transaction
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertPointsTransactionSchema = createInsertSchema(pointsTransactions)
+  .extend({
+    type: z.nativeEnum(PointsTransactionType),
+  })
+  .omit({
+    balance: true, // Balance is calculated server-side
+  });
+
+export type InsertPointsTransaction = z.infer<typeof insertPointsTransactionSchema>;
+export type PointsTransaction = typeof pointsTransactions.$inferSelect & {
+  type: PointsTransactionType;
+};
+
+// Points Rewards Configuration
+export const pointsRewards = pgTable("points_rewards", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  description: text("description").notNull(),
+  type: text("type").notNull(),
+  pointsCost: integer("points_cost").notNull(),
+  discountAmount: integer("discount_amount"), // Percentage or fixed amount based on type
+  active: boolean("active").notNull().default(true),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const insertPointsRewardSchema = createInsertSchema(pointsRewards)
+  .extend({
+    type: z.nativeEnum(PointsTransactionType),
+  });
+
+export type InsertPointsReward = z.infer<typeof insertPointsRewardSchema>;
+export type PointsReward = typeof pointsRewards.$inferSelect & {
+  type: PointsTransactionType;
+};
+
+// Additional Relations
+export const usersRelationsUpdate = relations(users, ({ many }) => ({
+  vehicles: many(vehicles),
+  orders: many(orders),
+  paymentMethods: many(paymentMethods),
+  locations: many(locations),
+  pushSubscriptions: many(pushSubscriptions),
+  pointsTransactions: many(pointsTransactions),
+}));
+
+export const pointsTransactionsRelations = relations(pointsTransactions, ({ one }) => ({
+  user: one(users, {
+    fields: [pointsTransactions.userId],
+    references: [users.id],
+  }),
+  order: one(orders, {
+    fields: [pointsTransactions.orderId],
+    references: [orders.id],
+  }),
+}));
