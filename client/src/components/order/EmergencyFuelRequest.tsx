@@ -215,31 +215,24 @@ export function EmergencyFuelRequest({ className = "" }: EmergencyFuelRequestPro
         lng: currentLocation.coords.longitude
       };
       
-      // Create a location object from current coordinates
-      const emergencyLocation: Location = {
-        id: -1, // Temporary ID, will be replaced by server
-        userId: -1, // Temporary ID, will be replaced by server
-        name: "Emergency Location",
-        address: currentAddress,
-        type: LocationType.OTHER,
-        coordinates: coords,
-        createdAt: new Date(),
-      };
-      
-      // Create an emergency order
+      // Create an emergency order with only the data the server needs
       const emergencyOrder = {
-        location: emergencyLocation,
-        vehicle: selectedVehicle,
+        location: {
+          name: "Emergency Location",
+          address: currentAddress,
+          type: LocationType.OTHER,
+          coordinates: coords,
+        },
+        vehicleId: selectedVehicleId, // Send just the ID, not the whole vehicle object
         fuelType: FuelType.REGULAR_UNLEADED,
         amount: 10, // Default amount
-        paymentMethod: null, // Will be collected on delivery
-        deliveryDate: new Date(),
+        deliveryDate: new Date().toISOString(), // Convert to ISO string for API
         deliveryTimeSlot: "ASAP",
-        repeatWeekly: false,
         instructions: "EMERGENCY FUEL REQUEST - Please deliver as soon as possible",
-        leaveGasDoorOpen: false,
         isEmergency: true,
       };
+      
+      console.log("Submitting emergency order:", emergencyOrder);
       
       // Submit the order
       createOrderMutation.mutate(emergencyOrder);
