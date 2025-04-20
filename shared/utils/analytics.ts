@@ -1,296 +1,277 @@
 /**
- * Shared Analytics Utilities
- * Common analytics functionality for both web and mobile platforms
+ * Analytics Utilities
+ * 
+ * This module provides standardized analytics interfaces for use across web and mobile platforms.
  */
 
-// Performance categories for metrics tracking
+/**
+ * Event categories
+ */
+export enum EventCategory {
+  // Navigation events
+  SCREEN_VIEW = 'screen_view',
+  PAGE_VIEW = 'page_view',
+  NAVIGATION = 'navigation',
+  
+  // Interaction events
+  BUTTON_CLICK = 'button_click',
+  FORM_SUBMIT = 'form_submit',
+  INPUT_CHANGE = 'input_change',
+  DROPDOWN_SELECT = 'dropdown_select',
+  GESTURE = 'gesture',
+  SWIPE = 'swipe',
+  PULL_TO_REFRESH = 'pull_to_refresh',
+  
+  // Content events
+  CONTENT_VIEW = 'content_view',
+  CONTENT_SHARE = 'content_share',
+  CONTENT_SAVE = 'content_save',
+  MEDIA_PLAY = 'media_play',
+  MEDIA_PAUSE = 'media_pause',
+  MEDIA_COMPLETE = 'media_complete',
+  
+  // Conversion events
+  ADD_TO_CART = 'add_to_cart',
+  REMOVE_FROM_CART = 'remove_from_cart',
+  CHECKOUT_START = 'checkout_start',
+  CHECKOUT_COMPLETE = 'checkout_complete',
+  PURCHASE = 'purchase',
+  PAYMENT_INFO_ENTER = 'payment_info_enter',
+  SUBSCRIPTION_START = 'subscription_start',
+  SUBSCRIPTION_RENEW = 'subscription_renew',
+  SUBSCRIPTION_CANCEL = 'subscription_cancel',
+  
+  // User events
+  SIGNUP = 'signup',
+  LOGIN = 'login',
+  LOGOUT = 'logout',
+  PROFILE_UPDATE = 'profile_update',
+  ACCOUNT_DELETE = 'account_delete',
+  
+  // Fuel delivery specific events
+  ORDER_CREATE = 'order_create',
+  ORDER_UPDATE = 'order_update',
+  ORDER_CANCEL = 'order_cancel',
+  ORDER_COMPLETE = 'order_complete',
+  VEHICLE_ADD = 'vehicle_add',
+  VEHICLE_UPDATE = 'vehicle_update',
+  VEHICLE_REMOVE = 'vehicle_remove',
+  LOCATION_ADD = 'location_add',
+  LOCATION_UPDATE = 'location_update',
+  LOCATION_REMOVE = 'location_remove',
+  LOCATION_SELECT = 'location_select',
+  FUEL_TYPE_SELECT = 'fuel_type_select',
+  DELIVERY_TIME_SELECT = 'delivery_time_select',
+  PAYMENT_METHOD_ADD = 'payment_method_add',
+  PAYMENT_METHOD_UPDATE = 'payment_method_update',
+  PAYMENT_METHOD_REMOVE = 'payment_method_remove',
+  PAYMENT_METHOD_SELECT = 'payment_method_select',
+  
+  // Error events
+  ERROR = 'error',
+  VALIDATION_ERROR = 'validation_error',
+  
+  // Custom events
+  CUSTOM = 'custom',
+}
+
+/**
+ * Performance measurement categories
+ */
 export enum PerformanceCategory {
-  // Page load metrics
-  FIRST_PAINT = 'first_paint',
-  FIRST_CONTENTFUL_PAINT = 'first_contentful_paint',
-  LARGEST_CONTENTFUL_PAINT = 'largest_contentful_paint',
+  // Loading and rendering times
   TIME_TO_INTERACTIVE = 'time_to_interactive',
+  FIRST_CONTENTFUL_PAINT = 'first_contentful_paint',
+  FIRST_PAINT = 'first_paint',
+  LARGEST_CONTENTFUL_PAINT = 'largest_contentful_paint',
   
-  // User interaction metrics
-  INTERACTION_TIME = 'interaction_time',
+  // Interactivity
   INPUT_DELAY = 'input_delay',
+  INTERACTION_TIME = 'interaction_time',
   
-  // API performance
-  API_RESPONSE_TIME = 'api_response_time',
-  API_ERROR_RATE = 'api_error_rate',
+  // Layout stability
+  LAYOUT_SHIFT = 'layout_shift',
   
-  // Resource performance
-  RESOURCE_LOAD_TIME = 'resource_load_time',
+  // Resources
   RESOURCE_SIZE = 'resource_size',
+  RESOURCE_LOAD_TIME = 'resource_load_time',
   
-  // Application specific metrics
+  // JavaScript execution
+  LONG_TASKS = 'long_tasks',
+  JS_HEAP_SIZE = 'js_heap_size',
+  
+  // Network
+  API_RESPONSE_TIME = 'api_response_time',
+  
+  // App-specific
   MAP_LOAD_TIME = 'map_load_time',
   ORDER_COMPLETION_TIME = 'order_completion_time',
   PAYMENT_PROCESSING_TIME = 'payment_processing_time',
   
-  // Performance health
-  MEMORY_USAGE = 'memory_usage',
-  JS_HEAP_SIZE = 'js_heap_size',
-  LONG_TASKS = 'long_tasks',
-  
-  // User experience metrics
-  LAYOUT_SHIFT = 'layout_shift',
+  // Custom
+  CUSTOM = 'custom',
 }
 
-// Event categories for user behavior tracking
-export enum EventCategory {
-  // Navigation events
-  NAVIGATION = 'navigation',
-  SCREEN_VIEW = 'screen_view',
-  
-  // User interactions
-  BUTTON_CLICK = 'button_click',
-  FORM_SUBMIT = 'form_submit',
-  LINK_CLICK = 'link_click',
-  
-  // Feature usage
-  LOCATION_SEARCH = 'location_search',
-  VEHICLE_SELECT = 'vehicle_select',
-  FUEL_TYPE_SELECT = 'fuel_type_select',
-  
-  // Business events
-  ORDER_STARTED = 'order_started',
-  ORDER_COMPLETED = 'order_completed',
-  ORDER_CANCELLED = 'order_cancelled',
-  PAYMENT_STARTED = 'payment_started',
-  PAYMENT_COMPLETED = 'payment_completed',
-  PAYMENT_FAILED = 'payment_failed',
-  
-  // User account
-  USER_SIGNUP = 'user_signup',
-  USER_LOGIN = 'user_login',
-  USER_LOGOUT = 'user_logout',
-  PROFILE_UPDATE = 'profile_update',
-  
-  // Feature engagement
-  NOTIFICATIONS_ENABLED = 'notifications_enabled',
-  LOCATION_PERMISSION = 'location_permission',
-  SAVED_LOCATION = 'saved_location',
-}
-
-// Interface for analytics events
+/**
+ * Event data interface
+ */
 export interface AnalyticsEvent {
+  /**
+   * Category of the event
+   */
   category: EventCategory;
+  
+  /**
+   * Action performed
+   */
   action: string;
+  
+  /**
+   * Optional label for the event
+   */
   label?: string;
+  
+  /**
+   * Optional numeric value
+   */
   value?: number;
-  properties?: Record<string, any>;
-  timestamp?: number;
+  
+  /**
+   * Additional data
+   */
+  data?: Record<string, any>;
 }
 
-// Interface for performance metrics
+/**
+ * Performance metric interface
+ */
 export interface PerformanceMetric {
+  /**
+   * Category of the performance metric
+   */
   category: PerformanceCategory;
+  
+  /**
+   * Name of the metric
+   */
   name: string;
+  
+  /**
+   * Value of the metric
+   */
   value: number;
-  unit?: 'ms' | 'bytes' | 'percent' | 'count';
+  
+  /**
+   * Unit of measurement (ms, bytes, count, etc.)
+   */
+  unit: 'ms' | 'bytes' | 'count' | 'percentage' | string;
+  
+  /**
+   * Additional context for the metric
+   */
   context?: Record<string, any>;
-  timestamp?: number;
 }
 
-// Base analytics provider interface
-export interface AnalyticsProvider {
-  init(options?: Record<string, any>): Promise<void>;
+/**
+ * User identification data
+ */
+export interface UserIdentification {
+  /**
+   * User ID
+   */
+  userId?: string | number;
+  
+  /**
+   * Anonymous ID for tracking before login
+   */
+  anonymousId?: string;
+  
+  /**
+   * User attributes
+   */
+  traits?: {
+    email?: string;
+    name?: string;
+    username?: string;
+    role?: string;
+    [key: string]: any;
+  };
+}
+
+/**
+ * Analytics provider interface
+ */
+export interface IAnalytics {
+  /**
+   * Initialize the analytics provider
+   * @param options Initialization options
+   */
+  initialize(options?: Record<string, any>): void;
+  
+  /**
+   * Identify a user
+   * @param user User identification data
+   */
+  identify(user: UserIdentification): void;
+  
+  /**
+   * Track an event
+   * @param event Event data
+   */
   trackEvent(event: AnalyticsEvent): void;
-  trackPerformance(metric: PerformanceMetric): void;
-  setUserId(userId: string | null): void;
-  setUserProperties(properties: Record<string, any>): void;
-}
-
-// Performance timer utility
-export class PerformanceTimer {
-  private startTime: number;
-  private endTime: number | null = null;
-  
-  constructor() {
-    // Use performance.now() if available, otherwise fallback to Date.now()
-    this.startTime = typeof performance !== 'undefined' 
-      ? performance.now() 
-      : Date.now();
-  }
   
   /**
-   * Stop the timer
+   * Track a page or screen view
+   * @param name Page or screen name
+   * @param properties Additional properties
    */
-  stop(): number {
-    this.endTime = typeof performance !== 'undefined' 
-      ? performance.now() 
-      : Date.now();
-      
-    return this.getElapsedTime();
-  }
-  
-  /**
-   * Get the elapsed time in milliseconds
-   */
-  getElapsedTime(): number {
-    const endTime = this.endTime || (typeof performance !== 'undefined' 
-      ? performance.now() 
-      : Date.now());
-      
-    return endTime - this.startTime;
-  }
-  
-  /**
-   * Reset the timer to start from now
-   */
-  reset(): void {
-    this.startTime = typeof performance !== 'undefined' 
-      ? performance.now() 
-      : Date.now();
-    this.endTime = null;
-  }
-}
-
-// Singleton analytics manager
-let analyticsInstance: AnalyticsManager | null = null;
-
-// Analytics manager that can work with multiple providers
-export class AnalyticsManager {
-  private providers: AnalyticsProvider[] = [];
-  private userId: string | null = null;
-  private userProperties: Record<string, any> = {};
-  private isEnabled: boolean = true;
-  private samplingRate: number = 1.0; // 100% by default
-  
-  /**
-   * Add an analytics provider
-   */
-  addProvider(provider: AnalyticsProvider): void {
-    this.providers.push(provider);
-  }
-  
-  /**
-   * Initialize all registered providers
-   */
-  async init(options?: Record<string, any>): Promise<void> {
-    for (const provider of this.providers) {
-      try {
-        await provider.init(options);
-      } catch (error) {
-        console.error(`Failed to initialize analytics provider:`, error);
-      }
-    }
-    
-    if (options?.samplingRate !== undefined) {
-      this.samplingRate = options.samplingRate;
-    }
-    
-    if (options?.enabled !== undefined) {
-      this.isEnabled = options.enabled;
-    }
-  }
-  
-  /**
-   * Track an analytics event
-   */
-  trackEvent(event: AnalyticsEvent): void {
-    if (!this.isEnabled || Math.random() > this.samplingRate) {
-      return;
-    }
-    
-    const enhancedEvent = {
-      ...event,
-      timestamp: event.timestamp || Date.now()
-    };
-    
-    for (const provider of this.providers) {
-      try {
-        provider.trackEvent(enhancedEvent);
-      } catch (error) {
-        console.error(`Failed to track event:`, error);
-      }
-    }
-  }
+  trackPage(name: string, properties?: Record<string, any>): void;
   
   /**
    * Track a performance metric
+   * @param metric Performance metric data
    */
-  trackPerformance(metric: PerformanceMetric): void {
-    if (!this.isEnabled || Math.random() > this.samplingRate) {
-      return;
-    }
-    
-    const enhancedMetric = {
-      ...metric,
-      timestamp: metric.timestamp || Date.now()
-    };
-    
-    for (const provider of this.providers) {
-      try {
-        provider.trackPerformance(enhancedMetric);
-      } catch (error) {
-        console.error(`Failed to track performance metric:`, error);
-      }
-    }
-  }
+  trackPerformance(metric: PerformanceMetric): void;
   
   /**
-   * Set the current user ID
+   * Reset user identification (e.g., on logout)
    */
-  setUserId(userId: string | null): void {
-    this.userId = userId;
-    
-    for (const provider of this.providers) {
-      try {
-        provider.setUserId(userId);
-      } catch (error) {
-        console.error(`Failed to set user ID:`, error);
-      }
-    }
-  }
+  reset(): void;
   
   /**
-   * Set properties for the current user
+   * Flush any queued events
    */
-  setUserProperties(properties: Record<string, any>): void {
-    this.userProperties = {
-      ...this.userProperties,
-      ...properties
-    };
-    
-    for (const provider of this.providers) {
-      try {
-        provider.setUserProperties(this.userProperties);
-      } catch (error) {
-        console.error(`Failed to set user properties:`, error);
-      }
-    }
-  }
-  
-  /**
-   * Enable or disable analytics
-   */
-  setEnabled(enabled: boolean): void {
-    this.isEnabled = enabled;
-  }
-  
-  /**
-   * Set sampling rate (0-1) to control data volume
-   */
-  setSamplingRate(rate: number): void {
-    this.samplingRate = Math.max(0, Math.min(1, rate));
-  }
+  flush(): void;
 }
 
 /**
- * Get the singleton analytics manager instance
+ * No-op analytics provider
  */
-export function getAnalytics(): AnalyticsManager {
-  if (!analyticsInstance) {
-    analyticsInstance = new AnalyticsManager();
-  }
+class NoOpAnalytics implements IAnalytics {
+  initialize(): void {}
+  identify(): void {}
+  trackEvent(): void {}
+  trackPage(): void {}
+  trackPerformance(): void {}
+  reset(): void {}
+  flush(): void {}
+}
+
+// Default analytics instance
+let analyticsInstance: IAnalytics = new NoOpAnalytics();
+
+/**
+ * Set the analytics provider
+ * @param provider Analytics provider
+ */
+export function setAnalyticsProvider(provider: IAnalytics): void {
+  analyticsInstance = provider;
+}
+
+/**
+ * Get the current analytics provider
+ * @returns Analytics provider
+ */
+export function getAnalytics(): IAnalytics {
   return analyticsInstance;
-}
-
-/**
- * Reset the analytics manager (useful for testing)
- */
-export function resetAnalytics(): void {
-  analyticsInstance = null;
 }

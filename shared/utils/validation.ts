@@ -1,263 +1,408 @@
 /**
- * Shared Validation Utilities
- * Common validation functions for both web and mobile platforms
+ * Validation Utilities
+ * 
+ * This module provides data validation utilities for use across web and mobile platforms.
  */
 
+import { ValidationError } from './error-handling';
+
 /**
- * Validates an email address
- * @param email Email address to validate
- * @returns True if the email is valid
+ * Validation result
  */
-export function isValidEmail(email: string): boolean {
-  if (!email) return false;
-  
-  // RFC 5322 compliant email regex
-  const emailRegex = /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
-  return emailRegex.test(email);
+export interface ValidationResult<T> {
+  valid: boolean;
+  value: T | undefined;
+  errors?: Record<string, string>;
 }
 
 /**
- * Validates a phone number
- * @param phone Phone number to validate
- * @returns True if the phone number is valid
+ * Validation schema
  */
-export function isValidPhone(phone: string): boolean {
-  if (!phone) return false;
-  
-  // Remove non-numeric characters for validation
-  const digits = phone.replace(/\D/g, '');
-  
-  // Check for valid formats:
-  // - 10 digits (standard US number)
-  // - 11 digits starting with 1 (US with country code)
-  return (digits.length === 10) || (digits.length === 11 && digits.charAt(0) === '1');
+export interface ValidationSchema<T> {
+  validate(data: unknown): ValidationResult<T>;
 }
 
 /**
- * Password strength options
+ * Validate data against a schema
+ * @param data Data to validate
+ * @param schema Validation schema
+ * @param errorMessage Custom error message
+ * @returns Validated data
+ * @throws ValidationError if validation fails
  */
-interface PasswordOptions {
-  minLength?: number;
-  requireUppercase?: boolean;
-  requireLowercase?: boolean;
-  requireNumbers?: boolean;
-  requireSpecialChars?: boolean;
+export function validateData<T>(
+  data: unknown,
+  schema: ValidationSchema<T>,
+  errorMessage: string = 'Validation failed'
+): T {
+  const result = schema.validate(data);
+  
+  if (!result.valid || result.value === undefined) {
+    throw new ValidationError(errorMessage, {
+      fieldErrors: result.errors,
+    });
+  }
+  
+  return result.value;
 }
 
 /**
- * Password validation result
+ * Validator functions
  */
-interface PasswordValidationResult {
-  isValid: boolean;
-  strength: 'weak' | 'medium' | 'strong' | 'very-strong';
-  missing: string[];
-  score: number;
-}
-
-/**
- * Validates a password and returns detailed info about its strength
- * @param password Password to validate
- * @param options Validation options
- */
-export function validatePassword(
-  password: string,
-  options: PasswordOptions = {}
-): PasswordValidationResult {
-  const opts = {
-    minLength: options.minLength || 8,
-    requireUppercase: options.requireUppercase !== false,
-    requireLowercase: options.requireLowercase !== false,
-    requireNumbers: options.requireNumbers !== false,
-    requireSpecialChars: options.requireSpecialChars !== false,
-  };
+export const Validators = {
+  /**
+   * Check if a value is defined (not undefined or null)
+   * @param value Value to check
+   * @param message Custom error message
+   * @returns True if the value is defined
+   */
+  required: (value: any, message: string = 'This field is required'): string | true => {
+    return value !== undefined && value !== null && value !== '' ? true : message;
+  },
   
-  // Check various password criteria
-  const hasMinLength = password.length >= opts.minLength;
-  const hasUppercase = /[A-Z]/.test(password);
-  const hasLowercase = /[a-z]/.test(password);
-  const hasNumbers = /\d/.test(password);
-  const hasSpecialChars = /[^A-Za-z0-9]/.test(password);
+  /**
+   * Check if a value is a string
+   * @param value Value to check
+   * @param message Custom error message
+   * @returns True if the value is a string
+   */
+  string: (value: any, message: string = 'Must be a string'): string | true => {
+    return typeof value === 'string' ? true : message;
+  },
   
-  // Calculate score and collect missing criteria
-  let score = 0;
-  const missing: string[] = [];
+  /**
+   * Check if a value is a number
+   * @param value Value to check
+   * @param message Custom error message
+   * @returns True if the value is a number
+   */
+  number: (value: any, message: string = 'Must be a number'): string | true => {
+    return typeof value === 'number' && !isNaN(value) ? true : message;
+  },
   
-  if (hasMinLength) score++;
-  else missing.push(`at least ${opts.minLength} characters`);
+  /**
+   * Check if a value is a boolean
+   * @param value Value to check
+   * @param message Custom error message
+   * @returns True if the value is a boolean
+   */
+  boolean: (value: any, message: string = 'Must be a boolean'): string | true => {
+    return typeof value === 'boolean' ? true : message;
+  },
   
-  if (hasUppercase || !opts.requireUppercase) score++;
-  else missing.push('uppercase letter');
+  /**
+   * Check if a value is an array
+   * @param value Value to check
+   * @param message Custom error message
+   * @returns True if the value is an array
+   */
+  array: (value: any, message: string = 'Must be an array'): string | true => {
+    return Array.isArray(value) ? true : message;
+  },
   
-  if (hasLowercase || !opts.requireLowercase) score++;
-  else missing.push('lowercase letter');
+  /**
+   * Check if a value is an object
+   * @param value Value to check
+   * @param message Custom error message
+   * @returns True if the value is an object
+   */
+  object: (value: any, message: string = 'Must be an object'): string | true => {
+    return typeof value === 'object' && value !== null && !Array.isArray(value) ? true : message;
+  },
   
-  if (hasNumbers || !opts.requireNumbers) score++;
-  else missing.push('number');
+  /**
+   * Check if a string matches a minimum length
+   * @param min Minimum length
+   * @param message Custom error message
+   * @returns Validator function
+   */
+  minLength: (min: number, message?: string) => {
+    return (value: string): string | true => {
+      return value.length >= min ? true : message || `Must be at least ${min} characters`;
+    };
+  },
   
-  if (hasSpecialChars || !opts.requireSpecialChars) score++;
-  else missing.push('special character');
+  /**
+   * Check if a string matches a maximum length
+   * @param max Maximum length
+   * @param message Custom error message
+   * @returns Validator function
+   */
+  maxLength: (max: number, message?: string) => {
+    return (value: string): string | true => {
+      return value.length <= max ? true : message || `Must be at most ${max} characters`;
+    };
+  },
   
-  // Add bonus points for length
-  if (password.length >= 12) score++;
-  if (password.length >= 16) score++;
+  /**
+   * Check if a number is at least a minimum value
+   * @param min Minimum value
+   * @param message Custom error message
+   * @returns Validator function
+   */
+  min: (min: number, message?: string) => {
+    return (value: number): string | true => {
+      return value >= min ? true : message || `Must be at least ${min}`;
+    };
+  },
   
-  // Determine strength
-  let strength: 'weak' | 'medium' | 'strong' | 'very-strong';
-  if (score <= 2) strength = 'weak';
-  else if (score <= 4) strength = 'medium';
-  else if (score <= 6) strength = 'strong';
-  else strength = 'very-strong';
+  /**
+   * Check if a number is at most a maximum value
+   * @param max Maximum value
+   * @param message Custom error message
+   * @returns Validator function
+   */
+  max: (max: number, message?: string) => {
+    return (value: number): string | true => {
+      return value <= max ? true : message || `Must be at most ${max}`;
+    };
+  },
   
-  // Validity requires all mandatory criteria to be met
-  const isValid = missing.length === 0;
+  /**
+   * Check if a string matches a pattern
+   * @param pattern Regular expression pattern
+   * @param message Custom error message
+   * @returns Validator function
+   */
+  pattern: (pattern: RegExp, message: string = 'Invalid format') => {
+    return (value: string): string | true => {
+      return pattern.test(value) ? true : message;
+    };
+  },
   
-  return {
-    isValid,
-    strength,
-    missing,
-    score
-  };
-}
-
-/**
- * Credit card type detection and validation
- */
-export type CreditCardType = 
-  | 'visa'
-  | 'mastercard' 
-  | 'amex' 
-  | 'discover' 
-  | 'dinersclub' 
-  | 'jcb' 
-  | 'unknown';
-
-/**
- * Card type patterns
- */
-const CARD_PATTERNS = {
-  visa: /^4[0-9]{12}(?:[0-9]{3})?$/,
-  mastercard: /^5[1-5][0-9]{14}$/,
-  amex: /^3[47][0-9]{13}$/,
-  discover: /^6(?:011|5[0-9]{2})[0-9]{12}$/,
-  dinersclub: /^3(?:0[0-5]|[68][0-9])[0-9]{11}$/,
-  jcb: /^(?:2131|1800|35\d{3})\d{11}$/
+  /**
+   * Check if a string is a valid email
+   * @param message Custom error message
+   * @returns Validator function
+   */
+  email: (message: string = 'Invalid email address') => {
+    const emailPattern = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    return Validators.pattern(emailPattern, message);
+  },
+  
+  /**
+   * Check if a string is a valid phone number
+   * @param message Custom error message
+   * @returns Validator function
+   */
+  phoneNumber: (message: string = 'Invalid phone number') => {
+    const phonePattern = /^\+?[0-9]{10,15}$/;
+    return Validators.pattern(phonePattern, message);
+  },
+  
+  /**
+   * Check if a string is a valid URL
+   * @param message Custom error message
+   * @returns Validator function
+   */
+  url: (message: string = 'Invalid URL') => {
+    return (value: string): string | true => {
+      try {
+        new URL(value);
+        return true;
+      } catch (error) {
+        return message;
+      }
+    };
+  },
+  
+  /**
+   * Check if a string is a valid credit card number (simple check)
+   * @param message Custom error message
+   * @returns Validator function
+   */
+  creditCard: (message: string = 'Invalid credit card number') => {
+    return (value: string): string | true => {
+      // Remove spaces and dashes
+      const sanitized = value.replace(/[\s-]/g, '');
+      
+      // Check if it contains only digits
+      if (!/^\d+$/.test(sanitized)) {
+        return message;
+      }
+      
+      // Check length (most credit cards are 13-19 digits)
+      if (sanitized.length < 13 || sanitized.length > 19) {
+        return message;
+      }
+      
+      // Luhn algorithm (checksum)
+      let sum = 0;
+      let double = false;
+      
+      for (let i = sanitized.length - 1; i >= 0; i--) {
+        let digit = parseInt(sanitized.charAt(i), 10);
+        
+        if (double) {
+          digit *= 2;
+          if (digit > 9) {
+            digit -= 9;
+          }
+        }
+        
+        sum += digit;
+        double = !double;
+      }
+      
+      return sum % 10 === 0 ? true : message;
+    };
+  },
+  
+  /**
+   * Check if a value is one of a set of allowed values
+   * @param allowedValues Array of allowed values
+   * @param message Custom error message
+   * @returns Validator function
+   */
+  oneOf: <T>(allowedValues: T[], message?: string) => {
+    return (value: T): string | true => {
+      return allowedValues.includes(value) ? true : message || `Must be one of: ${allowedValues.join(', ')}`;
+    };
+  },
+  
+  /**
+   * Check if a date is in the future
+   * @param message Custom error message
+   * @returns Validator function
+   */
+  futureDate: (message: string = 'Must be a future date') => {
+    return (value: string | Date): string | true => {
+      const date = value instanceof Date ? value : new Date(value);
+      const now = new Date();
+      
+      return date > now ? true : message;
+    };
+  },
+  
+  /**
+   * Check if a date is in the past
+   * @param message Custom error message
+   * @returns Validator function
+   */
+  pastDate: (message: string = 'Must be a past date') => {
+    return (value: string | Date): string | true => {
+      const date = value instanceof Date ? value : new Date(value);
+      const now = new Date();
+      
+      return date < now ? true : message;
+    };
+  },
+  
+  /**
+   * Check if a password meets complexity requirements
+   * @param options Password complexity options
+   * @param message Custom error message
+   * @returns Validator function
+   */
+  passwordComplexity: (
+    options: {
+      minLength?: number;
+      maxLength?: number;
+      requireLowercase?: boolean;
+      requireUppercase?: boolean;
+      requireNumbers?: boolean;
+      requireSpecialChars?: boolean;
+    } = {},
+    message?: string
+  ) => {
+    const {
+      minLength = 8,
+      maxLength = 100,
+      requireLowercase = true,
+      requireUppercase = true,
+      requireNumbers = true,
+      requireSpecialChars = true,
+    } = options;
+    
+    return (value: string): string | true => {
+      const errors = [];
+      
+      if (value.length < minLength) {
+        errors.push(`Must be at least ${minLength} characters`);
+      }
+      
+      if (value.length > maxLength) {
+        errors.push(`Must be at most ${maxLength} characters`);
+      }
+      
+      if (requireLowercase && !/[a-z]/.test(value)) {
+        errors.push('Must include a lowercase letter');
+      }
+      
+      if (requireUppercase && !/[A-Z]/.test(value)) {
+        errors.push('Must include an uppercase letter');
+      }
+      
+      if (requireNumbers && !/[0-9]/.test(value)) {
+        errors.push('Must include a number');
+      }
+      
+      if (requireSpecialChars && !/[^a-zA-Z0-9]/.test(value)) {
+        errors.push('Must include a special character');
+      }
+      
+      return errors.length === 0 ? true : message || errors.join(', ');
+    };
+  },
+  
+  /**
+   * Create a custom validator
+   * @param validator Custom validator function
+   * @returns Validator function
+   */
+  custom: <T>(validator: (value: T) => string | true) => {
+    return validator;
+  },
 };
 
 /**
- * Determines the credit card type
- * @param cardNumber Credit card number
- * @returns The card type or 'unknown'
+ * Create a validation schema
+ * @param schema Validation schema definition
+ * @returns ValidationSchema instance
  */
-export function getCreditCardType(cardNumber: string): CreditCardType {
-  // Remove spaces and dashes
-  const normalizedNumber = cardNumber.replace(/[\s-]/g, '');
-  
-  for (const [type, pattern] of Object.entries(CARD_PATTERNS)) {
-    if (pattern.test(normalizedNumber)) {
-      return type as CreditCardType;
-    }
-  }
-  
-  return 'unknown';
+export function createValidationSchema<T>(schema: Record<string, ((value: any) => string | true)[]>): ValidationSchema<T> {
+  return {
+    validate(data: unknown): ValidationResult<T> {
+      if (typeof data !== 'object' || data === null) {
+        return { valid: false, value: undefined, errors: { _: 'Invalid data' } };
+      }
+      
+      const errors: Record<string, string> = {};
+      
+      for (const field in schema) {
+        if (Object.prototype.hasOwnProperty.call(schema, field)) {
+          const validators = schema[field];
+          const value = (data as Record<string, any>)[field];
+          
+          for (const validator of validators) {
+            const result = validator(value);
+            
+            if (result !== true) {
+              errors[field] = result;
+              break;
+            }
+          }
+        }
+      }
+      
+      if (Object.keys(errors).length > 0) {
+        return { valid: false, value: undefined, errors };
+      }
+      
+      return { valid: true, value: data as T };
+    },
+  };
 }
 
 /**
- * Validates a credit card number using Luhn algorithm and card type patterns
- * @param cardNumber Credit card number
- * @returns True if the card number is valid
+ * Create a model validator
+ * @param schema Validation schema
+ * @param errorMessage Custom error message
+ * @returns Validation function
  */
-export function isValidCreditCard(cardNumber: string): boolean {
-  if (!cardNumber) return false;
-  
-  // Remove spaces and dashes
-  const normalizedNumber = cardNumber.replace(/[\s-]/g, '');
-  
-  // Check if the number matches any known card type pattern
-  const cardType = getCreditCardType(normalizedNumber);
-  if (cardType === 'unknown') return false;
-  
-  // Luhn algorithm validation
-  let sum = 0;
-  let shouldDouble = false;
-  
-  // Walk through the card number in reverse
-  for (let i = normalizedNumber.length - 1; i >= 0; i--) {
-    let digit = parseInt(normalizedNumber.charAt(i));
-    
-    if (shouldDouble) {
-      digit *= 2;
-      if (digit > 9) digit -= 9;
-    }
-    
-    sum += digit;
-    shouldDouble = !shouldDouble;
-  }
-  
-  return (sum % 10) === 0;
-}
-
-/**
- * Validates a date string
- * @param dateStr Date string in format YYYY-MM-DD
- * @returns True if the date is valid
- */
-export function isValidDate(dateStr: string): boolean {
-  // Check format
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return false;
-  
-  // Parse the date parts to integers
-  const parts = dateStr.split('-');
-  const year = parseInt(parts[0], 10);
-  const month = parseInt(parts[1], 10);
-  const day = parseInt(parts[2], 10);
-  
-  // Check the ranges of month and day
-  if (year < 1000 || year > 3000 || month < 1 || month > 12) return false;
-  
-  const monthLength = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
-  
-  // Adjust for leap years
-  if (year % 400 === 0 || (year % 100 !== 0 && year % 4 === 0)) {
-    monthLength[1] = 29;
-  }
-  
-  return day > 0 && day <= monthLength[month - 1];
-}
-
-/**
- * Validates a URL
- * @param url URL to validate
- * @returns True if the URL is valid
- */
-export function isValidUrl(url: string): boolean {
-  try {
-    const parsedUrl = new URL(url);
-    return ['http:', 'https:'].includes(parsedUrl.protocol);
-  } catch (e) {
-    return false;
-  }
-}
-
-/**
- * Validates a postal/zip code
- * @param code Postal code to validate
- * @param countryCode ISO country code (default 'US')
- * @returns True if the postal code is valid
- */
-export function isValidPostalCode(code: string, countryCode = 'US'): boolean {
-  if (!code) return false;
-  
-  // Different formats for different countries
-  switch (countryCode.toUpperCase()) {
-    case 'US':
-      return /^\d{5}(-\d{4})?$/.test(code);
-    case 'CA':
-      return /^[A-Za-z]\d[A-Za-z][ -]?\d[A-Za-z]\d$/.test(code);
-    case 'UK':
-    case 'GB':
-      return /^[A-Z]{1,2}[0-9][A-Z0-9]? ?[0-9][A-Z]{2}$/i.test(code);
-    default:
-      // Default validation - at least 3 characters
-      return code.length >= 3;
-  }
+export function createValidator<T>(
+  schema: ValidationSchema<T>,
+  errorMessage: string = 'Validation failed'
+): (data: unknown) => T {
+  return (data: unknown) => validateData(data, schema, errorMessage);
 }

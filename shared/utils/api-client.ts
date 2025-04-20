@@ -1,6 +1,7 @@
 /**
- * Shared API Client Utilities
- * Common API interaction patterns for both web and mobile platforms
+ * API Client
+ * 
+ * This module provides a robust API client with retry, timeout, and error handling.
  */
 
 import {
@@ -9,144 +10,352 @@ import {
   TimeoutError,
   RateLimitError,
   parseApiErrorResponse,
-  normalizeError,
-  isRetryableError
+  isRetryableError,
 } from './error-handling';
-import { PerformanceTimer } from './analytics';
 
 /**
- * API request options
+ * API client configuration
  */
-export interface ApiRequestOptions extends RequestInit {
+export interface ApiClientConfig {
+  /**
+   * Base URL for API requests
+   */
+  baseUrl?: string;
+  
+  /**
+   * Default headers to include with every request
+   */
+  defaultHeaders?: Record<string, string>;
+  
+  /**
+   * Default timeout in milliseconds
+   */
   timeout?: number;
-  retries?: number;
-  baseURL?: string;
-  retryDelay?: number | ((attempt: number, error: Error) => number);
-  validateStatus?: (status: number) => boolean;
-  onUploadProgress?: (progressEvent: { loaded: number; total: number }) => void;
-  onDownloadProgress?: (progressEvent: { loaded: number; total: number }) => void;
+  
+  /**
+   * Whether to include credentials
+   */
+  includeCredentials?: boolean;
+  
+  /**
+   * Authentication token
+   */
+  authToken?: string;
+  
+  /**
+   * Authentication header name
+   */
+  authHeaderName?: string;
+  
+  /**
+   * Retry configuration
+   */
+  retry?: {
+    /**
+     * Maximum number of retry attempts
+     */
+    maxRetries: number;
+    
+    /**
+     * Base delay between retries in milliseconds
+     */
+    baseDelay: number;
+    
+    /**
+     * Maximum delay between retries in milliseconds
+     */
+    maxDelay?: number;
+    
+    /**
+     * Whether to use exponential backoff
+     */
+    useExponentialBackoff?: boolean;
+    
+    /**
+     * Whether to use jitter
+     */
+    useJitter?: boolean;
+  };
+  
+  /**
+   * Request transform
+   */
+  requestTransform?: (request: Request) => Request | Promise<Request>;
+  
+  /**
+   * Response transform
+   */
+  responseTransform?: (response: Response) => Response | Promise<Response>;
+  
+  /**
+   * Error handler
+   */
+  errorHandler?: (error: Error) => void;
+  
+  /**
+   * On unauthorized callback (401)
+   */
+  onUnauthorized?: () => void;
+  
+  /**
+   * API version
+   */
+  apiVersion?: string;
+  
+  /**
+   * Cache policy
+   */
+  cachePolicy?: 'default' | 'no-store' | 'reload' | 'no-cache' | 'force-cache' | 'only-if-cached';
 }
 
 /**
- * Default API client configuration
+ * Request options
  */
-const DEFAULT_CONFIG: ApiRequestOptions = {
-  timeout: 30000, // 30 seconds
-  retries: 2,
-  retryDelay: (attempt) => Math.min(2 ** attempt * 1000, 30000), // Exponential backoff with 30s max
-  validateStatus: (status) => status >= 200 && status < 300,
-  headers: {
-    'Content-Type': 'application/json',
-    'Accept': 'application/json',
-  },
-};
-
-/**
- * Calculate retry delay with jitter to avoid thundering herd
- */
-function calculateRetryDelay(
-  attempt: number, 
-  error: Error, 
-  delayFn: ApiRequestOptions['retryDelay']
-): number {
-  // If RateLimitError with retryAfter, use that
-  if (error instanceof RateLimitError && error.retryAfter) {
-    return error.retryAfter * 1000;
-  }
+export interface RequestOptions extends Omit<RequestInit, 'body'> {
+  /**
+   * Request body
+   */
+  body?: any;
   
-  // Calculate delay based on retryDelay function or value
-  let delay: number;
-  if (typeof delayFn === 'function') {
-    delay = delayFn(attempt, error);
-  } else if (typeof delayFn === 'number') {
-    delay = delayFn;
-  } else {
-    // Default exponential backoff
-    delay = Math.min(2 ** attempt * 1000, 30000);
-  }
+  /**
+   * Query parameters
+   */
+  params?: Record<string, any>;
   
-  // Add jitter to avoid thundering herd effect
-  // Random value between 75% and 100% of the calculated delay
-  return delay * (0.75 + Math.random() * 0.25);
+  /**
+   * Request timeout in milliseconds
+   */
+  timeout?: number;
+  
+  /**
+   * Whether to retry the request on failure
+   */
+  retry?: boolean;
+  
+  /**
+   * Maximum number of retry attempts
+   */
+  maxRetries?: number;
+  
+  /**
+   * Parse response as specified type
+   */
+  parseAs?: 'json' | 'text' | 'blob' | 'arrayBuffer' | 'formData' | 'none';
+  
+  /**
+   * Additional headers
+   */
+  headers?: Record<string, string>;
+  
+  /**
+   * On 401 behavior
+   */
+  on401?: 'throw' | 'returnNull' | 'refresh';
+  
+  /**
+   * Cache policy
+   */
+  cache?: 'default' | 'no-store' | 'reload' | 'no-cache' | 'force-cache' | 'only-if-cached';
 }
 
 /**
- * Base API client for making HTTP requests
+ * API client class
  */
 export class ApiClient {
-  protected baseURL: string;
-  protected defaultOptions: ApiRequestOptions;
+  private config: ApiClientConfig;
   
-  constructor(baseURL: string = '', defaultOptions: Partial<ApiRequestOptions> = {}) {
-    this.baseURL = baseURL;
-    this.defaultOptions = {
-      ...DEFAULT_CONFIG,
-      ...defaultOptions,
+  /**
+   * Create a new API client
+   * @param config API client configuration
+   */
+  constructor(config: ApiClientConfig = {}) {
+    this.config = {
+      baseUrl: '',
+      defaultHeaders: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      timeout: 30000,
+      includeCredentials: false,
+      authHeaderName: 'Authorization',
+      retry: {
+        maxRetries: 3,
+        baseDelay: 1000,
+        maxDelay: 10000,
+        useExponentialBackoff: true,
+        useJitter: true,
+      },
+      cachePolicy: 'default',
+      ...config,
     };
   }
   
   /**
-   * Make an API request with retries and error handling
+   * Update client configuration
+   * @param config Partial configuration to update
    */
-  async request<T = any>(
-    url: string,
-    options: Partial<ApiRequestOptions> = {}
-  ): Promise<T> {
-    const mergedOptions = this.mergeOptions(options);
-    const fullUrl = this.resolveUrl(url, mergedOptions.baseURL);
-    const { timeout, retries, retryDelay, validateStatus, ...fetchOptions } = mergedOptions;
+  public updateConfig(config: Partial<ApiClientConfig>): void {
+    this.config = {
+      ...this.config,
+      ...config,
+      retry: {
+        ...this.config.retry,
+        ...config.retry,
+      },
+      defaultHeaders: {
+        ...this.config.defaultHeaders,
+        ...config.defaultHeaders,
+      },
+    };
+  }
+  
+  /**
+   * Set authentication token
+   * @param token Authentication token
+   * @param headerName Optional custom header name
+   */
+  public setAuthToken(token: string, headerName?: string): void {
+    this.config.authToken = token;
+    if (headerName) {
+      this.config.authHeaderName = headerName;
+    }
+  }
+  
+  /**
+   * Clear authentication token
+   */
+  public clearAuthToken(): void {
+    this.config.authToken = undefined;
+  }
+  
+  /**
+   * Make a request
+   * @param url Request URL
+   * @param options Request options
+   * @returns Response data
+   */
+  public async request<T = any>(url: string, options: RequestOptions = {}): Promise<T> {
+    const {
+      method = 'GET',
+      body,
+      params,
+      timeout = this.config.timeout,
+      retry = true,
+      maxRetries = this.config.retry?.maxRetries,
+      parseAs = 'json',
+      headers = {},
+      on401 = 'throw',
+      cache = this.config.cachePolicy,
+      ...fetchOptions
+    } = options;
     
-    let attempt = 0;
+    // Build the full URL with query parameters
+    const fullUrl = this.buildUrl(url, params);
+    
+    // Create headers
+    const requestHeaders = new Headers(this.buildHeaders(headers));
+    
+    // Create request init
+    const requestInit: RequestInit = {
+      method,
+      headers: requestHeaders,
+      credentials: this.config.includeCredentials ? 'include' : 'same-origin',
+      cache,
+      ...fetchOptions,
+    };
+    
+    // Add body if not GET or HEAD
+    if (method !== 'GET' && method !== 'HEAD' && body !== undefined) {
+      requestInit.body = typeof body === 'string' ? body : JSON.stringify(body);
+    }
+    
+    // Create request
+    let request = new Request(fullUrl, requestInit);
+    
+    // Apply request transform if configured
+    if (this.config.requestTransform) {
+      request = await this.config.requestTransform(request);
+    }
+    
+    // Make the request with retry logic
+    let retryCount = 0;
     let lastError: Error | null = null;
     
-    // Start performance timer
-    const timer = new PerformanceTimer();
-    
-    while (attempt <= retries!) {
+    while (retryCount <= (retry ? maxRetries : 0)) {
       try {
-        // Add timeout using AbortController
+        // Create abort controller for timeout
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), timeout);
         
-        // Include abort signal in fetch options
-        const fetchOptionsWithSignal = {
-          ...fetchOptions,
+        // Add signal to request
+        const requestWithSignal = new Request(request, {
           signal: controller.signal,
-        };
+        });
         
-        // Make request
-        const response = await fetch(fullUrl, fetchOptionsWithSignal);
+        // Make the request
+        let response: Response;
+        try {
+          response = await fetch(requestWithSignal);
+        } catch (error: any) {
+          // Clear timeout
+          clearTimeout(timeoutId);
+          
+          // Handle network errors
+          if (error.name === 'AbortError') {
+            throw new TimeoutError(`Request timed out after ${timeout}ms`);
+          }
+          
+          throw new NetworkError(`Network error: ${error.message}`, { cause: error });
+        }
         
         // Clear timeout
         clearTimeout(timeoutId);
         
-        // Check if response status is valid
-        if (!validateStatus!(response.status)) {
-          let errorData;
+        // Apply response transform if configured
+        if (this.config.responseTransform) {
+          response = await this.config.responseTransform(response);
+        }
+        
+        // Handle HTTP errors
+        if (!response.ok) {
+          // Parse error data
+          let errorData: any;
           try {
-            const contentType = response.headers.get('Content-Type') || '';
-            if (contentType.includes('application/json')) {
-              errorData = await response.json();
-            } else {
-              errorData = { message: await response.text() };
+            errorData = await response.clone().json();
+          } catch {
+            try {
+              errorData = { message: await response.clone().text() };
+            } catch {
+              errorData = { message: response.statusText };
             }
-          } catch (e) {
-            errorData = { message: response.statusText };
           }
           
-          // Create error instance based on status
+          // Handle specific status codes
+          if (response.status === 401) {
+            if (on401 === 'returnNull') {
+              return null as unknown as T;
+            } else if (on401 === 'refresh' && this.config.onUnauthorized) {
+              this.config.onUnauthorized();
+              return null as unknown as T;
+            }
+          }
+          
+          // Create appropriate error instance
           const error = parseApiErrorResponse(response, errorData);
           
-          // For retryable errors, try again
-          if (error.retryable && attempt < retries!) {
+          // Check if we should retry
+          if (retry && isRetryableError(error) && retryCount < maxRetries) {
             lastError = error;
-            attempt++;
+            retryCount++;
             
-            // Calculate delay with jitter
-            const delay = calculateRetryDelay(attempt, error, retryDelay);
-            console.log(`[api] Retrying after error: ${error.message}. Attempt ${attempt} of ${retries}`);
-            console.log(`[api] Waiting ${Math.round(delay / 1000)} seconds before next attempt`);
+            // Calculate delay with exponential backoff and jitter
+            const delay = this.calculateRetryDelay(retryCount);
             
+            // Log retry attempt
+            console.log(`[api] Retrying after error: ${error.message}. Attempt ${retryCount} of ${maxRetries}`);
+            console.log(`[api] Waiting ${delay / 1000} seconds before next attempt`);
+            
+            // Wait before retrying
             await new Promise(resolve => setTimeout(resolve, delay));
             continue;
           }
@@ -154,203 +363,204 @@ export class ApiClient {
           throw error;
         }
         
-        // Parse response based on content type
-        const contentType = response.headers.get('Content-Type') || '';
-        let data: T;
-        
-        if (contentType.includes('application/json')) {
-          data = await response.json();
-        } else if (contentType.includes('text/')) {
-          data = await response.text() as unknown as T;
-        } else {
-          data = await response.blob() as unknown as T;
+        // Parse response based on parseAs option
+        if (parseAs === 'none') {
+          return response as unknown as T;
+        } else if (parseAs === 'json') {
+          try {
+            return await response.json() as T;
+          } catch (error) {
+            throw new ApiError('Failed to parse JSON response', 200, { cause: error });
+          }
+        } else if (parseAs === 'text') {
+          return await response.text() as unknown as T;
+        } else if (parseAs === 'blob') {
+          return await response.blob() as unknown as T;
+        } else if (parseAs === 'arrayBuffer') {
+          return await response.arrayBuffer() as unknown as T;
+        } else if (parseAs === 'formData') {
+          return await response.formData() as unknown as T;
         }
         
-        return data;
+        // Default to JSON
+        return await response.json() as T;
       } catch (error: any) {
-        // Handle AbortController timeout
-        if (error.name === 'AbortError') {
-          const timeoutError = new TimeoutError(`Request timed out after ${timeout}ms`);
-          
-          if (attempt < retries!) {
-            lastError = timeoutError;
-            attempt++;
-            
-            // Calculate delay with jitter
-            const delay = calculateRetryDelay(attempt, timeoutError, retryDelay);
-            console.log(`[api] Retrying after error: ${timeoutError.message}. Attempt ${attempt} of ${retries}`);
-            console.log(`[api] Waiting ${Math.round(delay / 1000)} seconds before next attempt`);
-            
-            await new Promise(resolve => setTimeout(resolve, delay));
-            continue;
-          }
-          
-          throw timeoutError;
-        }
+        // Save the error for possible retry
+        lastError = error;
         
-        // Handle network errors
-        if (error instanceof TypeError && error.message.includes('NetworkError')) {
-          const networkError = new NetworkError(error.message);
+        // Check if we should retry
+        if (retry && isRetryableError(error) && retryCount < maxRetries) {
+          retryCount++;
           
-          if (attempt < retries!) {
-            lastError = networkError;
-            attempt++;
-            
-            // Calculate delay with jitter
-            const delay = calculateRetryDelay(attempt, networkError, retryDelay);
-            console.log(`[api] Retrying after error: ${networkError.message}. Attempt ${attempt} of ${retries}`);
-            console.log(`[api] Waiting ${Math.round(delay / 1000)} seconds before next attempt`);
-            
-            await new Promise(resolve => setTimeout(resolve, delay));
-            continue;
-          }
+          // Calculate delay with exponential backoff and jitter
+          const delay = this.calculateRetryDelay(retryCount);
           
-          throw networkError;
-        }
-        
-        // Handle other errors, attempt retry if it's retryable
-        const normalizedError = normalizeError(error);
-        
-        if (isRetryableError(normalizedError) && attempt < retries!) {
-          lastError = normalizedError;
-          attempt++;
+          // Log retry attempt
+          console.log(`[api] Retrying after error: ${error.message}. Attempt ${retryCount} of ${maxRetries}`);
+          console.log(`[api] Waiting ${delay / 1000} seconds before next attempt`);
           
-          // Calculate delay with jitter
-          const delay = calculateRetryDelay(attempt, normalizedError, retryDelay);
-          console.log(`[api] Retrying after error: ${normalizedError.message}. Attempt ${attempt} of ${retries}`);
-          console.log(`[api] Waiting ${Math.round(delay / 1000)} seconds before next attempt`);
-          
+          // Wait before retrying
           await new Promise(resolve => setTimeout(resolve, delay));
           continue;
         }
         
-        throw normalizedError;
+        // Handle error with errorHandler if configured
+        if (this.config.errorHandler) {
+          this.config.errorHandler(error);
+        }
+        
+        throw error;
       }
     }
     
-    // If all retries failed, throw the last error
-    throw lastError || new Error('Request failed after multiple retries');
+    // This should never happen, but TypeScript needs it
+    throw lastError || new Error('Unknown error during request');
   }
   
   /**
-   * GET request
+   * Make a GET request
+   * @param url Request URL
+   * @param options Request options
+   * @returns Response data
    */
-  async get<T = any>(url: string, options: Partial<ApiRequestOptions> = {}): Promise<T> {
-    return this.request<T>(url, {
-      ...options,
-      method: 'GET',
-    });
+  public get<T = any>(url: string, options: Omit<RequestOptions, 'method' | 'body'> = {}): Promise<T> {
+    return this.request<T>(url, { ...options, method: 'GET' });
   }
   
   /**
-   * POST request
+   * Make a POST request
+   * @param url Request URL
+   * @param body Request body
+   * @param options Request options
+   * @returns Response data
    */
-  async post<T = any>(
-    url: string,
-    data?: any,
-    options: Partial<ApiRequestOptions> = {}
-  ): Promise<T> {
-    return this.request<T>(url, {
-      ...options,
-      method: 'POST',
-      body: data ? JSON.stringify(data) : undefined,
-    });
+  public post<T = any>(url: string, body?: any, options: Omit<RequestOptions, 'method' | 'body'> = {}): Promise<T> {
+    return this.request<T>(url, { ...options, method: 'POST', body });
   }
   
   /**
-   * PUT request
+   * Make a PUT request
+   * @param url Request URL
+   * @param body Request body
+   * @param options Request options
+   * @returns Response data
    */
-  async put<T = any>(
-    url: string,
-    data?: any,
-    options: Partial<ApiRequestOptions> = {}
-  ): Promise<T> {
-    return this.request<T>(url, {
-      ...options,
-      method: 'PUT',
-      body: data ? JSON.stringify(data) : undefined,
-    });
+  public put<T = any>(url: string, body?: any, options: Omit<RequestOptions, 'method' | 'body'> = {}): Promise<T> {
+    return this.request<T>(url, { ...options, method: 'PUT', body });
   }
   
   /**
-   * PATCH request
+   * Make a PATCH request
+   * @param url Request URL
+   * @param body Request body
+   * @param options Request options
+   * @returns Response data
    */
-  async patch<T = any>(
-    url: string,
-    data?: any,
-    options: Partial<ApiRequestOptions> = {}
-  ): Promise<T> {
-    return this.request<T>(url, {
-      ...options,
-      method: 'PATCH',
-      body: data ? JSON.stringify(data) : undefined,
-    });
+  public patch<T = any>(url: string, body?: any, options: Omit<RequestOptions, 'method' | 'body'> = {}): Promise<T> {
+    return this.request<T>(url, { ...options, method: 'PATCH', body });
   }
   
   /**
-   * DELETE request
+   * Make a DELETE request
+   * @param url Request URL
+   * @param options Request options
+   * @returns Response data
    */
-  async delete<T = any>(url: string, options: Partial<ApiRequestOptions> = {}): Promise<T> {
-    return this.request<T>(url, {
-      ...options,
-      method: 'DELETE',
-    });
+  public delete<T = any>(url: string, options: Omit<RequestOptions, 'method'> = {}): Promise<T> {
+    return this.request<T>(url, { ...options, method: 'DELETE' });
   }
   
   /**
-   * Merge default options with request-specific options
+   * Build the full URL with query parameters
+   * @param url Base URL
+   * @param params Query parameters
+   * @returns Full URL
    */
-  protected mergeOptions(options: Partial<ApiRequestOptions>): ApiRequestOptions {
-    // Merge headers separately to ensure they are combined correctly
-    const headers = {
-      ...this.defaultOptions.headers,
-      ...options.headers,
-    };
+  private buildUrl(url: string, params?: Record<string, any>): string {
+    // Start with the base URL or the provided URL
+    let fullUrl = url.startsWith('http') ? url : `${this.config.baseUrl}${url}`;
     
-    return {
-      ...this.defaultOptions,
-      ...options,
-      headers,
-    };
-  }
-  
-  /**
-   * Resolve a URL against the base URL
-   */
-  protected resolveUrl(url: string, baseURL?: string): string {
-    // If URL is already absolute, return it
-    if (url.startsWith('http://') || url.startsWith('https://')) {
-      return url;
+    // Add API version if configured and not already in URL
+    if (this.config.apiVersion && !fullUrl.includes('v=') && !fullUrl.includes('version=')) {
+      const separator = fullUrl.includes('?') ? '&' : '?';
+      fullUrl += `${separator}v=${this.config.apiVersion}`;
     }
     
-    // Remove trailing slash from baseURL if present
-    const base = (baseURL || this.baseURL || '').endsWith('/')
-      ? (baseURL || this.baseURL || '').slice(0, -1)
-      : (baseURL || this.baseURL || '');
+    // Add query parameters
+    if (params && Object.keys(params).length > 0) {
+      const separator = fullUrl.includes('?') ? '&' : '?';
+      const queryString = Object.entries(params)
+        .filter(([, value]) => value !== undefined && value !== null)
+        .map(([key, value]) => {
+          if (Array.isArray(value)) {
+            return value
+              .map(v => `${encodeURIComponent(key)}=${encodeURIComponent(String(v))}`)
+              .join('&');
+          }
+          return `${encodeURIComponent(key)}=${encodeURIComponent(String(value))}`;
+        })
+        .join('&');
+      
+      fullUrl += `${separator}${queryString}`;
+    }
     
-    // Add leading slash to URL if not present
-    const path = url.startsWith('/') ? url : `/${url}`;
+    return fullUrl;
+  }
+  
+  /**
+   * Build request headers
+   * @param additionalHeaders Additional headers
+   * @returns Headers object
+   */
+  private buildHeaders(additionalHeaders: Record<string, string> = {}): Record<string, string> {
+    // Start with default headers
+    const headers = { ...this.config.defaultHeaders };
     
-    return `${base}${path}`;
+    // Add auth token if available
+    if (this.config.authToken) {
+      headers[this.config.authHeaderName!] = `Bearer ${this.config.authToken}`;
+    }
+    
+    // Add additional headers
+    Object.entries(additionalHeaders).forEach(([key, value]) => {
+      if (value !== undefined && value !== null) {
+        headers[key] = value;
+      }
+    });
+    
+    return headers;
+  }
+  
+  /**
+   * Calculate retry delay with exponential backoff and jitter
+   * @param attempt Retry attempt number
+   * @returns Delay in milliseconds
+   */
+  private calculateRetryDelay(attempt: number): number {
+    const { baseDelay, maxDelay, useExponentialBackoff, useJitter } = this.config.retry!;
+    
+    // Calculate exponential backoff
+    let delay = useExponentialBackoff
+      ? Math.min(baseDelay * Math.pow(2, attempt - 1), maxDelay || Number.MAX_SAFE_INTEGER)
+      : baseDelay;
+    
+    // Add jitter (±25%)
+    if (useJitter) {
+      const jitterFactor = 0.25;
+      const jitterAmount = delay * jitterFactor;
+      delay = delay - jitterAmount + Math.random() * jitterAmount * 2;
+    }
+    
+    return delay;
   }
 }
 
-// Create singleton instance for global use
-let defaultApiClient: ApiClient | null = null;
+// Export a default instance
+export const apiClient = new ApiClient({
+  baseUrl: typeof window !== 'undefined' ? '' : 'http://localhost:5000', // Empty for browser, localhost for Node
+});
 
-/**
- * Get the default API client instance
- */
-export function getApiClient(baseURL: string = '', options: Partial<ApiRequestOptions> = {}): ApiClient {
-  if (!defaultApiClient) {
-    defaultApiClient = new ApiClient(baseURL, options);
-  }
-  return defaultApiClient;
-}
-
-/**
- * Reset the default API client (useful for testing)
- */
-export function resetApiClient(): void {
-  defaultApiClient = null;
+// Export a factory function
+export function createApiClient(config: ApiClientConfig): ApiClient {
+  return new ApiClient(config);
 }
