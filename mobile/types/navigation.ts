@@ -1,11 +1,18 @@
 import { StackNavigationProp } from "@react-navigation/stack";
 import { RouteProp } from "@react-navigation/native";
+import { Location } from '../utils/types';
 
 // Root Stack Parameter List
 export type RootStackParamList = {
   Login: undefined;
   Home: undefined;
-  Order: undefined;
+  Order: {
+    selectedLocation?: Location;
+  };
+  LocationSelection: {
+    returnTo: keyof RootStackParamList;
+    onSaveCallback?: (location: Location) => void;
+  };
 };
 
 // Navigation Props for each screen
@@ -21,11 +28,16 @@ export type OrderScreenNavigationProp = StackNavigationProp<
   RootStackParamList,
   "Order"
 >;
+export type LocationScreenNavigationProp = StackNavigationProp<
+  RootStackParamList,
+  "LocationSelection"
+>;
 
 // Route Props for each screen
 export type LoginScreenRouteProp = RouteProp<RootStackParamList, "Login">;
 export type HomeScreenRouteProp = RouteProp<RootStackParamList, "Home">;
 export type OrderScreenRouteProp = RouteProp<RootStackParamList, "Order">;
+export type LocationScreenRouteProp = RouteProp<RootStackParamList, "LocationSelection">;
 
 // Combined Props for each screen
 export interface LoginScreenProps {
@@ -41,4 +53,9 @@ export interface HomeScreenProps {
 export interface OrderScreenProps {
   navigation: OrderScreenNavigationProp;
   route: OrderScreenRouteProp;
+}
+
+export interface LocationScreenProps {
+  navigation: LocationScreenNavigationProp;
+  route: LocationScreenRouteProp;
 }

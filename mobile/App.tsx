@@ -8,6 +8,7 @@ import { enableScreens } from "react-native-screens";
 import LoginScreen from "./screens/LoginScreen";
 import HomeScreen from "./screens/HomeScreen";
 import OrderScreen from "./screens/OrderScreen";
+import LocationSelectionScreen from "./screens/LocationSelectionScreen";
 
 // Import navigation types
 import { RootStackParamList } from "./types/navigation";
@@ -30,6 +31,7 @@ export default function App() {
         <Stack.Screen name="Login" component={LoginScreen} />
         <Stack.Screen name="Home" component={HomeScreen} />
         <Stack.Screen name="Order" component={OrderScreen} />
+        <Stack.Screen name="LocationSelection" component={LocationSelectionScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );
