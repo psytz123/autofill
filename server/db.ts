@@ -11,5 +11,17 @@ if (!process.env.DATABASE_URL) {
   );
 }
 
-export const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+// Add logging for debugging
+console.log("[DB] Connecting to PostgreSQL database");
+
+export const pool = new Pool({ 
+  connectionString: process.env.DATABASE_URL,
+  // Log queries for debugging
+  connectionTimeoutMillis: 10000 
+});
+
+pool.on('error', (err) => {
+  console.error('[DB] Pool error:', err);
+});
+
 export const db = drizzle(pool, { schema });

@@ -323,32 +323,55 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createOrder(insertOrder: InsertOrder): Promise<Order> {
-    // Calculate total price based on fuel type and amount
-    const fuelPrices: Record<FuelType, number> = {
-      [FuelType.REGULAR_UNLEADED]: 3.99,
-      [FuelType.PREMIUM_UNLEADED]: 4.59,
-      [FuelType.DIESEL]: 4.29,
-    };
+    try {
+      console.log("CreateOrder received:", JSON.stringify(insertOrder, null, 2));
+      
+      // Calculate total price based on fuel type and amount
+      const fuelPrices: Record<FuelType, number> = {
+        [FuelType.REGULAR_UNLEADED]: 3.99,
+        [FuelType.PREMIUM_UNLEADED]: 4.59,
+        [FuelType.DIESEL]: 4.29,
+      };
 
-    const fuelPrice = fuelPrices[insertOrder.fuelType] || 3.99;
-    // Convert to integer cents (multiply by 100) to match DB schema
-    const totalPrice = Math.round((insertOrder.amount * fuelPrice) * 100);
-    
-    console.log("Creating order with totalPrice:", totalPrice, "from amount:", insertOrder.amount, "and price:", fuelPrice);
+      const fuelPrice = fuelPrices[insertOrder.fuelType] || 3.99;
+      
+      // Convert to integer cents (multiply by 100) to match DB schema
+      const totalPrice = Math.round(insertOrder.amount * fuelPrice * 100);
+      
+      console.log("Creating order with totalPrice:", totalPrice, "from amount:", insertOrder.amount, "and price:", fuelPrice);
+      
+      // Make sure payment method ID is properly set for emergency orders
+      const paymentMethodId = insertOrder.paymentMethodId || null;
+      
+      // Create the order data with proper typing
+      const orderData = {
+        userId: insertOrder.userId,
+        vehicleId: insertOrder.vehicleId,
+        locationId: insertOrder.locationId,
+        paymentMethodId: paymentMethodId as any, // Cast to any to bypass TypeScript error
+        status: insertOrder.status,
+        fuelType: insertOrder.fuelType,
+        amount: insertOrder.amount,
+        totalPrice
+      };
+      
+      console.log("Final order data for database:", orderData);
+      
+      // Insert into database
+      const [order] = await db
+        .insert(orders)
+        .values(orderData)
+        .returning();
 
-    const [order] = await db
-      .insert(orders)
-      .values({
-        ...insertOrder,
-        totalPrice,
-      })
-      .returning();
-
-    return {
-      ...order,
-      fuelType: order.fuelType as FuelType,
-      status: order.status as OrderStatus
-    } as Order;
+      return {
+        ...order,
+        fuelType: order.fuelType as FuelType,
+        status: order.status as OrderStatus
+      } as Order;
+    } catch (error) {
+      console.error("Error creating order:", error);
+      throw error;
+    }
   }
 
   async updateOrderStatus(id: number, status: OrderStatus): Promise<Order> {

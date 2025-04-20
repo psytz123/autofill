@@ -204,7 +204,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           status: OrderStatus.CONFIRMED, // Use the CONFIRMED status for emergency orders
           fuelType: fuelType as FuelType,
           amount: Number(amount),
-          isEmergency: true, // Flag this as an emergency request for special handling
+          // Do not include price or total here - they will be calculated in the storage layer
         };
 
         console.log("Creating emergency order:", orderData);
@@ -231,7 +231,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           status: OrderStatus.CONFIRMED,
           fuelType: fuelType as FuelType,
           amount: Number(amount),
-          isEmergency: true,
+          // Do not include price or total here - they will be calculated in the storage layer
         };
         
         const order = await storage.createOrder(orderData);
