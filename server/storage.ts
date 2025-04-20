@@ -55,6 +55,7 @@ export interface IStorage {
     userId: number,
     stripeInfo: { stripeCustomerId?: string; stripeSubscriptionId?: string },
   ): Promise<User>;
+  updateUserPoints(userId: number, points: number): Promise<User>;
 
   // Vehicle operations
   getVehicle(id: number): Promise<Vehicle | undefined>;
@@ -95,6 +96,14 @@ export interface IStorage {
   getUserSubscriptionPlan(
     userId: number,
   ): Promise<SubscriptionPlan | undefined>;
+  
+  // Points and rewards operations
+  getUserPoints(userId: number): Promise<number>;
+  addPointsTransaction(transaction: InsertPointsTransaction): Promise<PointsTransaction>;
+  getUserPointsTransactions(userId: number): Promise<PointsTransaction[]>;
+  getAvailableRewards(): Promise<PointsReward[]>;
+  getReward(id: number): Promise<PointsReward | undefined>;
+  redeemReward(userId: number, rewardId: number): Promise<PointsTransaction>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -658,6 +667,147 @@ export class DatabaseStorage implements IStorage {
     // For now, we'll return the first active plan as a placeholder
     // since we don't have the actual Stripe integration yet
     return plans.length > 0 ? plans[0] : undefined;
+  }
+
+  // Points management methods
+  async updateUserPoints(userId: number, points: number): Promise<User> {
+    // Update user's points balance
+    const [user] = await db
+      .update(users)
+      .set({
+        points,
+        updatedAt: new Date(),
+      })
+      .where(eq(users.id, userId))
+      .returning();
+
+    if (!user) {
+      throw new Error("User not found");
+    }
+
+    return user;
+  }
+
+  async getUserPoints(userId: number): Promise<number> {
+    const user = await this.getUser(userId);
+    if (!user) {
+      throw new Error("User not found");
+    }
+    return user.points || 0;
+  }
+
+  async addPointsTransaction(transaction: InsertPointsTransaction): Promise<PointsTransaction> {
+    // First, get the current user points
+    const user = await this.getUser(transaction.userId);
+    if (!user) {
+      throw new Error("User not found");
+    }
+
+    // Calculate the new balance
+    const newBalance = user.points + transaction.amount;
+
+    // Start a transaction to ensure atomicity
+    return await db.transaction(async (tx) => {
+      // Update the user's points
+      await tx
+        .update(users)
+        .set({
+          points: newBalance,
+          updatedAt: new Date(),
+        })
+        .where(eq(users.id, transaction.userId));
+
+      // Add the transaction record with the balance
+      const [pointsTx] = await tx
+        .insert(pointsTransactions)
+        .values({
+          ...transaction,
+          balance: newBalance,
+        })
+        .returning();
+
+      return {
+        ...pointsTx,
+        type: pointsTx.type as PointsTransactionType
+      } as PointsTransaction;
+    });
+  }
+
+  async getUserPointsTransactions(userId: number): Promise<PointsTransaction[]> {
+    const transactions = await db
+      .select()
+      .from(pointsTransactions)
+      .where(eq(pointsTransactions.userId, userId))
+      .orderBy(desc(pointsTransactions.createdAt));
+
+    return transactions.map(tx => ({
+      ...tx,
+      type: tx.type as PointsTransactionType
+    })) as PointsTransaction[];
+  }
+
+  async getAvailableRewards(): Promise<PointsReward[]> {
+    const rewards = await db
+      .select()
+      .from(pointsRewards)
+      .where(eq(pointsRewards.active, true));
+
+    return rewards.map(reward => ({
+      ...reward,
+      type: reward.type as PointsTransactionType
+    })) as PointsReward[];
+  }
+
+  async getReward(id: number): Promise<PointsReward | undefined> {
+    const [reward] = await db
+      .select()
+      .from(pointsRewards)
+      .where(eq(pointsRewards.id, id));
+
+    if (!reward) {
+      return undefined;
+    }
+
+    return {
+      ...reward,
+      type: reward.type as PointsTransactionType
+    } as PointsReward;
+  }
+
+  async redeemReward(userId: number, rewardId: number): Promise<PointsTransaction> {
+    // First, get the user and the reward
+    const user = await this.getUser(userId);
+    const reward = await this.getReward(rewardId);
+
+    if (!user) {
+      throw new Error("User not found");
+    }
+
+    if (!reward) {
+      throw new Error("Reward not found");
+    }
+
+    if (!reward.active) {
+      throw new Error("This reward is not currently available");
+    }
+
+    if (user.points < reward.pointsCost) {
+      throw new Error("Insufficient points to redeem this reward");
+    }
+
+    // Calculate the new points balance
+    const newBalance = user.points - reward.pointsCost;
+
+    // Create a redemption transaction
+    const transaction: InsertPointsTransaction = {
+      userId,
+      type: reward.type,
+      amount: -reward.pointsCost, // Negative value because points are being spent
+      description: `Redeemed reward: ${reward.name}`,
+    };
+
+    // Use the transaction method to ensure atomicity
+    return await this.addPointsTransaction(transaction);
   }
 }
 

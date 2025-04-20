@@ -15,9 +15,11 @@ import {
   insertPaymentMethodSchema,
   insertOrderSchema,
   insertLocationSchema,
+  insertPointsTransactionSchema,
   OrderStatus,
   FuelType,
   LocationType,
+  PointsTransactionType,
 } from "@shared/schema";
 
 // Initialize Stripe with the secret key from environment variables
@@ -327,6 +329,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
           code: 'INVALID_FORMAT'
         }));
         next(new ValidationError("Invalid location data", validationErrors));
+      } else {
+        next(error);
+      }
+    }
+  });
+
+  // Points and Rewards API
+  app.get("/api/points", isAuthenticated, async (req, res) => {
+    try {
+      const points = await storage.getUserPoints(req.user!.id);
+      res.json({ points });
+    } catch (error) {
+      console.error("Error fetching user points:", error);
+      res.status(500).json({ message: "Failed to fetch points" });
+    }
+  });
+
+  app.get("/api/points/transactions", isAuthenticated, async (req, res) => {
+    try {
+      const transactions = await storage.getUserPointsTransactions(req.user!.id);
+      res.json(transactions);
+    } catch (error) {
+      console.error("Error fetching points transactions:", error);
+      res.status(500).json({ message: "Failed to fetch transactions" });
+    }
+  });
+
+  app.get("/api/rewards", isAuthenticated, async (req, res) => {
+    try {
+      const rewards = await storage.getAvailableRewards();
+      res.json(rewards);
+    } catch (error) {
+      console.error("Error fetching rewards:", error);
+      res.status(500).json({ message: "Failed to fetch rewards" });
+    }
+  });
+
+  app.post("/api/rewards/redeem/:id", isAuthenticated, async (req, res, next) => {
+    try {
+      const rewardId = parseInt(req.params.id);
+      const transaction = await storage.redeemReward(req.user!.id, rewardId);
+      res.status(200).json(transaction);
+    } catch (error) {
+      console.error("Error redeeming reward:", error);
+      if (error instanceof Error) {
+        res.status(400).json({ message: error.message });
       } else {
         next(error);
       }
