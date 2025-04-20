@@ -825,23 +825,23 @@ export default function DriverTrackingMap({ onAssignDriver }: DriverTrackingMapP
         </div>
       </div>
     </div>
-  
-      {/* Auto-assignment results dialog */}
-      <Dialog open={showResultsDialog} onOpenChange={setShowResultsDialog}>
-        <DialogContent className="max-w-3xl">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Brain className="h-5 w-5 text-primary" />
-              AI-Powered Order Assignment Results
-            </DialogTitle>
-            <DialogDescription>
-              {assignmentResults?.success 
-                ? `Successfully assigned ${assignmentResults?.totalAssigned} orders to drivers.`
-                : "The auto-assignment process encountered some issues."}
-            </DialogDescription>
-          </DialogHeader>
-          
-          {assignmentResults && (
+    
+    {/* Auto-assignment results dialog */}
+    <Dialog open={showResultsDialog} onOpenChange={setShowResultsDialog}>
+      <DialogContent className="max-w-3xl">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Brain className="h-5 w-5 text-primary" />
+            AI-Powered Order Assignment Results
+          </DialogTitle>
+          <DialogDescription>
+            {assignmentResults?.success 
+              ? `Successfully assigned ${assignmentResults?.totalAssigned} orders to drivers.`
+              : "The auto-assignment process encountered some issues."}
+          </DialogDescription>
+        </DialogHeader>
+        
+        {assignmentResults && (
             <div className="space-y-4">
               {/* Explanation */}
               <div>
