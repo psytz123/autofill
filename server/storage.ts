@@ -93,16 +93,39 @@ export class DatabaseStorage implements IStorage {
   sessionStore: session.Store;
 
   constructor() {
-    // Create a separate pool for the session store using the node-postgres package
+    // We need to create a separate pool for session store using the node-postgres package
     // since connect-pg-simple is not compatible with @neondatabase/serverless
+    // But we'll apply similar resilience settings as our main pool
     const pgPool = new Pool({
       connectionString: process.env.DATABASE_URL,
+      max: 5, // Fewer connections for session store
+      idleTimeoutMillis: 30000,
+      connectionTimeoutMillis: 10000,
+      allowExitOnIdle: false,
+      maxUses: 7500,
+      maxLifetimeSeconds: 3600
+    });
+    
+    // Add error handler specifically for session pool
+    pgPool.on('error', (err) => {
+      console.error('[Session DB] Pool error:', err);
+      
+      // For specific Neon database admin command errors, attempt to recover
+      if (err.code === '57P01' || (err.message && err.message.includes('terminating connection due to administrator command'))) {
+        console.info('[Session DB] Detected admin termination - this is expected with Neon and will auto-recover');
+      }
     });
 
     this.sessionStore = new PostgresSessionStore({
       pool: pgPool,
       createTableIfMissing: true,
+      tableName: 'session', // Explicitly name the table
+      schemaName: 'public', // Ensure we're using the right schema
+      disableTouch: false, // Update expiration time on access
+      pruneSessionInterval: 60 * 15 // Cleanup every 15 minutes
     });
+    
+    console.log('[Session DB] Session store initialized');
   }
 
   // User methods
