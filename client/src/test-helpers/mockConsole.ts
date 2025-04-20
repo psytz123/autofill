@@ -1,49 +1,84 @@
 /**
- * Mock Console Helper
- * Provides utilities to mock console methods for testing
+ * Console mocking utility for tests
+ * 
+ * This module provides utility functions to mock console methods (log, warn, error, etc.)
+ * during tests and capture their outputs.
  */
 
-type ConsoleMethod = 'log' | 'error' | 'warn' | 'info' | 'debug';
+type ConsoleMethods = 'log' | 'warn' | 'error' | 'info' | 'debug';
 
 /**
- * Create a mock for a console method
- * @param method The console method to mock
- * @returns Cleanup function to restore the original method
+ * Mock console methods and capture their outputs
+ * @param methods Array of console methods to mock
+ * @returns Object with original methods and captured outputs
  */
-export function mockConsoleMethod(method: ConsoleMethod) {
-  const original = console[method];
-  const mockFn = jest.fn();
+export function mockConsole(methods: ConsoleMethods[] = ['log', 'warn', 'error']) {
+  const originalMethods: Record<string, any> = {};
+  const calls: Record<string, any[][]> = {};
   
-  console[method] = mockFn;
+  methods.forEach(method => {
+    // Store original method
+    originalMethods[method] = console[method];
+    calls[method] = [];
+    
+    // Create mock
+    console[method] = jest.fn((...args: any[]) => {
+      calls[method].push(args);
+    });
+  });
+  
+  // Function to restore original methods
+  const restore = () => {
+    methods.forEach(method => {
+      console[method] = originalMethods[method];
+    });
+  };
   
   return {
-    mock: mockFn,
-    restore: () => {
-      console[method] = original;
-    },
-    calls: () => mockFn.mock.calls,
-    callCount: () => mockFn.mock.calls.length,
+    calls,
+    restore
   };
 }
 
 /**
- * Mock multiple console methods at once
- * @param methods Array of console methods to mock
- * @returns Object with mocks and cleanup function
+ * Temporarily suppress console output during a function call
+ * @param fn Function to call with suppressed console
+ * @param methods Console methods to suppress
+ * @returns Result of the function call
  */
-export default function mockConsole(...methods: ConsoleMethod[]) {
-  const mocks = methods.reduce((acc, method) => {
-    acc[method] = mockConsoleMethod(method);
-    return acc;
-  }, {} as Record<ConsoleMethod, ReturnType<typeof mockConsoleMethod>>);
+export async function withSuppressedConsole<T>(
+  fn: () => T | Promise<T>,
+  methods: ConsoleMethods[] = ['log', 'warn', 'error', 'info', 'debug']
+): Promise<T> {
+  const mock = mockConsole(methods);
   
-  // Restore all mocks
-  const restore = () => {
-    Object.values(mocks).forEach(mock => mock.restore());
-  };
+  try {
+    const result = await fn();
+    return result;
+  } finally {
+    mock.restore();
+  }
+}
+
+/**
+ * Capture console outputs during a function call
+ * @param fn Function to call with captured console output
+ * @param methods Console methods to capture
+ * @returns Object with function result and captured console outputs
+ */
+export async function withCapturedConsole<T>(
+  fn: () => T | Promise<T>,
+  methods: ConsoleMethods[] = ['log', 'warn', 'error']
+): Promise<{ result: T; consoleCalls: Record<string, any[][]> }> {
+  const mock = mockConsole(methods);
   
-  return {
-    ...mocks,
-    restore,
-  };
+  try {
+    const result = await fn();
+    return {
+      result,
+      consoleCalls: { ...mock.calls }
+    };
+  } finally {
+    mock.restore();
+  }
 }

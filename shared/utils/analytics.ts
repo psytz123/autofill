@@ -1,360 +1,296 @@
 /**
- * Shared Analytics and Performance Monitoring Utilities
- * Common functionality for tracking events and performance metrics across platforms
+ * Shared Analytics Utilities
+ * Common analytics functionality for both web and mobile platforms
  */
 
-// Types of events we can track
-export enum EventType {
-  PAGE_VIEW = 'page_view',
-  SCREEN_VIEW = 'screen_view',
-  USER_ACTION = 'user_action',
-  ERROR = 'error',
-  PERFORMANCE = 'performance',
-  API_CALL = 'api_call',
-  LIFECYCLE = 'lifecycle'
-}
-
-// Performance metric categories
+// Performance categories for metrics tracking
 export enum PerformanceCategory {
-  API_LATENCY = 'api_latency',
-  RENDER_TIME = 'render_time',
-  LOAD_TIME = 'load_time',
-  INTERACTION_TIME = 'interaction_time',
-  RESOURCE_LOAD = 'resource_load',
-  MEMORY_USAGE = 'memory_usage',
+  // Page load metrics
   FIRST_PAINT = 'first_paint',
   FIRST_CONTENTFUL_PAINT = 'first_contentful_paint',
-  TIME_TO_INTERACTIVE = 'time_to_interactive'
+  LARGEST_CONTENTFUL_PAINT = 'largest_contentful_paint',
+  TIME_TO_INTERACTIVE = 'time_to_interactive',
+  
+  // User interaction metrics
+  INTERACTION_TIME = 'interaction_time',
+  INPUT_DELAY = 'input_delay',
+  
+  // API performance
+  API_RESPONSE_TIME = 'api_response_time',
+  API_ERROR_RATE = 'api_error_rate',
+  
+  // Resource performance
+  RESOURCE_LOAD_TIME = 'resource_load_time',
+  RESOURCE_SIZE = 'resource_size',
+  
+  // Application specific metrics
+  MAP_LOAD_TIME = 'map_load_time',
+  ORDER_COMPLETION_TIME = 'order_completion_time',
+  PAYMENT_PROCESSING_TIME = 'payment_processing_time',
+  
+  // Performance health
+  MEMORY_USAGE = 'memory_usage',
+  JS_HEAP_SIZE = 'js_heap_size',
+  LONG_TASKS = 'long_tasks',
+  
+  // User experience metrics
+  LAYOUT_SHIFT = 'layout_shift',
 }
 
-// Standard event properties
-export interface EventProperties {
-  [key: string]: any;
+// Event categories for user behavior tracking
+export enum EventCategory {
+  // Navigation events
+  NAVIGATION = 'navigation',
+  SCREEN_VIEW = 'screen_view',
+  
+  // User interactions
+  BUTTON_CLICK = 'button_click',
+  FORM_SUBMIT = 'form_submit',
+  LINK_CLICK = 'link_click',
+  
+  // Feature usage
+  LOCATION_SEARCH = 'location_search',
+  VEHICLE_SELECT = 'vehicle_select',
+  FUEL_TYPE_SELECT = 'fuel_type_select',
+  
+  // Business events
+  ORDER_STARTED = 'order_started',
+  ORDER_COMPLETED = 'order_completed',
+  ORDER_CANCELLED = 'order_cancelled',
+  PAYMENT_STARTED = 'payment_started',
+  PAYMENT_COMPLETED = 'payment_completed',
+  PAYMENT_FAILED = 'payment_failed',
+  
+  // User account
+  USER_SIGNUP = 'user_signup',
+  USER_LOGIN = 'user_login',
+  USER_LOGOUT = 'user_logout',
+  PROFILE_UPDATE = 'profile_update',
+  
+  // Feature engagement
+  NOTIFICATIONS_ENABLED = 'notifications_enabled',
+  LOCATION_PERMISSION = 'location_permission',
+  SAVED_LOCATION = 'saved_location',
 }
 
-// Analytics event interface
+// Interface for analytics events
 export interface AnalyticsEvent {
-  type: EventType;
-  name: string;
-  timestamp: number;
-  properties?: EventProperties;
+  category: EventCategory;
+  action: string;
+  label?: string;
+  value?: number;
+  properties?: Record<string, any>;
+  timestamp?: number;
 }
 
-// Performance metric interface
+// Interface for performance metrics
 export interface PerformanceMetric {
   category: PerformanceCategory;
   name: string;
   value: number;
-  unit: 'ms' | 'bytes' | 'percent' | 'count';
-  timestamp: number;
-  tags?: Record<string, string>;
+  unit?: 'ms' | 'bytes' | 'percent' | 'count';
+  context?: Record<string, any>;
+  timestamp?: number;
 }
 
-// Interface for analytics providers
-export interface IAnalyticsProvider {
-  trackEvent(event: AnalyticsEvent): Promise<void>;
-  trackPerformance(metric: PerformanceMetric): Promise<void>;
-  setUserProperties(properties: Record<string, any>): Promise<void>;
-  identify(userId: string, traits?: Record<string, any>): Promise<void>;
+// Base analytics provider interface
+export interface AnalyticsProvider {
+  init(options?: Record<string, any>): Promise<void>;
+  trackEvent(event: AnalyticsEvent): void;
+  trackPerformance(metric: PerformanceMetric): void;
+  setUserId(userId: string | null): void;
+  setUserProperties(properties: Record<string, any>): void;
 }
 
-// Generic no-op analytics provider
-class NoOpAnalyticsProvider implements IAnalyticsProvider {
-  async trackEvent(_event: AnalyticsEvent): Promise<void> {}
-  async trackPerformance(_metric: PerformanceMetric): Promise<void> {}
-  async setUserProperties(_properties: Record<string, any>): Promise<void> {}
-  async identify(_userId: string, _traits?: Record<string, any>): Promise<void> {}
-}
-
-/**
- * Analytics Service
- * Unified interface for tracking events and metrics
- */
-export class AnalyticsService {
-  private providers: IAnalyticsProvider[] = [];
-  private defaultProperties: Record<string, any> = {};
-  private enabled: boolean = true;
+// Performance timer utility
+export class PerformanceTimer {
+  private startTime: number;
+  private endTime: number | null = null;
   
-  /**
-   * Create a new analytics service
-   * @param providers Analytics providers to use
-   */
-  constructor(providers: IAnalyticsProvider[] = []) {
-    this.providers = providers.length ? providers : [new NoOpAnalyticsProvider()];
-    
-    // Set some default properties that will be included with all events
-    this.defaultProperties = {
-      platform: typeof window !== 'undefined' ? 'web' : 'mobile',
-      appVersion: typeof window !== 'undefined' ? (window.__APP_VERSION__ || 'unknown') : 'unknown',
-      sessionId: this.generateSessionId(),
-      // Add other default properties as needed
-    };
+  constructor() {
+    // Use performance.now() if available, otherwise fallback to Date.now()
+    this.startTime = typeof performance !== 'undefined' 
+      ? performance.now() 
+      : Date.now();
   }
   
   /**
-   * Generate a unique session ID
+   * Stop the timer
    */
-  private generateSessionId(): string {
-    return Date.now().toString(36) + Math.random().toString(36).substr(2);
+  stop(): number {
+    this.endTime = typeof performance !== 'undefined' 
+      ? performance.now() 
+      : Date.now();
+      
+    return this.getElapsedTime();
   }
   
   /**
-   * Enable or disable analytics tracking
+   * Get the elapsed time in milliseconds
    */
-  setEnabled(enabled: boolean): void {
-    this.enabled = enabled;
+  getElapsedTime(): number {
+    const endTime = this.endTime || (typeof performance !== 'undefined' 
+      ? performance.now() 
+      : Date.now());
+      
+    return endTime - this.startTime;
   }
   
   /**
-   * Add a new analytics provider
+   * Reset the timer to start from now
    */
-  addProvider(provider: IAnalyticsProvider): void {
+  reset(): void {
+    this.startTime = typeof performance !== 'undefined' 
+      ? performance.now() 
+      : Date.now();
+    this.endTime = null;
+  }
+}
+
+// Singleton analytics manager
+let analyticsInstance: AnalyticsManager | null = null;
+
+// Analytics manager that can work with multiple providers
+export class AnalyticsManager {
+  private providers: AnalyticsProvider[] = [];
+  private userId: string | null = null;
+  private userProperties: Record<string, any> = {};
+  private isEnabled: boolean = true;
+  private samplingRate: number = 1.0; // 100% by default
+  
+  /**
+   * Add an analytics provider
+   */
+  addProvider(provider: AnalyticsProvider): void {
     this.providers.push(provider);
   }
   
   /**
-   * Remove an analytics provider
+   * Initialize all registered providers
    */
-  removeProvider(provider: IAnalyticsProvider): void {
-    this.providers = this.providers.filter(p => p !== provider);
-  }
-  
-  /**
-   * Set default properties to include with all events
-   */
-  setDefaultProperties(properties: Record<string, any>): void {
-    this.defaultProperties = {
-      ...this.defaultProperties,
-      ...properties
-    };
+  async init(options?: Record<string, any>): Promise<void> {
+    for (const provider of this.providers) {
+      try {
+        await provider.init(options);
+      } catch (error) {
+        console.error(`Failed to initialize analytics provider:`, error);
+      }
+    }
+    
+    if (options?.samplingRate !== undefined) {
+      this.samplingRate = options.samplingRate;
+    }
+    
+    if (options?.enabled !== undefined) {
+      this.isEnabled = options.enabled;
+    }
   }
   
   /**
    * Track an analytics event
    */
-  async trackEvent(
-    type: EventType,
-    name: string,
-    properties?: EventProperties
-  ): Promise<void> {
-    if (!this.enabled) return;
+  trackEvent(event: AnalyticsEvent): void {
+    if (!this.isEnabled || Math.random() > this.samplingRate) {
+      return;
+    }
     
-    const event: AnalyticsEvent = {
-      type,
-      name,
-      timestamp: Date.now(),
-      properties: {
-        ...this.defaultProperties,
-        ...properties
-      }
+    const enhancedEvent = {
+      ...event,
+      timestamp: event.timestamp || Date.now()
     };
     
-    await Promise.all(
-      this.providers.map(provider => 
-        provider.trackEvent(event).catch(err => 
-          console.error('Error tracking event:', err)
-        )
-      )
-    );
+    for (const provider of this.providers) {
+      try {
+        provider.trackEvent(enhancedEvent);
+      } catch (error) {
+        console.error(`Failed to track event:`, error);
+      }
+    }
   }
   
   /**
    * Track a performance metric
    */
-  async trackPerformance(
-    category: PerformanceCategory,
-    name: string,
-    value: number,
-    unit: 'ms' | 'bytes' | 'percent' | 'count' = 'ms',
-    tags?: Record<string, string>
-  ): Promise<void> {
-    if (!this.enabled) return;
+  trackPerformance(metric: PerformanceMetric): void {
+    if (!this.isEnabled || Math.random() > this.samplingRate) {
+      return;
+    }
     
-    const metric: PerformanceMetric = {
-      category,
-      name,
-      value,
-      unit,
-      timestamp: Date.now(),
-      tags
+    const enhancedMetric = {
+      ...metric,
+      timestamp: metric.timestamp || Date.now()
     };
     
-    await Promise.all(
-      this.providers.map(provider => 
-        provider.trackPerformance(metric).catch(err => 
-          console.error('Error tracking performance:', err)
-        )
-      )
-    );
+    for (const provider of this.providers) {
+      try {
+        provider.trackPerformance(enhancedMetric);
+      } catch (error) {
+        console.error(`Failed to track performance metric:`, error);
+      }
+    }
+  }
+  
+  /**
+   * Set the current user ID
+   */
+  setUserId(userId: string | null): void {
+    this.userId = userId;
+    
+    for (const provider of this.providers) {
+      try {
+        provider.setUserId(userId);
+      } catch (error) {
+        console.error(`Failed to set user ID:`, error);
+      }
+    }
   }
   
   /**
    * Set properties for the current user
    */
-  async setUserProperties(properties: Record<string, any>): Promise<void> {
-    if (!this.enabled) return;
-    
-    await Promise.all(
-      this.providers.map(provider => 
-        provider.setUserProperties(properties).catch(err => 
-          console.error('Error setting user properties:', err)
-        )
-      )
-    );
-  }
-  
-  /**
-   * Identify a user
-   */
-  async identify(userId: string, traits?: Record<string, any>): Promise<void> {
-    if (!this.enabled) return;
-    
-    await Promise.all(
-      this.providers.map(provider => 
-        provider.identify(userId, traits).catch(err => 
-          console.error('Error identifying user:', err)
-        )
-      )
-    );
-  }
-  
-  /**
-   * Track a page view (web-specific)
-   */
-  async trackPageView(
-    pageName: string,
-    path: string,
-    properties?: EventProperties
-  ): Promise<void> {
-    await this.trackEvent(EventType.PAGE_VIEW, pageName, {
-      path,
+  setUserProperties(properties: Record<string, any>): void {
+    this.userProperties = {
+      ...this.userProperties,
       ...properties
-    });
-  }
-  
-  /**
-   * Track a screen view (mobile-specific)
-   */
-  async trackScreenView(
-    screenName: string,
-    properties?: EventProperties
-  ): Promise<void> {
-    await this.trackEvent(EventType.SCREEN_VIEW, screenName, properties);
-  }
-  
-  /**
-   * Track a user action
-   */
-  async trackAction(
-    actionName: string,
-    properties?: EventProperties
-  ): Promise<void> {
-    await this.trackEvent(EventType.USER_ACTION, actionName, properties);
-  }
-  
-  /**
-   * Track an error
-   */
-  async trackError(
-    errorName: string,
-    error: Error,
-    properties?: EventProperties
-  ): Promise<void> {
-    await this.trackEvent(EventType.ERROR, errorName, {
-      message: error.message,
-      stack: error.stack,
-      ...properties
-    });
-  }
-  
-  /**
-   * Track an API call
-   */
-  async trackApiCall(
-    endpoint: string,
-    method: string,
-    statusCode: number,
-    duration: number,
-    properties?: EventProperties
-  ): Promise<void> {
-    await this.trackEvent(EventType.API_CALL, endpoint, {
-      method,
-      statusCode,
-      duration,
-      ...properties
-    });
+    };
     
-    // Also track as a performance metric
-    await this.trackPerformance(
-      PerformanceCategory.API_LATENCY,
-      `${method} ${endpoint}`,
-      duration,
-      'ms',
-      { statusCode: String(statusCode) }
-    );
+    for (const provider of this.providers) {
+      try {
+        provider.setUserProperties(this.userProperties);
+      } catch (error) {
+        console.error(`Failed to set user properties:`, error);
+      }
+    }
+  }
+  
+  /**
+   * Enable or disable analytics
+   */
+  setEnabled(enabled: boolean): void {
+    this.isEnabled = enabled;
+  }
+  
+  /**
+   * Set sampling rate (0-1) to control data volume
+   */
+  setSamplingRate(rate: number): void {
+    this.samplingRate = Math.max(0, Math.min(1, rate));
   }
 }
 
-// Create a shared timing utility for performance measurement
-export class PerformanceTimer {
-  private startTime: number;
-  private marks: Map<string, number> = new Map();
-  
-  constructor() {
-    this.startTime = this.now();
+/**
+ * Get the singleton analytics manager instance
+ */
+export function getAnalytics(): AnalyticsManager {
+  if (!analyticsInstance) {
+    analyticsInstance = new AnalyticsManager();
   }
-  
-  /**
-   * Get current time in milliseconds
-   */
-  private now(): number {
-    // Use performance.now() if available (more precise), otherwise use Date.now()
-    return typeof performance !== 'undefined' ? performance.now() : Date.now();
-  }
-  
-  /**
-   * Mark a point in time
-   */
-  mark(name: string): void {
-    this.marks.set(name, this.now());
-  }
-  
-  /**
-   * Measure time between two marks
-   */
-  measure(endName: string, startName?: string): number {
-    const endTime = this.marks.get(endName);
-    
-    if (!endTime) {
-      throw new Error(`Mark "${endName}" not found`);
-    }
-    
-    let startTime: number;
-    
-    if (startName) {
-      startTime = this.marks.get(startName) || this.startTime;
-      if (!startTime) {
-        throw new Error(`Mark "${startName}" not found`);
-      }
-    } else {
-      startTime = this.startTime;
-    }
-    
-    return endTime - startTime;
-  }
-  
-  /**
-   * Get total elapsed time since timer creation
-   */
-  getElapsedTime(): number {
-    return this.now() - this.startTime;
-  }
-  
-  /**
-   * Reset the timer
-   */
-  reset(): void {
-    this.startTime = this.now();
-    this.marks.clear();
-  }
+  return analyticsInstance;
+}
+
+/**
+ * Reset the analytics manager (useful for testing)
+ */
+export function resetAnalytics(): void {
+  analyticsInstance = null;
 }

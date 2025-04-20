@@ -1,359 +1,356 @@
 /**
  * Shared API Client Utilities
- * Common functionality for making API requests across web and mobile platforms
+ * Common API interaction patterns for both web and mobile platforms
  */
 
-import { ApiError, parseApiError } from './error-handling';
+import {
+  ApiError,
+  NetworkError,
+  TimeoutError,
+  RateLimitError,
+  parseApiErrorResponse,
+  normalizeError,
+  isRetryableError
+} from './error-handling';
+import { PerformanceTimer } from './analytics';
 
 /**
- * Response structure for all API calls
- */
-export interface ApiResponse<T = unknown> {
-  data?: T;
-  error?: ApiError;
-  status: number;
-  success: boolean;
-}
-
-/**
- * Request options with enhanced features
+ * API request options
  */
 export interface ApiRequestOptions extends RequestInit {
   timeout?: number;
   retries?: number;
-  retryDelay?: number;
-  retryStatusCodes?: number[];
-  headers?: HeadersInit;
+  baseURL?: string;
+  retryDelay?: number | ((attempt: number, error: Error) => number);
+  validateStatus?: (status: number) => boolean;
+  onUploadProgress?: (progressEvent: { loaded: number; total: number }) => void;
+  onDownloadProgress?: (progressEvent: { loaded: number; total: number }) => void;
 }
 
 /**
- * Default request options
+ * Default API client configuration
  */
-const DEFAULT_OPTIONS: ApiRequestOptions = {
+const DEFAULT_CONFIG: ApiRequestOptions = {
+  timeout: 30000, // 30 seconds
+  retries: 2,
+  retryDelay: (attempt) => Math.min(2 ** attempt * 1000, 30000), // Exponential backoff with 30s max
+  validateStatus: (status) => status >= 200 && status < 300,
   headers: {
     'Content-Type': 'application/json',
     'Accept': 'application/json',
   },
-  // Default to include credentials for session-based auth
-  credentials: 'include',
-  // Default timeout of 30 seconds
-  timeout: 30000,
-  // Default to 1 retry
-  retries: 1,
-  // Default retry delay of 1 second
-  retryDelay: 1000,
-  // Default retry on these status codes
-  retryStatusCodes: [408, 429, 500, 502, 503, 504],
 };
 
 /**
- * Creates request headers with platform-specific modifications
+ * Calculate retry delay with jitter to avoid thundering herd
  */
-export async function createRequestHeaders(
-  baseHeaders: HeadersInit = {},
-  platform: 'web' | 'mobile' = 'web'
-): Promise<HeadersInit> {
-  const headers = { ...DEFAULT_OPTIONS.headers, ...baseHeaders };
-  
-  // On web, add CSRF token and other web-specific headers
-  if (platform === 'web') {
-    // This would be implemented by the platform-specific code
-    // that imports this module
+function calculateRetryDelay(
+  attempt: number, 
+  error: Error, 
+  delayFn: ApiRequestOptions['retryDelay']
+): number {
+  // If RateLimitError with retryAfter, use that
+  if (error instanceof RateLimitError && error.retryAfter) {
+    return error.retryAfter * 1000;
   }
   
-  return headers;
+  // Calculate delay based on retryDelay function or value
+  let delay: number;
+  if (typeof delayFn === 'function') {
+    delay = delayFn(attempt, error);
+  } else if (typeof delayFn === 'number') {
+    delay = delayFn;
+  } else {
+    // Default exponential backoff
+    delay = Math.min(2 ** attempt * 1000, 30000);
+  }
+  
+  // Add jitter to avoid thundering herd effect
+  // Random value between 75% and 100% of the calculated delay
+  return delay * (0.75 + Math.random() * 0.25);
 }
 
 /**
- * Executes a fetch request with timeout, retries, and enhanced error handling
+ * Base API client for making HTTP requests
  */
-export async function fetchWithTimeout<T>(
-  url: string,
-  options: ApiRequestOptions = {}
-): Promise<ApiResponse<T>> {
-  const {
-    timeout = DEFAULT_OPTIONS.timeout,
-    retries = DEFAULT_OPTIONS.retries,
-    retryDelay = DEFAULT_OPTIONS.retryDelay,
-    retryStatusCodes = DEFAULT_OPTIONS.retryStatusCodes,
-    ...fetchOptions
-  } = options;
-
-  // Set up abort controller for timeout
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), timeout);
+export class ApiClient {
+  protected baseURL: string;
+  protected defaultOptions: ApiRequestOptions;
   
-  try {
-    const response = await executeFetchWithRetries<T>(
-      url,
-      {
-        ...fetchOptions,
-        signal: controller.signal,
-      },
-      retries,
-      retryDelay,
-      retryStatusCodes
-    );
-    
-    return response;
-  } catch (error: any) {
-    // Handle timeout errors
-    if (error.name === 'AbortError') {
-      return {
-        error: new ApiError({
-          message: 'Request timed out',
-          statusCode: 408,
-          code: 'TIMEOUT',
-          cause: error
-        }),
-        status: 408,
-        success: false,
-      };
-    }
-    
-    // Handle network errors
-    return {
-      error: new ApiError({
-        message: error.message || 'Network error',
-        statusCode: 0,
-        code: 'NETWORK_ERROR',
-        cause: error
-      }),
-      status: 0,
-      success: false,
+  constructor(baseURL: string = '', defaultOptions: Partial<ApiRequestOptions> = {}) {
+    this.baseURL = baseURL;
+    this.defaultOptions = {
+      ...DEFAULT_CONFIG,
+      ...defaultOptions,
     };
-  } finally {
-    clearTimeout(timeoutId);
   }
-}
-
-/**
- * Internal helper to execute a fetch request with retries
- */
-async function executeFetchWithRetries<T>(
-  url: string,
-  options: RequestInit,
-  retriesLeft: number,
-  retryDelay: number,
-  retryStatusCodes: number[]
-): Promise<ApiResponse<T>> {
-  try {
-    const response = await fetch(url, options);
+  
+  /**
+   * Make an API request with retries and error handling
+   */
+  async request<T = any>(
+    url: string,
+    options: Partial<ApiRequestOptions> = {}
+  ): Promise<T> {
+    const mergedOptions = this.mergeOptions(options);
+    const fullUrl = this.resolveUrl(url, mergedOptions.baseURL);
+    const { timeout, retries, retryDelay, validateStatus, ...fetchOptions } = mergedOptions;
     
-    // Check if we should retry
-    if (
-      !response.ok &&
-      retriesLeft > 0 &&
-      retryStatusCodes.includes(response.status)
-    ) {
-      // Add jitter to avoid thundering herd
-      const jitter = Math.random() * 0.3 * retryDelay;
-      const delay = retryDelay + jitter;
-      
-      // Wait before retrying
-      await new Promise(resolve => setTimeout(resolve, delay));
-      
-      // Retry with exponential backoff
-      return executeFetchWithRetries<T>(
-        url,
-        options,
-        retriesLeft - 1,
-        retryDelay * 2,
-        retryStatusCodes
-      );
-    }
+    let attempt = 0;
+    let lastError: Error | null = null;
     
-    // Process the response
-    return processResponse<T>(response);
-  } catch (error: any) {
-    // For network errors, retry if we have retries left
-    if (retriesLeft > 0 && error.name !== 'AbortError') {
-      // Add jitter to avoid thundering herd
-      const jitter = Math.random() * 0.3 * retryDelay;
-      const delay = retryDelay + jitter;
-      
-      // Wait before retrying
-      await new Promise(resolve => setTimeout(resolve, delay));
-      
-      // Retry with exponential backoff
-      return executeFetchWithRetries<T>(
-        url,
-        options,
-        retriesLeft - 1,
-        retryDelay * 2,
-        retryStatusCodes
-      );
-    }
+    // Start performance timer
+    const timer = new PerformanceTimer();
     
-    // Re-throw to be handled by the calling function
-    throw error;
-  }
-}
-
-/**
- * Process API response
- */
-async function processResponse<T>(response: Response): Promise<ApiResponse<T>> {
-  // For non-ok responses, parse and return error
-  if (!response.ok) {
-    let errorData: any;
-    
-    try {
-      errorData = await response.json();
-    } catch {
-      // If we can't parse JSON, use text
+    while (attempt <= retries!) {
       try {
-        const text = await response.text();
-        errorData = { message: text };
-      } catch {
-        // If we can't get text either, use status text
-        errorData = { message: response.statusText };
+        // Add timeout using AbortController
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), timeout);
+        
+        // Include abort signal in fetch options
+        const fetchOptionsWithSignal = {
+          ...fetchOptions,
+          signal: controller.signal,
+        };
+        
+        // Make request
+        const response = await fetch(fullUrl, fetchOptionsWithSignal);
+        
+        // Clear timeout
+        clearTimeout(timeoutId);
+        
+        // Check if response status is valid
+        if (!validateStatus!(response.status)) {
+          let errorData;
+          try {
+            const contentType = response.headers.get('Content-Type') || '';
+            if (contentType.includes('application/json')) {
+              errorData = await response.json();
+            } else {
+              errorData = { message: await response.text() };
+            }
+          } catch (e) {
+            errorData = { message: response.statusText };
+          }
+          
+          // Create error instance based on status
+          const error = parseApiErrorResponse(response, errorData);
+          
+          // For retryable errors, try again
+          if (error.retryable && attempt < retries!) {
+            lastError = error;
+            attempt++;
+            
+            // Calculate delay with jitter
+            const delay = calculateRetryDelay(attempt, error, retryDelay);
+            console.log(`[api] Retrying after error: ${error.message}. Attempt ${attempt} of ${retries}`);
+            console.log(`[api] Waiting ${Math.round(delay / 1000)} seconds before next attempt`);
+            
+            await new Promise(resolve => setTimeout(resolve, delay));
+            continue;
+          }
+          
+          throw error;
+        }
+        
+        // Parse response based on content type
+        const contentType = response.headers.get('Content-Type') || '';
+        let data: T;
+        
+        if (contentType.includes('application/json')) {
+          data = await response.json();
+        } else if (contentType.includes('text/')) {
+          data = await response.text() as unknown as T;
+        } else {
+          data = await response.blob() as unknown as T;
+        }
+        
+        return data;
+      } catch (error: any) {
+        // Handle AbortController timeout
+        if (error.name === 'AbortError') {
+          const timeoutError = new TimeoutError(`Request timed out after ${timeout}ms`);
+          
+          if (attempt < retries!) {
+            lastError = timeoutError;
+            attempt++;
+            
+            // Calculate delay with jitter
+            const delay = calculateRetryDelay(attempt, timeoutError, retryDelay);
+            console.log(`[api] Retrying after error: ${timeoutError.message}. Attempt ${attempt} of ${retries}`);
+            console.log(`[api] Waiting ${Math.round(delay / 1000)} seconds before next attempt`);
+            
+            await new Promise(resolve => setTimeout(resolve, delay));
+            continue;
+          }
+          
+          throw timeoutError;
+        }
+        
+        // Handle network errors
+        if (error instanceof TypeError && error.message.includes('NetworkError')) {
+          const networkError = new NetworkError(error.message);
+          
+          if (attempt < retries!) {
+            lastError = networkError;
+            attempt++;
+            
+            // Calculate delay with jitter
+            const delay = calculateRetryDelay(attempt, networkError, retryDelay);
+            console.log(`[api] Retrying after error: ${networkError.message}. Attempt ${attempt} of ${retries}`);
+            console.log(`[api] Waiting ${Math.round(delay / 1000)} seconds before next attempt`);
+            
+            await new Promise(resolve => setTimeout(resolve, delay));
+            continue;
+          }
+          
+          throw networkError;
+        }
+        
+        // Handle other errors, attempt retry if it's retryable
+        const normalizedError = normalizeError(error);
+        
+        if (isRetryableError(normalizedError) && attempt < retries!) {
+          lastError = normalizedError;
+          attempt++;
+          
+          // Calculate delay with jitter
+          const delay = calculateRetryDelay(attempt, normalizedError, retryDelay);
+          console.log(`[api] Retrying after error: ${normalizedError.message}. Attempt ${attempt} of ${retries}`);
+          console.log(`[api] Waiting ${Math.round(delay / 1000)} seconds before next attempt`);
+          
+          await new Promise(resolve => setTimeout(resolve, delay));
+          continue;
+        }
+        
+        throw normalizedError;
       }
     }
     
-    // Parse the error using our utility
-    const error = parseApiError(response, errorData);
-    
-    return {
-      error,
-      status: response.status,
-      success: false,
-    };
+    // If all retries failed, throw the last error
+    throw lastError || new Error('Request failed after multiple retries');
   }
   
-  // For successful responses, parse data
-  try {
-    const contentType = response.headers.get('content-type');
-    
-    // Handle JSON responses
-    if (contentType && contentType.includes('application/json')) {
-      const data = await response.json();
-      return {
-        data,
-        status: response.status,
-        success: true,
-      };
-    }
-    
-    // Handle text responses
-    const text = await response.text();
-    return {
-      data: text as unknown as T,
-      status: response.status,
-      success: true,
-    };
-  } catch (error: any) {
-    // Handle parsing errors
-    return {
-      error: new ApiError({
-        message: 'Failed to parse response',
-        statusCode: response.status,
-        code: 'PARSE_ERROR',
-        cause: error
-      }),
-      status: response.status,
-      success: false,
-    };
+  /**
+   * GET request
+   */
+  async get<T = any>(url: string, options: Partial<ApiRequestOptions> = {}): Promise<T> {
+    return this.request<T>(url, {
+      ...options,
+      method: 'GET',
+    });
   }
-}
-
-/**
- * Core API request function - used by the HTTP method wrappers
- */
-export async function apiRequest<T>(
-  method: string,
-  url: string,
-  data?: any,
-  options: ApiRequestOptions = {}
-): Promise<ApiResponse<T>> {
-  // Start with default options
-  const requestOptions: ApiRequestOptions = {
-    ...DEFAULT_OPTIONS,
-    ...options,
-    method,
-    headers: {
-      ...DEFAULT_OPTIONS.headers,
+  
+  /**
+   * POST request
+   */
+  async post<T = any>(
+    url: string,
+    data?: any,
+    options: Partial<ApiRequestOptions> = {}
+  ): Promise<T> {
+    return this.request<T>(url, {
+      ...options,
+      method: 'POST',
+      body: data ? JSON.stringify(data) : undefined,
+    });
+  }
+  
+  /**
+   * PUT request
+   */
+  async put<T = any>(
+    url: string,
+    data?: any,
+    options: Partial<ApiRequestOptions> = {}
+  ): Promise<T> {
+    return this.request<T>(url, {
+      ...options,
+      method: 'PUT',
+      body: data ? JSON.stringify(data) : undefined,
+    });
+  }
+  
+  /**
+   * PATCH request
+   */
+  async patch<T = any>(
+    url: string,
+    data?: any,
+    options: Partial<ApiRequestOptions> = {}
+  ): Promise<T> {
+    return this.request<T>(url, {
+      ...options,
+      method: 'PATCH',
+      body: data ? JSON.stringify(data) : undefined,
+    });
+  }
+  
+  /**
+   * DELETE request
+   */
+  async delete<T = any>(url: string, options: Partial<ApiRequestOptions> = {}): Promise<T> {
+    return this.request<T>(url, {
+      ...options,
+      method: 'DELETE',
+    });
+  }
+  
+  /**
+   * Merge default options with request-specific options
+   */
+  protected mergeOptions(options: Partial<ApiRequestOptions>): ApiRequestOptions {
+    // Merge headers separately to ensure they are combined correctly
+    const headers = {
+      ...this.defaultOptions.headers,
       ...options.headers,
-    },
-  };
-  
-  // Add request body for methods that support it
-  if (data && ['POST', 'PUT', 'PATCH'].includes(method.toUpperCase())) {
-    requestOptions.body = JSON.stringify(sanitizeData(data));
+    };
+    
+    return {
+      ...this.defaultOptions,
+      ...options,
+      headers,
+    };
   }
   
-  // Execute the request
-  return fetchWithTimeout<T>(url, requestOptions);
-}
-
-/**
- * Sanitize data before sending to prevent injection attacks
- */
-function sanitizeData<T>(data: T): T {
-  if (data === null || data === undefined) {
-    return data;
-  }
-
-  if (typeof data !== 'object') {
-    return data;
-  }
-
-  if (Array.isArray(data)) {
-    return data.map(item => sanitizeData(item)) as unknown as T;
-  }
-
-  const sanitized: Record<string, unknown> = {};
-  for (const [key, value] of Object.entries(data as object)) {
-    // Skip functions or complex objects
-    if (
-      typeof value !== 'function' &&
-      !(value instanceof Element) &&
-      !(value instanceof File)
-    ) {
-      sanitized[key] = sanitizeData(value);
+  /**
+   * Resolve a URL against the base URL
+   */
+  protected resolveUrl(url: string, baseURL?: string): string {
+    // If URL is already absolute, return it
+    if (url.startsWith('http://') || url.startsWith('https://')) {
+      return url;
     }
+    
+    // Remove trailing slash from baseURL if present
+    const base = (baseURL || this.baseURL || '').endsWith('/')
+      ? (baseURL || this.baseURL || '').slice(0, -1)
+      : (baseURL || this.baseURL || '');
+    
+    // Add leading slash to URL if not present
+    const path = url.startsWith('/') ? url : `/${url}`;
+    
+    return `${base}${path}`;
   }
+}
 
-  return sanitized as unknown as T;
+// Create singleton instance for global use
+let defaultApiClient: ApiClient | null = null;
+
+/**
+ * Get the default API client instance
+ */
+export function getApiClient(baseURL: string = '', options: Partial<ApiRequestOptions> = {}): ApiClient {
+  if (!defaultApiClient) {
+    defaultApiClient = new ApiClient(baseURL, options);
+  }
+  return defaultApiClient;
 }
 
 /**
- * HTTP Method convenience functions
+ * Reset the default API client (useful for testing)
  */
-export async function get<T>(
-  url: string,
-  options: ApiRequestOptions = {}
-): Promise<ApiResponse<T>> {
-  return apiRequest<T>('GET', url, undefined, options);
-}
-
-export async function post<T>(
-  url: string,
-  data?: any,
-  options: ApiRequestOptions = {}
-): Promise<ApiResponse<T>> {
-  return apiRequest<T>('POST', url, data, options);
-}
-
-export async function put<T>(
-  url: string,
-  data?: any,
-  options: ApiRequestOptions = {}
-): Promise<ApiResponse<T>> {
-  return apiRequest<T>('PUT', url, data, options);
-}
-
-export async function patch<T>(
-  url: string,
-  data?: any,
-  options: ApiRequestOptions = {}
-): Promise<ApiResponse<T>> {
-  return apiRequest<T>('PATCH', url, data, options);
-}
-
-export async function del<T>(
-  url: string,
-  options: ApiRequestOptions = {}
-): Promise<ApiResponse<T>> {
-  return apiRequest<T>('DELETE', url, undefined, options);
+export function resetApiClient(): void {
+  defaultApiClient = null;
 }

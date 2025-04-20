@@ -1,32 +1,42 @@
 /**
  * Shared Validation Utilities
- * Common validation functions for consistent form validation across platforms
+ * Common validation functions for both web and mobile platforms
  */
 
-// Email validation with support for Unicode characters
+/**
+ * Validates an email address
+ * @param email Email address to validate
+ * @returns True if the email is valid
+ */
 export function isValidEmail(email: string): boolean {
   if (!email) return false;
   
-  // This regex allows Unicode characters in local part
-  // It covers most valid email formats, including international domains
-  const emailRegex = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+  // RFC 5322 compliant email regex
+  const emailRegex = /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
   return emailRegex.test(email);
 }
 
-// Phone number validation (10 digits, with or without formatting)
+/**
+ * Validates a phone number
+ * @param phone Phone number to validate
+ * @returns True if the phone number is valid
+ */
 export function isValidPhone(phone: string): boolean {
   if (!phone) return false;
   
-  // Strip all non-numeric characters
-  const digitsOnly = phone.replace(/\D/g, '');
+  // Remove non-numeric characters for validation
+  const digits = phone.replace(/\D/g, '');
   
-  // Check if we have a valid US number (10 digits or 11 digits starting with 1)
-  return (digitsOnly.length === 10) || 
-         (digitsOnly.length === 11 && digitsOnly.charAt(0) === '1');
+  // Check for valid formats:
+  // - 10 digits (standard US number)
+  // - 11 digits starting with 1 (US with country code)
+  return (digits.length === 10) || (digits.length === 11 && digits.charAt(0) === '1');
 }
 
-// Password strength validation
-export interface PasswordValidationOptions {
+/**
+ * Password strength options
+ */
+interface PasswordOptions {
   minLength?: number;
   requireUppercase?: boolean;
   requireLowercase?: boolean;
@@ -34,262 +44,220 @@ export interface PasswordValidationOptions {
   requireSpecialChars?: boolean;
 }
 
-export interface PasswordValidationResult {
+/**
+ * Password validation result
+ */
+interface PasswordValidationResult {
   isValid: boolean;
   strength: 'weak' | 'medium' | 'strong' | 'very-strong';
   missing: string[];
+  score: number;
 }
 
+/**
+ * Validates a password and returns detailed info about its strength
+ * @param password Password to validate
+ * @param options Validation options
+ */
 export function validatePassword(
   password: string,
-  options: PasswordValidationOptions = {}
+  options: PasswordOptions = {}
 ): PasswordValidationResult {
-  const {
-    minLength = 8,
-    requireUppercase = true,
-    requireLowercase = true,
-    requireNumbers = true,
-    requireSpecialChars = true,
-  } = options;
+  const opts = {
+    minLength: options.minLength || 8,
+    requireUppercase: options.requireUppercase !== false,
+    requireLowercase: options.requireLowercase !== false,
+    requireNumbers: options.requireNumbers !== false,
+    requireSpecialChars: options.requireSpecialChars !== false,
+  };
   
+  // Check various password criteria
+  const hasMinLength = password.length >= opts.minLength;
+  const hasUppercase = /[A-Z]/.test(password);
+  const hasLowercase = /[a-z]/.test(password);
+  const hasNumbers = /\d/.test(password);
+  const hasSpecialChars = /[^A-Za-z0-9]/.test(password);
+  
+  // Calculate score and collect missing criteria
+  let score = 0;
   const missing: string[] = [];
   
-  // Check minimum length
-  if (password.length < minLength) {
-    missing.push(`at least ${minLength} characters`);
-  }
+  if (hasMinLength) score++;
+  else missing.push(`at least ${opts.minLength} characters`);
   
-  // Check for uppercase letters
-  if (requireUppercase && !/[A-Z]/.test(password)) {
-    missing.push('uppercase letter');
-  }
+  if (hasUppercase || !opts.requireUppercase) score++;
+  else missing.push('uppercase letter');
   
-  // Check for lowercase letters
-  if (requireLowercase && !/[a-z]/.test(password)) {
-    missing.push('lowercase letter');
-  }
+  if (hasLowercase || !opts.requireLowercase) score++;
+  else missing.push('lowercase letter');
   
-  // Check for numbers
-  if (requireNumbers && !/[0-9]/.test(password)) {
-    missing.push('number');
-  }
+  if (hasNumbers || !opts.requireNumbers) score++;
+  else missing.push('number');
   
-  // Check for special characters
-  if (requireSpecialChars && !/[^A-Za-z0-9]/.test(password)) {
-    missing.push('special character');
-  }
+  if (hasSpecialChars || !opts.requireSpecialChars) score++;
+  else missing.push('special character');
   
-  // Determine password strength
+  // Add bonus points for length
+  if (password.length >= 12) score++;
+  if (password.length >= 16) score++;
+  
+  // Determine strength
   let strength: 'weak' | 'medium' | 'strong' | 'very-strong';
+  if (score <= 2) strength = 'weak';
+  else if (score <= 4) strength = 'medium';
+  else if (score <= 6) strength = 'strong';
+  else strength = 'very-strong';
   
-  if (missing.length > 2) {
-    strength = 'weak';
-  } else if (missing.length > 0) {
-    strength = 'medium';
-  } else if (password.length < 12) {
-    strength = 'strong';
-  } else {
-    strength = 'very-strong';
-  }
+  // Validity requires all mandatory criteria to be met
+  const isValid = missing.length === 0;
   
   return {
-    isValid: missing.length === 0,
+    isValid,
     strength,
     missing,
+    score
   };
 }
 
-// Credit card validation helper
+/**
+ * Credit card type detection and validation
+ */
+export type CreditCardType = 
+  | 'visa'
+  | 'mastercard' 
+  | 'amex' 
+  | 'discover' 
+  | 'dinersclub' 
+  | 'jcb' 
+  | 'unknown';
+
+/**
+ * Card type patterns
+ */
+const CARD_PATTERNS = {
+  visa: /^4[0-9]{12}(?:[0-9]{3})?$/,
+  mastercard: /^5[1-5][0-9]{14}$/,
+  amex: /^3[47][0-9]{13}$/,
+  discover: /^6(?:011|5[0-9]{2})[0-9]{12}$/,
+  dinersclub: /^3(?:0[0-5]|[68][0-9])[0-9]{11}$/,
+  jcb: /^(?:2131|1800|35\d{3})\d{11}$/
+};
+
+/**
+ * Determines the credit card type
+ * @param cardNumber Credit card number
+ * @returns The card type or 'unknown'
+ */
+export function getCreditCardType(cardNumber: string): CreditCardType {
+  // Remove spaces and dashes
+  const normalizedNumber = cardNumber.replace(/[\s-]/g, '');
+  
+  for (const [type, pattern] of Object.entries(CARD_PATTERNS)) {
+    if (pattern.test(normalizedNumber)) {
+      return type as CreditCardType;
+    }
+  }
+  
+  return 'unknown';
+}
+
+/**
+ * Validates a credit card number using Luhn algorithm and card type patterns
+ * @param cardNumber Credit card number
+ * @returns True if the card number is valid
+ */
 export function isValidCreditCard(cardNumber: string): boolean {
   if (!cardNumber) return false;
   
-  // Remove all non-digit characters
-  const digitsOnly = cardNumber.replace(/\D/g, '');
+  // Remove spaces and dashes
+  const normalizedNumber = cardNumber.replace(/[\s-]/g, '');
   
-  // Check length (most cards are 13-19 digits)
-  if (digitsOnly.length < 13 || digitsOnly.length > 19) {
-    return false;
-  }
+  // Check if the number matches any known card type pattern
+  const cardType = getCreditCardType(normalizedNumber);
+  if (cardType === 'unknown') return false;
   
-  // Luhn algorithm (credit card checksum)
+  // Luhn algorithm validation
   let sum = 0;
   let shouldDouble = false;
   
-  // Loop from right to left
-  for (let i = digitsOnly.length - 1; i >= 0; i--) {
-    let digit = parseInt(digitsOnly.charAt(i), 10);
+  // Walk through the card number in reverse
+  for (let i = normalizedNumber.length - 1; i >= 0; i--) {
+    let digit = parseInt(normalizedNumber.charAt(i));
     
     if (shouldDouble) {
       digit *= 2;
-      if (digit > 9) {
-        digit -= 9;
-      }
+      if (digit > 9) digit -= 9;
     }
     
     sum += digit;
     shouldDouble = !shouldDouble;
   }
   
-  return sum % 10 === 0;
+  return (sum % 10) === 0;
 }
 
-// Credit card type detection
-export type CardType = 
-  | 'visa'
-  | 'mastercard'
-  | 'amex'
-  | 'discover'
-  | 'dinersclub'
-  | 'jcb'
-  | 'unknown';
-
-export function getCreditCardType(cardNumber: string): CardType {
-  if (!cardNumber) return 'unknown';
+/**
+ * Validates a date string
+ * @param dateStr Date string in format YYYY-MM-DD
+ * @returns True if the date is valid
+ */
+export function isValidDate(dateStr: string): boolean {
+  // Check format
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return false;
   
-  // Remove all non-digit characters
-  const digitsOnly = cardNumber.replace(/\D/g, '');
+  // Parse the date parts to integers
+  const parts = dateStr.split('-');
+  const year = parseInt(parts[0], 10);
+  const month = parseInt(parts[1], 10);
+  const day = parseInt(parts[2], 10);
   
-  // Visa
-  if (/^4/.test(digitsOnly)) {
-    return 'visa';
+  // Check the ranges of month and day
+  if (year < 1000 || year > 3000 || month < 1 || month > 12) return false;
+  
+  const monthLength = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+  
+  // Adjust for leap years
+  if (year % 400 === 0 || (year % 100 !== 0 && year % 4 === 0)) {
+    monthLength[1] = 29;
   }
   
-  // Mastercard
-  if (/^5[1-5]/.test(digitsOnly) || /^2[2-7]/.test(digitsOnly)) {
-    return 'mastercard';
-  }
-  
-  // American Express
-  if (/^3[47]/.test(digitsOnly)) {
-    return 'amex';
-  }
-  
-  // Discover
-  if (/^6(?:011|5)/.test(digitsOnly)) {
-    return 'discover';
-  }
-  
-  // Diners Club
-  if (/^3(?:0[0-5]|[68])/.test(digitsOnly)) {
-    return 'dinersclub';
-  }
-  
-  // JCB
-  if (/^35/.test(digitsOnly)) {
-    return 'jcb';
-  }
-  
-  return 'unknown';
+  return day > 0 && day <= monthLength[month - 1];
 }
 
-// ZIP/Postal code validation (simple US validation)
-export function isValidZipCode(zipCode: string, country = 'US'): boolean {
-  if (!zipCode) return false;
+/**
+ * Validates a URL
+ * @param url URL to validate
+ * @returns True if the URL is valid
+ */
+export function isValidUrl(url: string): boolean {
+  try {
+    const parsedUrl = new URL(url);
+    return ['http:', 'https:'].includes(parsedUrl.protocol);
+  } catch (e) {
+    return false;
+  }
+}
+
+/**
+ * Validates a postal/zip code
+ * @param code Postal code to validate
+ * @param countryCode ISO country code (default 'US')
+ * @returns True if the postal code is valid
+ */
+export function isValidPostalCode(code: string, countryCode = 'US'): boolean {
+  if (!code) return false;
   
   // Different formats for different countries
-  if (country === 'US') {
-    // US zip codes: 5 digits or 5+4 format
-    return /^\d{5}(-\d{4})?$/.test(zipCode);
-  } else if (country === 'CA') {
-    // Canadian postal codes: A1A 1A1 format
-    return /^[A-Za-z]\d[A-Za-z] \d[A-Za-z]\d$/.test(zipCode);
-  } else if (country === 'UK') {
-    // UK postcodes: Various formats
-    return /^[A-Z]{1,2}[0-9R][0-9A-Z]? [0-9][A-Z]{2}$/i.test(zipCode);
+  switch (countryCode.toUpperCase()) {
+    case 'US':
+      return /^\d{5}(-\d{4})?$/.test(code);
+    case 'CA':
+      return /^[A-Za-z]\d[A-Za-z][ -]?\d[A-Za-z]\d$/.test(code);
+    case 'UK':
+    case 'GB':
+      return /^[A-Z]{1,2}[0-9][A-Z0-9]? ?[0-9][A-Z]{2}$/i.test(code);
+    default:
+      // Default validation - at least 3 characters
+      return code.length >= 3;
   }
-  
-  // For other countries, just ensure it's not empty
-  return zipCode.trim().length > 0;
-}
-
-// Vehicle license plate validation (basic format check)
-export function isValidLicensePlate(plate: string, stateOrCountry = 'any'): boolean {
-  if (!plate) return false;
-  
-  // Remove whitespace
-  const trimmedPlate = plate.trim();
-  
-  // Basic validation: minimum length and no invalid characters
-  if (trimmedPlate.length < 2 || trimmedPlate.length > 10) {
-    return false;
-  }
-  
-  // Only allow alphanumeric characters and hyphens
-  if (!/^[A-Za-z0-9-]+$/.test(trimmedPlate)) {
-    return false;
-  }
-  
-  // For specific states, we could add more precise validation rules
-  // For now, just return true if it passes the basic checks
-  return true;
-}
-
-// URL validation
-export function isValidUrl(url: string): boolean {
-  if (!url) return false;
-  
-  try {
-    const urlObj = new URL(url);
-    return urlObj.protocol === 'http:' || urlObj.protocol === 'https:';
-  } catch {
-    return false;
-  }
-}
-
-// Empty or whitespace check
-export function isEmptyOrWhitespace(str: string | null | undefined): boolean {
-  return !str || str.trim() === '';
-}
-
-// Check if a number is within a range
-export function isWithinRange(
-  num: number,
-  min: number,
-  max: number,
-  inclusive = true
-): boolean {
-  if (inclusive) {
-    return num >= min && num <= max;
-  } else {
-    return num > min && num < max;
-  }
-}
-
-// Check if a string is a valid number
-export function isValidNumber(value: string): boolean {
-  if (isEmptyOrWhitespace(value)) return false;
-  return !isNaN(Number(value));
-}
-
-// Check if a string contains only letters
-export function containsOnlyLetters(value: string): boolean {
-  if (isEmptyOrWhitespace(value)) return false;
-  return /^[A-Za-z]+$/.test(value);
-}
-
-// Check if a string contains only digits
-export function containsOnlyDigits(value: string): boolean {
-  if (isEmptyOrWhitespace(value)) return false;
-  return /^\d+$/.test(value);
-}
-
-// Check if a string is a valid date
-export function isValidDate(dateStr: string): boolean {
-  if (isEmptyOrWhitespace(dateStr)) return false;
-  const date = new Date(dateStr);
-  return !isNaN(date.getTime());
-}
-
-// Check if a date is in the future
-export function isFutureDate(date: Date | string | number): boolean {
-  const dateToCheck = typeof date === 'object' ? date : new Date(date);
-  const now = new Date();
-  return dateToCheck > now;
-}
-
-// Check if a date is in the past
-export function isPastDate(date: Date | string | number): boolean {
-  const dateToCheck = typeof date === 'object' ? date : new Date(date);
-  const now = new Date();
-  return dateToCheck < now;
 }
