@@ -467,7 +467,10 @@ export default function OrderPage() {
             </div>
 
             {orderData.location ? (
-              <Card className="mt-4 mb-4">
+              <Card 
+                className="mt-4 mb-4 cursor-pointer hover:bg-accent/50 transition-colors"
+                onClick={() => setShowAddLocation(true)}
+              >
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between">
                     <div>
@@ -557,7 +560,7 @@ export default function OrderPage() {
 
             {orderData.deliveryDate && orderData.deliveryTimeSlot ? (
               <Card
-                className="mt-4 mb-4"
+                className="mt-4 mb-4 cursor-pointer hover:bg-accent/50 transition-colors"
                 onClick={() => setShowDeliveryTime(true)}
               >
                 <CardContent className="p-4">
