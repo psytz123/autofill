@@ -78,8 +78,8 @@ export function PointsDisplay() {
           )}
         </CardTitle>
         <CardDescription>
-          Earn points with every purchase: 10 points per gallon for Basic,
-          11 points per gallon for Premium, and 12 points per gallon for Unlimited subscribers
+          Earn points with every purchase: 5 points per gallon for Basic,
+          10 points per gallon for Premium, and 20 points per gallon for Unlimited subscribers
         </CardDescription>
       </CardHeader>
       <CardContent>

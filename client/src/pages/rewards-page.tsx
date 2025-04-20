@@ -1,7 +1,7 @@
-import { PageHeader } from "@/components/ui/page-header";
+import { PageHeader } from "../components/ui/page-header";
 import { CoinsIcon } from "lucide-react";
-import { PointsDisplay } from "@/components/rewards/PointsDisplay";
-import { RewardsCard } from "@/components/rewards/RewardsCard";
+import { PointsDisplay } from "../components/rewards/PointsDisplay";
+import { RewardsCard } from "../components/rewards/RewardsCard";
 
 export default function RewardsPage() {
   return (
