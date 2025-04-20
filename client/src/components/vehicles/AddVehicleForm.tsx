@@ -154,7 +154,6 @@ export default function AddVehicleForm({
       year: vehicle?.year || "",
       fuelType: vehicle?.fuelType || FuelType.REGULAR_UNLEADED,
       licensePlate: vehicle?.licensePlate || "",
-      tankSize: vehicle?.tankSize ? vehicle.tankSize.toString() : "",
     },
   });
 
@@ -361,41 +360,19 @@ export default function AddVehicleForm({
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
-              <FormField
-                control={form.control}
-                name="licensePlate"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>License Plate</FormLabel>
-                    <FormControl>
-                      <Input placeholder="ABC-123" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="tankSize"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Gas Tank Size (gallons)</FormLabel>
-                    <FormControl>
-                      <Input 
-                        type="number" 
-                        placeholder="e.g. 14" 
-                        {...field} 
-                        min="1"
-                        max="100"
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
+            <FormField
+              control={form.control}
+              name="licensePlate"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>License Plate</FormLabel>
+                  <FormControl>
+                    <Input placeholder="ABC-123" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
             <div className="flex justify-end space-x-2 pt-2">
               <Button type="button" variant="outline" onClick={onCancel}>
