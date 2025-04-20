@@ -6,7 +6,8 @@ import { Order, OrderStatus } from "@shared/schema";
 import { formatDistanceToNow } from "date-fns";
 import { getFuelTypeDisplayName } from "@/lib/fuelUtils";
 import { formatPrice } from "@/lib/fuelUtils";
-import { ReactNode, memo, useCallback, useMemo } from "react";
+import { ReactNode, memo, useCallback, useMemo, useState } from "react";
+import { ChevronDown, MapPin, Check } from "lucide-react";
 
 interface OrderCardProps {
   order: Order;
@@ -52,6 +53,8 @@ function OrderCard({
   actions,
   className = "",
 }: OrderCardProps) {
+  const [expanded, setExpanded] = useState(false);
+  
   // Memoize the view details handler
   const handleViewDetails = useCallback(() => {
     if (onViewDetails) {
@@ -65,17 +68,43 @@ function OrderCard({
     return formatDistanceToNow(new Date(order.createdAt), { addSuffix: true });
   }, [order.createdAt]);
 
+  // Toggle expanded state
+  const toggleExpanded = useCallback(() => {
+    setExpanded(prev => !prev);
+  }, []);
+
+  // Format delivery address if available
+  const deliveryAddress = useMemo(() => {
+    return order.location?.address || "No delivery address";
+  }, [order.location]);
+
+  // Format delivery date if available
+  const formattedDeliveryDate = useMemo(() => {
+    if (!order.deliveryDate) return "Delivery date not specified";
+    return new Date(order.deliveryDate).toLocaleDateString("en-US", {
+      weekday: "long",
+      month: "short",
+      day: "numeric",
+    });
+  }, [order.deliveryDate]);
+
   return (
     <Card className={`mb-4 ${className}`}>
       <CardContent className="p-4">
-        <div className="flex justify-between items-start mb-3">
+        <div 
+          className="flex justify-between items-start mb-3 cursor-pointer" 
+          onClick={toggleExpanded}
+        >
           <div>
             <h3 className="font-semibold text-neutral-800">
               Order #{order.id}
             </h3>
             <p className="text-xs text-neutral-500">{formattedDate}</p>
           </div>
-          <StatusBadge status={order.status} />
+          <div className="flex items-center">
+            <StatusBadge status={order.status} />
+            <ChevronDown className={`h-5 w-5 text-neutral-500 ml-2 transition-transform ${expanded ? "rotate-180" : ""}`} />
+          </div>
         </div>
 
         <div className="flex items-center text-sm mb-3">
@@ -90,6 +119,47 @@ function OrderCard({
           <span className="font-medium">${order.totalPrice}</span>
         </div>
 
+        {/* Expanded details section */}
+        {expanded && (
+          <div className="mt-2 pt-3 border-t border-neutral-100">
+            <div className="space-y-2">
+              <div className="flex items-start">
+                <MapPin className="h-4 w-4 text-neutral-500 mr-2 mt-0.5" />
+                <div>
+                  <p className="text-sm font-medium">Delivery Location</p>
+                  <p className="text-xs text-neutral-600">{deliveryAddress}</p>
+                </div>
+              </div>
+              
+              <div className="flex items-start">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4 text-neutral-500 mr-2 mt-0.5">
+                  <circle cx="12" cy="12" r="10" />
+                  <polyline points="12 6 12 12 16 14" />
+                </svg>
+                <div>
+                  <p className="text-sm font-medium">Delivery Time</p>
+                  <p className="text-xs text-neutral-600">
+                    {formattedDeliveryDate}
+                    {order.deliveryTimeSlot ? ` • ${order.deliveryTimeSlot}` : ''}
+                  </p>
+                </div>
+              </div>
+              
+              {order.notes && (
+                <div className="flex items-start">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4 text-neutral-500 mr-2 mt-0.5">
+                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                  </svg>
+                  <div>
+                    <p className="text-sm font-medium">Notes</p>
+                    <p className="text-xs text-neutral-600">{order.notes}</p>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Custom actions or default view details button */}
         {actions ? (
           <div className="mt-3">{actions}</div>
@@ -98,14 +168,14 @@ function OrderCard({
           (onViewDetails ? (
             <Button
               variant="outline"
-              className="w-full"
+              className="w-full mt-3"
               onClick={handleViewDetails}
             >
               View Details
             </Button>
           ) : (
             <Link href={`/orders/${order.id}`}>
-              <Button variant="outline" className="w-full">
+              <Button variant="outline" className="w-full mt-3">
                 View Details
               </Button>
             </Link>

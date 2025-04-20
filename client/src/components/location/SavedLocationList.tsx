@@ -1,7 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Check, MapPin, Home, Briefcase, Map } from "lucide-react";
+import { Check, MapPin, Home, Briefcase, Map, ChevronDown } from "lucide-react";
 import { LocationType, Location } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 
@@ -51,7 +51,8 @@ export default function SavedLocationList({
     }
   }, [locations, toast]);
 
-  const getLocationIcon = (type: LocationType) => {
+  // Memoize this function to prevent recreating it on each render
+  const getLocationIcon = useCallback((type: LocationType) => {
     switch (type) {
       case LocationType.HOME:
         return <Home className="h-5 w-5 text-primary" />;
@@ -62,7 +63,37 @@ export default function SavedLocationList({
       default:
         return <MapPin className="h-5 w-5 text-primary" />;
     }
-  };
+  }, []);
+
+  // Toggle expanded state with useCallback to prevent recreation on each render
+  const toggleExpanded = useCallback((e?: React.MouseEvent) => {
+    if (e) {
+      e.stopPropagation();
+    }
+    setExpanded(prev => !prev);
+  }, []);
+
+  // Trigger add location dialog
+  const handleAddLocation = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("add-location-requested"));
+    }
+  }, []);
+
+  // Handle location selection
+  const handleLocationSelect = useCallback((location: Location) => {
+    console.log("Location selected from dropdown:", location);
+    // Create a safe copy to ensure all properties exist
+    const safeLocation = {
+      ...location,
+      id: location.id || -1,
+      coordinates: location.coordinates || { lat: 0, lng: 0 },
+      type: location.type,
+    };
+    onLocationSelect(safeLocation);
+    setExpanded(false);
+  }, [onLocationSelect]);
 
   // Find the selected location for display
   const selectedLocation = sanitizedLocations.find(
@@ -89,47 +120,28 @@ export default function SavedLocationList({
     <div className={`w-full ${className}`}>
       {/* Selected Location or Collapsed View */}
       <Card
-        className="w-full mb-2 cursor-pointer border-2"
-        onClick={() => setExpanded(!expanded)}
+        className="w-full mb-2 cursor-pointer shadow-sm"
+        onClick={toggleExpanded}
       >
         <CardContent className="p-4">
           {selectedLocation ? (
-            <div className="flex items-center space-x-3">
-              <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                {getLocationIcon(selectedLocation.type)}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                  {getLocationIcon(selectedLocation.type)}
+                </div>
+                <div className="flex-1 overflow-hidden">
+                  <p className="font-medium text-neutral-800">
+                    {selectedLocation.name}
+                  </p>
+                  <p className="text-sm text-neutral-500 truncate max-w-[200px]">
+                    {selectedLocation.address}
+                  </p>
+                </div>
               </div>
-              <div className="flex-1">
-                <p className="font-medium text-neutral-800">
-                  {selectedLocation.name}
-                </p>
-                <p className="text-sm text-neutral-500 truncate">
-                  {selectedLocation.address}
-                </p>
-              </div>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8 rounded-full"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setExpanded(!expanded);
-                }}
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="24"
-                  height="24"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  className={`h-4 w-4 transition-transform ${expanded ? "rotate-180" : ""}`}
-                >
-                  <polyline points="6 9 12 15 18 9" />
-                </svg>
-              </Button>
+              <ChevronDown 
+                className={`h-5 w-5 text-neutral-500 transition-transform ${expanded ? "rotate-180" : ""}`} 
+              />
             </div>
           ) : (
             <div className="flex items-center justify-between">
@@ -141,30 +153,9 @@ export default function SavedLocationList({
                   Select delivery location
                 </span>
               </div>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8 rounded-full"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setExpanded(!expanded);
-                }}
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="24"
-                  height="24"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  className={`h-4 w-4 transition-transform ${expanded ? "rotate-180" : ""}`}
-                >
-                  <polyline points="6 9 12 15 18 9" />
-                </svg>
-              </Button>
+              <ChevronDown 
+                className={`h-5 w-5 text-neutral-500 transition-transform ${expanded ? "rotate-180" : ""}`} 
+              />
             </div>
           )}
         </CardContent>
@@ -172,23 +163,15 @@ export default function SavedLocationList({
 
       {/* Expanded Location List */}
       {expanded && (
-        <Card className="w-full overflow-hidden mb-2 bg-neutral-50 saved-location-list">
-          <CardContent className="p-0 divide-y divide-neutral-100">
+        <Card className="w-full overflow-hidden mb-2 bg-white shadow-md border-t-0 saved-location-list">
+          <CardContent className="p-0 divide-y divide-neutral-100 max-h-[300px] overflow-y-auto">
             {sanitizedLocations.length === 0 ? (
               <div className="p-4 text-center text-neutral-500">
                 <p>No saved locations found</p>
                 <Button
                   variant="link"
                   className="mt-1 text-primary"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    if (typeof window !== "undefined") {
-                      // Dispatch an event to trigger "Add New Location" dialog
-                      window.dispatchEvent(
-                        new CustomEvent("add-location-requested"),
-                      );
-                    }
-                  }}
+                  onClick={handleAddLocation}
                 >
                   Add a new location
                 </Button>
@@ -200,32 +183,21 @@ export default function SavedLocationList({
                   className={`flex items-center p-3 hover:bg-neutral-100 cursor-pointer ${
                     selectedLocationId === location.id ? "bg-primary/5" : ""
                   }`}
-                  onClick={() => {
-                    console.log("Location selected from dropdown:", location);
-                    // Create a safe copy to ensure all properties exist
-                    const safeLocation = {
-                      ...location,
-                      id: location.id || -1,
-                      coordinates: location.coordinates || { lat: 0, lng: 0 },
-                      type: location.type,
-                    };
-                    onLocationSelect(safeLocation);
-                    setExpanded(false);
-                  }}
+                  onClick={() => handleLocationSelect(location)}
                 >
                   <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center mr-3">
                     {getLocationIcon(location.type)}
                   </div>
-                  <div className="flex-1">
+                  <div className="flex-1 overflow-hidden">
                     <p className="font-medium text-neutral-800">
                       {location.name}
                     </p>
-                    <p className="text-sm text-neutral-500 truncate">
+                    <p className="text-sm text-neutral-500 truncate max-w-[200px]">
                       {location.address}
                     </p>
                   </div>
                   {selectedLocationId === location.id && (
-                    <Check className="h-5 w-5 text-primary" />
+                    <Check className="h-5 w-5 text-primary ml-2 flex-shrink-0" />
                   )}
                 </div>
               ))
@@ -234,15 +206,7 @@ export default function SavedLocationList({
             <Button
               variant="ghost"
               className="w-full py-3 flex items-center justify-center text-primary"
-              onClick={(e) => {
-                e.stopPropagation();
-                if (typeof window !== "undefined") {
-                  // Dispatch an event to trigger "Add New Location" dialog
-                  window.dispatchEvent(
-                    new CustomEvent("add-location-requested"),
-                  );
-                }
-              }}
+              onClick={handleAddLocation}
             >
               <MapPin className="h-5 w-5 mr-2" />
               <span>Add New Location</span>
