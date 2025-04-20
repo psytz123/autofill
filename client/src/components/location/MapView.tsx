@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { Card } from "@/components/ui/card";
 import { MapPin, Loader2, AlertCircle } from "lucide-react";
 import { Location, LocationType } from "@shared/schema";
@@ -58,12 +58,19 @@ export default function MapView({
     mapContainerVisible: false
   });
   
+  // Create a properly typed libraries array
+  // The explicit types here prevent "passing libraries as new array" warning
+  const libraries = React.useMemo<("places" | "geometry")[]>(
+    () => [...GOOGLE_MAPS_LIBRARIES], 
+    []
+  );
+
   // Load Google Maps API with static libraries reference from configuration file
   // This fixes the warning: "LoadScript has been reloaded unintentionally!"
   const { isLoaded, loadError } = useJsApiLoader({
     id: "google-map-script",
     googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY || "",
-    libraries: GOOGLE_MAPS_LIBRARIES as any, // Cast to any to prevent type errors
+    libraries: libraries,
   });
 
   // Update debug info whenever relevant state changes
