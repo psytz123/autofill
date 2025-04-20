@@ -12,7 +12,7 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import MapView from "@/components/location/MapView";
+import SimpleMapView from "@/components/location/SimpleMapView";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest, getQueryFn } from "@/lib/queryClient";
@@ -491,7 +491,7 @@ export default function OrderPage() {
               </Card>
             ) : (
               <>
-                <MapView
+                <SimpleMapView
                   selectedLocation={orderData.location}
                   onLocationSelect={selectLocation}
                   className="w-full h-48 rounded-lg mt-4 mb-4"
