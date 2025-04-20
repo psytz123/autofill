@@ -157,6 +157,10 @@ function CustomerRouter() {
           path="/subscription-success"
           component={SubscriptionSuccessPage}
         />
+        <ProtectedRoute
+          path="/rewards"
+          component={RewardsPage}
+        />
         <SuspenseRoute
           path="/fuel-selector-test"
           component={FuelSelectorTest}

@@ -44,7 +44,7 @@ const getTransactionTypeInfo = (type: PointsTransactionType) => {
     default:
       return { 
         label: "Transaction", 
-        icon: <CoinIcon className="h-4 w-4" />, 
+        icon: <CoinsIcon className="h-4 w-4" />, 
         color: "bg-gray-500" 
       };
   }

@@ -7,7 +7,7 @@ import {
   GiftIcon, 
   TagIcon, 
   TruckIcon, 
-  GasPumpIcon, 
+  Fuel, 
   LoaderIcon 
 } from "lucide-react";
 import { PointsTransactionType } from "@shared/schema";
@@ -20,7 +20,7 @@ const getRewardIcon = (type: PointsTransactionType) => {
     case "REDEEM_FREE_DELIVERY":
       return <TruckIcon className="h-4 w-4" />;
     case "REDEEM_FUEL_DISCOUNT":
-      return <GasPumpIcon className="h-4 w-4" />;
+      return <Fuel className="h-4 w-4" />;
     default:
       return <GiftIcon className="h-4 w-4" />;
   }

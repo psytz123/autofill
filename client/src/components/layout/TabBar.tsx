@@ -1,4 +1,4 @@
-import { Home, FileText, User, Droplet, CreditCard } from "lucide-react";
+import { Home, FileText, User, Droplet, CreditCard, CoinsIcon } from "lucide-react";
 import { useLocation } from "wouter";
 import {
   preloadComponent,
@@ -104,6 +104,10 @@ function TabBar() {
 
   const handleHoverAccount = useCallback(() => {
     preloadAccountRelated();
+  }, []);
+  
+  const handleHoverRewards = useCallback(() => {
+    preloadComponent(() => import("@/pages/rewards-page"));
   }, []);
 
   // Memoize tab button data so it doesn't get recreated on each render
