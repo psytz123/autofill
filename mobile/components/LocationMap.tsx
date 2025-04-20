@@ -7,8 +7,12 @@ import {
   ActivityIndicator,
   Alert
 } from 'react-native';
-import MapView, { Marker, PROVIDER_GOOGLE, Region } from 'react-native-maps';
+import { MapView as MapViewType, Marker as MarkerType, PROVIDER_GOOGLE, Region } from 'react-native-maps';
 import * as Location from 'expo-location';
+
+// Import with different names to avoid namespace conflicts
+const MapView = MapViewType as any;
+const Marker = MarkerType as any;
 
 type Coordinates = {
   lat: number;
@@ -36,7 +40,7 @@ const LocationMap: React.FC<LocationMapProps> = ({
   onLocationSelect,
   readOnly = false
 }) => {
-  const mapRef = useRef<MapView>(null);
+  const mapRef = useRef<any>(null);
   const [loading, setLoading] = useState(true);
   const [currentRegion, setCurrentRegion] = useState<Region>({
     latitude: initialLocation?.coordinates.lat || 25.761681, // Default to Miami, FL
@@ -78,7 +82,7 @@ const LocationMap: React.FC<LocationMapProps> = ({
         }
 
         const location = await Location.getCurrentPositionAsync({
-          accuracy: Location.Accuracy.Balanced,
+          accuracy: 3, // LocationAccuracy.Balanced (3)
         });
 
         const newRegion = {
@@ -112,7 +116,7 @@ const LocationMap: React.FC<LocationMapProps> = ({
   }, [initialLocation]);
 
   // When a user taps on the map to select a location
-  const handleMapPress = async (e: any) => {
+  const handleMapPress = async (e: { nativeEvent: { coordinate: { latitude: number; longitude: number } } }) => {
     if (readOnly) return;
 
     const { coordinate } = e.nativeEvent;
@@ -203,7 +207,7 @@ const LocationMap: React.FC<LocationMapProps> = ({
                 coordinate={markerPosition}
                 pinColor="#f97316"
                 draggable={!readOnly}
-                onDragEnd={(e) => handleMapPress(e)}
+                onDragEnd={(e: { nativeEvent: { coordinate: { latitude: number; longitude: number } } }) => handleMapPress(e)}
               />
             )}
           </MapView>
