@@ -84,7 +84,7 @@ export const orders = pgTable("orders", {
   userId: integer("user_id").notNull(),
   vehicleId: integer("vehicle_id").notNull(),
   locationId: integer("location_id").notNull(),
-  paymentMethodId: integer("payment_method_id").notNull(),
+  paymentMethodId: integer("payment_method_id"), // Allow NULL for emergency orders
   status: text("status").notNull(),
   fuelType: text("fuel_type").notNull(),
   amount: integer("amount").notNull(),
