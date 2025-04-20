@@ -45,13 +45,12 @@ interface AdminOrder {
   assigned?: boolean;
   assignedDriverId?: number;
   assignedDriverName?: string;
+}
 
 interface TrackingData {
   drivers: AdminDriver[];
   unassignedOrders: AdminOrder[];
   assignedOrders: AdminOrder[];
-}
-
 }
 
 const mapContainerStyle = {
@@ -156,7 +155,7 @@ export default function DriverTrackingMap({ onAssignDriver }: DriverTrackingMapP
     onSuccess: (data: AutoAssignmentResponse) => {
       setAssignmentResults(data);
       setShowResultsDialog(true);
-      
+
       if (data.success) {
         toast({
           title: "Auto-assignment complete",
@@ -496,7 +495,7 @@ export default function DriverTrackingMap({ onAssignDriver }: DriverTrackingMapP
                 )}
               </TabsTrigger>
             </TabsList>
-  
+
             <TabsContent value="orders" className="m-0">
               <Card className="shadow-sm">
                 <CardHeader className="pb-2">
@@ -834,7 +833,7 @@ export default function DriverTrackingMap({ onAssignDriver }: DriverTrackingMapP
         </div>
       </div>
     </div>
-    
+
     {/* Auto-assignment results dialog */}
     <Dialog open={showResultsDialog} onOpenChange={setShowResultsDialog}>
         <DialogContent className="max-w-3xl">
@@ -849,7 +848,7 @@ export default function DriverTrackingMap({ onAssignDriver }: DriverTrackingMapP
                 : "The auto-assignment process encountered some issues."}
             </DialogDescription>
           </DialogHeader>
-          
+
           {assignmentResults && (
             <div className="space-y-4">
               {/* Explanation */}
@@ -857,9 +856,9 @@ export default function DriverTrackingMap({ onAssignDriver }: DriverTrackingMapP
                 <h4 className="font-medium mb-2">Assignment Strategy:</h4>
                 <p className="text-gray-700 text-sm whitespace-pre-line">{assignmentResults.explanation}</p>
               </div>
-              
+
               <Separator />
-              
+
               {/* Assignments */}
               {assignmentResults.assignments.length > 0 && (
                 <div>
@@ -890,7 +889,7 @@ export default function DriverTrackingMap({ onAssignDriver }: DriverTrackingMapP
                   </ScrollArea>
                 </div>
               )}
-              
+
               {/* Unassigned orders */}
               {assignmentResults.unassignedOrders.length > 0 && (
                 <div>
@@ -910,7 +909,7 @@ export default function DriverTrackingMap({ onAssignDriver }: DriverTrackingMapP
               )}
           </div>
         )}
-          
+
           <DialogFooter className="flex items-center justify-between">
             <div>
               {assignmentResults?.success && (
@@ -923,6 +922,5 @@ export default function DriverTrackingMap({ onAssignDriver }: DriverTrackingMapP
           </DialogFooter>
       </DialogContent>
     </Dialog>
-  </div>
   );
 }
