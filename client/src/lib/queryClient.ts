@@ -1,5 +1,8 @@
 import { QueryClient, QueryFunction } from "@tanstack/react-query";
-import { getQueryOptionsForEndpoint, buildQueryKey } from "./query-cache-config";
+import {
+  getQueryOptionsForEndpoint,
+  buildQueryKey,
+} from "./query-cache-config";
 
 // Add support for request cancellation
 export const createAbortController = () => new AbortController();
@@ -20,15 +23,15 @@ async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
     // Try to parse error response as JSON first
     let errorText: string;
-    
+
     try {
       const errorData = await res.json();
       errorText = errorData.message || errorData.error || res.statusText;
     } catch {
       // Fallback to text if not JSON
-      errorText = await res.text() || res.statusText;
+      errorText = (await res.text()) || res.statusText;
     }
-    
+
     const error = new Error(`${res.status}: ${errorText}`);
     // Add status to error object for easier handling
     (error as any).status = res.status;
@@ -41,89 +44,98 @@ async function throwIfResNotOk(res: Response) {
  * Supports cancellation, timeouts, retries and caching
  */
 export const getQueryFn: <T>(options: ApiQueryOptions) => QueryFunction<T> =
-  ({ on401: unauthorizedBehavior, timeout = 30000, retries = 1, signal, category }) =>
+  ({
+    on401: unauthorizedBehavior,
+    timeout = 30000,
+    retries = 1,
+    signal,
+    category,
+  }) =>
   async ({ queryKey, signal: querySignal }) => {
     // Create a new abort controller
     const abortController = new AbortController();
-    
+
     // If either signal aborts, abort our controller
     const handleAbort = () => abortController.abort();
-    
+
     if (signal) {
-      signal.addEventListener('abort', handleAbort);
+      signal.addEventListener("abort", handleAbort);
     }
-    
+
     if (querySignal) {
-      querySignal.addEventListener('abort', handleAbort);
+      querySignal.addEventListener("abort", handleAbort);
     }
-    
+
     // Add timeout functionality
     const timeoutId = setTimeout(() => {
-      abortController.abort('Request timed out');
+      abortController.abort("Request timed out");
     }, timeout);
-    
+
     try {
       // Get the endpoint from the query key
       const endpoint = queryKey[0] as string;
-      
+
       // Use the improved fetch implementation directly
       const response = await fetch(endpoint, {
-        method: 'GET',
-        credentials: 'include',
+        method: "GET",
+        credentials: "include",
         headers: {
-          'X-Requested-With': 'XMLHttpRequest',
-          'Accept': 'application/json',
+          "X-Requested-With": "XMLHttpRequest",
+          Accept: "application/json",
         },
-        signal: abortController.signal
+        signal: abortController.signal,
       });
-      
+
       // Clear timeout
       clearTimeout(timeoutId);
-      
+
       // Handle 401 according to specified behavior for unauthorized responses
       if (response.status === 401) {
         if (unauthorizedBehavior === "returnNull") {
           return null;
         } else if (unauthorizedBehavior === "throw") {
-          throw new Error('Unauthorized. Please log in to continue.');
+          throw new Error("Unauthorized. Please log in to continue.");
         }
       }
-      
+
       // Retry failed requests if we have retries left
       if (!response.ok && retries > 0) {
-        console.log(`Query to ${endpoint} failed with status ${response.status}, retrying... (${retries} attempts left)`);
-        
+        console.log(
+          `Query to ${endpoint} failed with status ${response.status}, retrying... (${retries} attempts left)`,
+        );
+
         // Wait with exponential backoff before retrying
         const backoffMs = Math.min(1000 * 2 ** (2 - retries), 10000);
-        await new Promise(resolve => setTimeout(resolve, backoffMs));
-        
+        await new Promise((resolve) => setTimeout(resolve, backoffMs));
+
         // Retry with one less retry attempt
-        return getQueryFn({ 
-          on401: unauthorizedBehavior, 
-          timeout, 
+        return getQueryFn({
+          on401: unauthorizedBehavior,
+          timeout,
           retries: retries - 1,
           signal,
-          category
+          category,
         })({ queryKey, signal: querySignal } as any);
       }
-      
+
       // Handle unexpected errors
       if (!response.ok) {
         let errorMessage: string;
         try {
           const errorData = await response.json();
-          errorMessage = errorData.message || errorData.error || response.statusText;
+          errorMessage =
+            errorData.message || errorData.error || response.statusText;
         } catch {
-          errorMessage = await response.text() || response.statusText;
+          errorMessage = (await response.text()) || response.statusText;
         }
-        
+
         const error = new Error(`${response.status}: ${errorMessage}`);
         (error as any).status = response.status;
         throw error;
       }
-      
+
       // Parse successful response
-      if (response.headers.get('Content-Type')?.includes('application/json')) {
+      if (response.headers.get("Content-Type")?.includes("application/json")) {
         return await response.json();
       } else {
         // Handle non-JSON responses
@@ -139,47 +151,54 @@ export const getQueryFn: <T>(options: ApiQueryOptions) => QueryFunction<T> =
     } catch (error: any) {
       // Clear timeout to prevent memory leaks
       clearTimeout(timeoutId);
-      
+
       // For special error types, customize handling
-      if (error.name === 'AbortError') {
-        const abortError = new Error('Request was cancelled');
-        abortError.name = 'AbortError';
+      if (error.name === "AbortError") {
+        const abortError = new Error("Request was cancelled");
+        abortError.name = "AbortError";
         (abortError as any).status = 0;
         throw abortError;
       }
-      
+
       // For network errors, retry if we have retries left
-      if (error instanceof TypeError && 
-          error.message.includes('network') && 
-          retries > 0) {
-        console.log(`Network error for ${queryKey[0]}, retrying... (${retries} attempts left)`);
-        
+      if (
+        error instanceof TypeError &&
+        error.message.includes("network") &&
+        retries > 0
+      ) {
+        console.log(
+          `Network error for ${queryKey[0]}, retrying... (${retries} attempts left)`,
+        );
+
         const backoffMs = Math.min(1000 * 2 ** (2 - retries), 10000);
-        await new Promise(resolve => setTimeout(resolve, backoffMs));
-        
-        return getQueryFn({ 
-          on401: unauthorizedBehavior, 
-          timeout, 
+        await new Promise((resolve) => setTimeout(resolve, backoffMs));
+
+        return getQueryFn({
+          on401: unauthorizedBehavior,
+          timeout,
           retries: retries - 1,
           signal,
-          category
+          category,
         })({ queryKey, signal: querySignal } as any);
       }
-      
+
       // Better logging in development
-      if (process.env.NODE_ENV !== 'production') {
-        console.error(`Query error for ${queryKey[0]} (${category || 'unknown category'}):`, error);
+      if (process.env.NODE_ENV !== "production") {
+        console.error(
+          `Query error for ${queryKey[0]} (${category || "unknown category"}):`,
+          error,
+        );
       }
-      
+
       throw error;
     } finally {
       // Clean up event listeners to prevent memory leaks
       if (signal) {
-        signal.removeEventListener('abort', handleAbort);
+        signal.removeEventListener("abort", handleAbort);
       }
-      
+
       if (querySignal) {
-        querySignal.removeEventListener('abort', handleAbort);
+        querySignal.removeEventListener("abort", handleAbort);
       }
     }
   };
@@ -201,113 +220,123 @@ export async function apiRequest(
     retries?: number;
     abortController?: AbortController;
     headers?: Record<string, string>;
-  }
+  },
 ): Promise<Response> {
-  console.log(`API Request: ${method} ${url}`, data ? { data } : '');
-  
+  console.log(`API Request: ${method} ${url}`, data ? { data } : "");
+
   // Get CSRF token
   let headers: HeadersInit = {
-    'X-Requested-With': 'XMLHttpRequest',
-    'Content-Type': 'application/json',
+    "X-Requested-With": "XMLHttpRequest",
+    "Content-Type": "application/json",
   };
-      
+
   // Add CSRF token if needed for non-GET requests
   try {
-    if (method !== 'GET') {
-      const { getCsrfToken } = await import('./csrfToken');
+    if (method !== "GET") {
+      const { getCsrfToken } = await import("./csrfToken");
       const token = getCsrfToken();
-      headers['X-CSRF-Token'] = token;
-      console.log('Using CSRF token:', token.substring(0, 5) + '...');
+      headers["X-CSRF-Token"] = token;
+      console.log("Using CSRF token:", token.substring(0, 5) + "...");
     }
   } catch (error) {
-    console.warn('Failed to get CSRF token:', error);
+    console.warn("Failed to get CSRF token:", error);
   }
-  
+
   // Add any custom headers
   if (options?.headers) {
     headers = { ...headers, ...options.headers };
   }
-  
+
   // Set up timeout
   const timeoutMs = options?.timeout || 30000;
   const controller = options?.abortController || new AbortController();
-  const timeoutId = setTimeout(() => controller.abort('Request timed out'), timeoutMs);
-  
+  const timeoutId = setTimeout(
+    () => controller.abort("Request timed out"),
+    timeoutMs,
+  );
+
   try {
     console.log(`Sending ${method} request to ${url} with headers:`, headers);
-    
+
     // Execute the request
     const response = await fetch(url, {
       method,
       headers,
-      credentials: 'include',
+      credentials: "include",
       body: data ? JSON.stringify(data) : undefined,
-      signal: controller.signal
+      signal: controller.signal,
     });
-    
+
     // Clear timeout
     clearTimeout(timeoutId);
-    
+
     // Log response details
     const headerObj: Record<string, string> = {};
     response.headers.forEach((value, key) => {
       headerObj[key] = value;
     });
-    
+
     console.log(`Response from ${url}:`, {
       status: response.status,
       statusText: response.statusText,
       headers: headerObj,
-      ok: response.ok
+      ok: response.ok,
     });
-    
+
     // Clone the response to avoid consuming it
     const clonedResponse = response.clone();
-    
+
     // Log response body for debugging if it's JSON
     try {
-      if (clonedResponse.headers.get('Content-Type')?.includes('application/json')) {
+      if (
+        clonedResponse.headers.get("Content-Type")?.includes("application/json")
+      ) {
         const responseData = await clonedResponse.json();
         console.log(`Response data from ${url}:`, responseData);
       }
     } catch (error) {
       console.warn(`Could not parse response from ${url} as JSON:`, error);
     }
-    
+
     // Return the original response
     return response;
   } catch (error) {
     // Clear timeout
     clearTimeout(timeoutId);
-    
+
     console.error(`Request to ${url} failed:`, error);
-    
+
     // Retry logic
     if (options?.retries && options.retries > 0) {
-      console.log(`Request to ${url} failed, retrying... (${options.retries} attempts left)`);
-      
+      console.log(
+        `Request to ${url} failed, retrying... (${options.retries} attempts left)`,
+      );
+
       // Wait before retrying with exponential backoff
       const backoffMs = Math.min(1000 * 2 ** (3 - options.retries), 10000);
-      await new Promise(resolve => setTimeout(resolve, backoffMs));
-      
+      await new Promise((resolve) => setTimeout(resolve, backoffMs));
+
       // Recursive retry with one less retry attempt
       return apiRequest(method, url, data, {
         ...options,
-        retries: options.retries - 1
+        retries: options.retries - 1,
       });
     }
-    
+
     // Create an error response if all retries failed
-    const errorResponse = new Response(JSON.stringify({ 
-      message: error instanceof Error ? error.message : String(error) 
-    }), {
-      status: (error as any).status || 500,
-      statusText: error instanceof Error ? error.message : String(error),
-      headers: {
-        'Content-Type': 'application/json'
-      }
-    });
-    
+    const errorResponse = new Response(
+      JSON.stringify({
+        message: error instanceof Error ? error.message : String(error),
+      }),
+      {
+        status: (error as any).status || 500,
+        statusText: error instanceof Error ? error.message : String(error),
+        headers: {
+          "Content-Type": "application/json",
+        },
+      },
+    );
+
     throw errorResponse;
   }
 }
@@ -329,7 +358,7 @@ export function getEndpointQueryOptions(endpoint: string) {
  */
 export function optimisticUpdate<T>(
   queryKey: unknown[],
-  updateFn: (oldData: T | undefined) => T
+  updateFn: (oldData: T | undefined) => T,
 ) {
   queryClient.setQueryData(queryKey, (oldData: T | undefined) => {
     return updateFn(oldData);
@@ -355,7 +384,7 @@ export const queryClient = new QueryClient({
       // Show error toast notifications by default
       onError: (error: Error) => {
         // Only import when needed
-        import('@/hooks/use-toast').then(({ useToast }) => {
+        import("@/hooks/use-toast").then(({ useToast }) => {
           const { toast } = useToast();
           toast({
             title: "Error",
@@ -363,9 +392,9 @@ export const queryClient = new QueryClient({
             variant: "destructive",
           });
         });
-        
-        console.error('Mutation error:', error);
-      }
+
+        console.error("Mutation error:", error);
+      },
     },
   },
 });

@@ -5,8 +5,21 @@ import { z } from "zod";
 import { useLocation } from "wouter";
 import { useAdminAuth } from "@/hooks/use-admin-auth";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Loader2 } from "lucide-react";
 
@@ -20,13 +33,13 @@ type LoginFormValues = z.infer<typeof loginSchema>;
 export default function AdminLoginPage() {
   const [, setLocation] = useLocation();
   const { adminUser, loginMutation } = useAdminAuth();
-  
+
   // Redirect if already logged in
   if (adminUser) {
     setLocation("/admin/dashboard");
     return null;
   }
-  
+
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
@@ -34,7 +47,7 @@ export default function AdminLoginPage() {
       password: "",
     },
   });
-  
+
   const onSubmit = (data: LoginFormValues) => {
     loginMutation.mutate(data, {
       onSuccess: () => {
@@ -42,13 +55,15 @@ export default function AdminLoginPage() {
       },
     });
   };
-  
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
       <Card className="w-full max-w-md mx-auto">
         <CardHeader className="space-y-1 text-center">
           <CardTitle className="text-2xl font-bold">Admin Login</CardTitle>
-          <CardDescription>Enter your credentials to access the admin dashboard</CardDescription>
+          <CardDescription>
+            Enter your credentials to access the admin dashboard
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <Form {...form}>
@@ -66,7 +81,7 @@ export default function AdminLoginPage() {
                   </FormItem>
                 )}
               />
-              
+
               <FormField
                 control={form.control}
                 name="password"
@@ -74,16 +89,20 @@ export default function AdminLoginPage() {
                   <FormItem>
                     <FormLabel>Password</FormLabel>
                     <FormControl>
-                      <Input type="password" placeholder="••••••••" {...field} />
+                      <Input
+                        type="password"
+                        placeholder="••••••••"
+                        {...field}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-              
-              <Button 
-                type="submit" 
-                className="w-full bg-autofill-navy" 
+
+              <Button
+                type="submit"
+                className="w-full bg-autofill-navy"
                 disabled={loginMutation.isPending}
               >
                 {loginMutation.isPending ? (

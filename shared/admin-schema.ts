@@ -1,4 +1,13 @@
-import { pgTable, serial, text, timestamp, boolean, integer, jsonb, varchar } from "drizzle-orm/pg-core";
+import {
+  pgTable,
+  serial,
+  text,
+  timestamp,
+  boolean,
+  integer,
+  jsonb,
+  varchar,
+} from "drizzle-orm/pg-core";
 import { pgEnum } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
@@ -41,10 +50,12 @@ export const drivers = pgTable("drivers", {
 });
 
 export const insertDriverSchema = createInsertSchema(drivers).extend({
-  currentLocation: z.object({
-    lat: z.number(),
-    lng: z.number()
-  }).optional(),
+  currentLocation: z
+    .object({
+      lat: z.number(),
+      lng: z.number(),
+    })
+    .optional(),
 });
 
 export type InsertDriver = z.infer<typeof insertDriverSchema>;
@@ -69,19 +80,28 @@ export type InsertOrderAssignment = z.infer<typeof insertOrderAssignmentSchema>;
 export type OrderAssignment = typeof orderAssignments.$inferSelect;
 
 // Support request status enum - using strings for simplicity instead of pgEnum
-export type SupportRequestStatus = 'OPEN' | 'IN_PROGRESS' | 'RESOLVED' | 'CLOSED';
+export type SupportRequestStatus =
+  | "OPEN"
+  | "IN_PROGRESS"
+  | "RESOLVED"
+  | "CLOSED";
 
 // Support request types enum - using strings for simplicity instead of pgEnum
-export type SupportRequestType = 'BILLING' | 'DELIVERY' | 'TECHNICAL' | 'ACCOUNT' | 'OTHER';
+export type SupportRequestType =
+  | "BILLING"
+  | "DELIVERY"
+  | "TECHNICAL"
+  | "ACCOUNT"
+  | "OTHER";
 
 // Define support requests table
 export const supportRequests = pgTable("support_requests", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").notNull(),
-  type: text("type").notNull(),  // Will contain one of SupportRequestType values
+  type: text("type").notNull(), // Will contain one of SupportRequestType values
   subject: varchar("subject", { length: 255 }).notNull(),
   description: text("description").notNull(),
-  status: text("status").notNull().default('OPEN'),  // Will contain one of SupportRequestStatus values
+  status: text("status").notNull().default("OPEN"), // Will contain one of SupportRequestStatus values
   priority: integer("priority").notNull().default(1), // 1=low, 2=medium, 3=high
   assignedToAdminId: integer("assigned_to_admin_id"),
   orderId: integer("order_id"),
@@ -105,22 +125,32 @@ export const supportRequestMessages = pgTable("support_request_messages", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
-export const insertSupportRequestMessageSchema = createInsertSchema(supportRequestMessages).omit({
+export const insertSupportRequestMessageSchema = createInsertSchema(
+  supportRequestMessages,
+).omit({
   id: true,
-  createdAt: true
+  createdAt: true,
 });
 
-export type InsertSupportRequestMessage = z.infer<typeof insertSupportRequestMessageSchema>;
+export type InsertSupportRequestMessage = z.infer<
+  typeof insertSupportRequestMessageSchema
+>;
 export type SupportRequestMessage = typeof supportRequestMessages.$inferSelect;
 
 // Define relations
-export const supportRequestsRelations = relations(supportRequests, ({ many }) => ({
-  messages: many(supportRequestMessages)
-}));
+export const supportRequestsRelations = relations(
+  supportRequests,
+  ({ many }) => ({
+    messages: many(supportRequestMessages),
+  }),
+);
 
-export const supportRequestMessagesRelations = relations(supportRequestMessages, ({ one }) => ({
-  supportRequest: one(supportRequests, {
-    fields: [supportRequestMessages.supportRequestId],
-    references: [supportRequests.id]
-  })
-}));
+export const supportRequestMessagesRelations = relations(
+  supportRequestMessages,
+  ({ one }) => ({
+    supportRequest: one(supportRequests, {
+      fields: [supportRequestMessages.supportRequestId],
+      references: [supportRequests.id],
+    }),
+  }),
+);

@@ -1,20 +1,43 @@
 import { db } from "./db";
-import { 
-  adminUsers, drivers, orderAssignments, supportRequests, supportRequestMessages,
-  InsertDriver, InsertOrderAssignment, AdminUser, InsertSupportRequest,
-  InsertSupportRequestMessage, SupportRequestStatus
+import {
+  adminUsers,
+  drivers,
+  orderAssignments,
+  supportRequests,
+  supportRequestMessages,
+  InsertDriver,
+  InsertOrderAssignment,
+  AdminUser,
+  InsertSupportRequest,
+  InsertSupportRequestMessage,
+  SupportRequestStatus,
 } from "../shared/admin-schema";
-import { orders, Order, FuelType, OrderStatus, users, vehicles, paymentMethods, locations } from "../shared/schema";
+import {
+  orders,
+  Order,
+  FuelType,
+  OrderStatus,
+  users,
+  vehicles,
+  paymentMethods,
+  locations,
+} from "../shared/schema";
 import { eq, desc, and, sql, asc, count, sum, isNull, not } from "drizzle-orm";
 
 export class AdminStorage {
   // Admin users management
   async getAdminUserById(id: number): Promise<AdminUser | undefined> {
-    const [user] = await db.select().from(adminUsers).where(eq(adminUsers.id, id));
+    const [user] = await db
+      .select()
+      .from(adminUsers)
+      .where(eq(adminUsers.id, id));
     return user;
   }
-  
-  async updateAdminUser(id: number, data: Partial<AdminUser>): Promise<AdminUser> {
+
+  async updateAdminUser(
+    id: number,
+    data: Partial<AdminUser>,
+  ): Promise<AdminUser> {
     const [updatedUser] = await db
       .update(adminUsers)
       .set({ ...data, updatedAt: new Date() })
@@ -24,14 +47,17 @@ export class AdminStorage {
   }
   // Order operations for admin
   async getAllOrders(): Promise<any[]> {
-    const allOrders = await db.select().from(orders).orderBy(desc(orders.createdAt));
-    return allOrders.map(order => ({
+    const allOrders = await db
+      .select()
+      .from(orders)
+      .orderBy(desc(orders.createdAt));
+    return allOrders.map((order) => ({
       ...order,
       fuelType: order.fuelType as FuelType,
-      status: order.status as OrderStatus
+      status: order.status as OrderStatus,
     }));
   }
-  
+
   async getUnassignedOrders(): Promise<any[]> {
     // Get all orders that don't have an assignment
     const result = await db.execute(sql`
@@ -40,11 +66,11 @@ export class AdminStorage {
       WHERE oa.id IS NULL
       ORDER BY o.created_at DESC
     `);
-    
-    return (result.rows as any[]).map(order => ({
+
+    return (result.rows as any[]).map((order) => ({
       ...order,
       fuelType: order.fuelType as FuelType,
-      status: order.status as OrderStatus
+      status: order.status as OrderStatus,
     }));
   }
 
@@ -60,7 +86,7 @@ export class AdminStorage {
       JOIN drivers d ON oa.driver_id = d.id
       ORDER BY oa.assigned_at DESC
     `);
-    
+
     return result.rows;
   }
 
@@ -68,21 +94,21 @@ export class AdminStorage {
   async getAllDrivers() {
     return await db.select().from(drivers).orderBy(desc(drivers.createdAt));
   }
-  
+
   async getAvailableDrivers() {
     return await db.select().from(drivers).where(eq(drivers.isAvailable, true));
   }
-  
+
   async getDriver(id: number) {
     const [driver] = await db.select().from(drivers).where(eq(drivers.id, id));
     return driver;
   }
-  
+
   async createDriver(driver: InsertDriver) {
     const [newDriver] = await db.insert(drivers).values(driver).returning();
     return newDriver;
   }
-  
+
   async updateDriver(id: number, data: Partial<InsertDriver>) {
     const [updatedDriver] = await db
       .update(drivers)
@@ -91,18 +117,24 @@ export class AdminStorage {
       .returning();
     return updatedDriver;
   }
-  
+
   async deleteDriver(id: number) {
     await db.delete(drivers).where(eq(drivers.id, id));
   }
-  
+
   // Order assignment operations
   async assignOrder(assignment: InsertOrderAssignment) {
-    const [newAssignment] = await db.insert(orderAssignments).values(assignment).returning();
+    const [newAssignment] = await db
+      .insert(orderAssignments)
+      .values(assignment)
+      .returning();
     return newAssignment;
   }
-  
-  async updateOrderAssignment(id: number, data: Partial<InsertOrderAssignment>) {
+
+  async updateOrderAssignment(
+    id: number,
+    data: Partial<InsertOrderAssignment>,
+  ) {
     const [updatedAssignment] = await db
       .update(orderAssignments)
       .set(data)
@@ -110,7 +142,7 @@ export class AdminStorage {
       .returning();
     return updatedAssignment;
   }
-  
+
   async getOrderAssignmentByOrderId(orderId: number) {
     const [assignment] = await db
       .select()
@@ -118,7 +150,7 @@ export class AdminStorage {
       .where(eq(orderAssignments.orderId, orderId));
     return assignment;
   }
-  
+
   async deleteOrderAssignment(id: number) {
     await db.delete(orderAssignments).where(eq(orderAssignments.id, id));
   }
@@ -140,51 +172,72 @@ export class AdminStorage {
       LIMIT ${limit}
       OFFSET ${offset}
     `);
-    
+
     return result.rows;
   }
-  
+
   async getCustomerById(id: number) {
     const [customer] = await db.select().from(users).where(eq(users.id, id));
     return customer;
   }
-  
+
   async getCustomerVehicles(userId: number) {
     return await db.select().from(vehicles).where(eq(vehicles.userId, userId));
   }
-  
+
   async getCustomerOrders(userId: number) {
-    return await db.select().from(orders).where(eq(orders.userId, userId)).orderBy(desc(orders.createdAt));
+    return await db
+      .select()
+      .from(orders)
+      .where(eq(orders.userId, userId))
+      .orderBy(desc(orders.createdAt));
   }
-  
+
   async getCustomerPaymentMethods(userId: number) {
-    return await db.select().from(paymentMethods).where(eq(paymentMethods.userId, userId));
+    return await db
+      .select()
+      .from(paymentMethods)
+      .where(eq(paymentMethods.userId, userId));
   }
-  
+
   async getCustomerSavedLocations(userId: number) {
-    return await db.select().from(locations).where(eq(locations.userId, userId));
+    return await db
+      .select()
+      .from(locations)
+      .where(eq(locations.userId, userId));
   }
-  
+
   // Support request operations
   async createSupportRequest(request: InsertSupportRequest) {
-    const [newRequest] = await db.insert(supportRequests).values(request).returning();
+    const [newRequest] = await db
+      .insert(supportRequests)
+      .values(request)
+      .returning();
     return newRequest;
   }
-  
+
   async getSupportRequestsByUserId(userId: number) {
-    return await db.select().from(supportRequests).where(eq(supportRequests.userId, userId))
+    return await db
+      .select()
+      .from(supportRequests)
+      .where(eq(supportRequests.userId, userId))
       .orderBy(desc(supportRequests.createdAt));
   }
-  
+
   async getAllSupportRequests(status?: SupportRequestStatus) {
     if (status) {
-      return await db.select().from(supportRequests)
+      return await db
+        .select()
+        .from(supportRequests)
         .where(eq(supportRequests.status, status))
         .orderBy(desc(supportRequests.createdAt));
     }
-    return await db.select().from(supportRequests).orderBy(desc(supportRequests.createdAt));
+    return await db
+      .select()
+      .from(supportRequests)
+      .orderBy(desc(supportRequests.createdAt));
   }
-  
+
   async getSupportRequest(id: number) {
     const [request] = await db
       .select()
@@ -192,7 +245,7 @@ export class AdminStorage {
       .where(eq(supportRequests.id, id));
     return request;
   }
-  
+
   async updateSupportRequest(id: number, data: Partial<InsertSupportRequest>) {
     const [updatedRequest] = await db
       .update(supportRequests)
@@ -201,35 +254,39 @@ export class AdminStorage {
       .returning();
     return updatedRequest;
   }
-  
+
   async createSupportRequestMessage(message: InsertSupportRequestMessage) {
-    const [newMessage] = await db.insert(supportRequestMessages).values(message).returning();
+    const [newMessage] = await db
+      .insert(supportRequestMessages)
+      .values(message)
+      .returning();
     return newMessage;
   }
-  
+
   async getSupportRequestMessages(requestId: number) {
-    return await db.select()
+    return await db
+      .select()
       .from(supportRequestMessages)
       .where(eq(supportRequestMessages.supportRequestId, requestId))
       .orderBy(asc(supportRequestMessages.createdAt));
   }
-  
+
   // Analytics operations
-  async getRevenueAnalytics(period: 'daily' | 'weekly' | 'monthly') {
-    let timeFormat = '';
-    let groupField = '';
-    
-    if (period === 'daily') {
-      timeFormat = 'YYYY-MM-DD';
-      groupField = 'day';
-    } else if (period === 'weekly') {
-      timeFormat = 'YYYY-WW';  // ISO week number
-      groupField = 'week';
+  async getRevenueAnalytics(period: "daily" | "weekly" | "monthly") {
+    let timeFormat = "";
+    let groupField = "";
+
+    if (period === "daily") {
+      timeFormat = "YYYY-MM-DD";
+      groupField = "day";
+    } else if (period === "weekly") {
+      timeFormat = "YYYY-WW"; // ISO week number
+      groupField = "week";
     } else {
-      timeFormat = 'YYYY-MM';
-      groupField = 'month';
+      timeFormat = "YYYY-MM";
+      groupField = "month";
     }
-    
+
     const result = await db.execute(sql`
       SELECT 
         TO_CHAR(created_at, ${timeFormat}) as time_period,
@@ -240,10 +297,10 @@ export class AdminStorage {
       GROUP BY time_period
       ORDER BY time_period ASC
     `);
-    
+
     return result.rows;
   }
-  
+
   async getPopularLocations(limit = 10) {
     const result = await db.execute(sql`
       SELECT 
@@ -256,10 +313,10 @@ export class AdminStorage {
       ORDER BY delivery_count DESC
       LIMIT ${limit}
     `);
-    
+
     return result.rows;
   }
-  
+
   async getPeakOrderingTimes() {
     const result = await db.execute(sql`
       SELECT 
@@ -270,10 +327,10 @@ export class AdminStorage {
       GROUP BY hour
       ORDER BY hour ASC
     `);
-    
+
     return result.rows;
   }
-  
+
   async getCustomerRetentionMetrics() {
     // First, get all customers who ordered in the last 90 days
     const result = await db.execute(sql`
@@ -302,7 +359,7 @@ export class AdminStorage {
         AVG(EXTRACT(EPOCH FROM (last_order_date - first_order_date))/86400) as avg_customer_lifespan_days
       FROM repeat_customers
     `);
-    
+
     // Get retention cohorts - % of customers who ordered again after X days
     const cohortResult = await db.execute(sql`
       WITH cohorts AS (
@@ -349,10 +406,10 @@ export class AdminStorage {
       ORDER BY cohort_month DESC
       LIMIT 6
     `);
-    
+
     return {
       summary: result.rows[0],
-      cohorts: cohortResult.rows
+      cohorts: cohortResult.rows,
     };
   }
 }

@@ -14,10 +14,10 @@ import { initCsrfToken } from "./lib/csrfToken";
   } catch (error) {
     console.error("Failed to initialize CSRF token:", error);
   }
-  
+
   createRoot(document.getElementById("root")!).render(
     <QueryClientProvider client={queryClient}>
       <App />
-    </QueryClientProvider>
+    </QueryClientProvider>,
   );
 })();

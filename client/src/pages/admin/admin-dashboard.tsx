@@ -16,32 +16,30 @@ import {
   PieChart,
   Pie,
   Cell,
-  Legend
+  Legend,
 } from "recharts";
 import { Package, Truck, DollarSign, Users } from "lucide-react";
 import { AdminDashboardStats, AdminOrder } from "@/types/admin";
 
 export default function AdminDashboardPage() {
   const { toast } = useToast();
-  
+
   // Fetch statistics
-  const { 
-    data: stats,
-    isLoading: isLoadingStats 
-  } = useQuery<AdminDashboardStats>({
-    queryKey: ['/admin/api/stats'],
-    queryFn: getQueryFn({ on401: "throw" }),
-  });
-  
+  const { data: stats, isLoading: isLoadingStats } =
+    useQuery<AdminDashboardStats>({
+      queryKey: ["/admin/api/stats"],
+      queryFn: getQueryFn({ on401: "throw" }),
+    });
+
   // Fetch unassigned orders
-  const { 
+  const {
     data: unassignedOrders = [] as AdminOrder[],
-    isLoading: isLoadingUnassigned 
+    isLoading: isLoadingUnassigned,
   } = useQuery<AdminOrder[]>({
-    queryKey: ['/admin/api/orders/unassigned'],
+    queryKey: ["/admin/api/orders/unassigned"],
     queryFn: getQueryFn({ on401: "throw" }),
   });
-  
+
   // Define the dashboard data state
   const [dashboardData, setDashboardData] = useState<AdminDashboardStats>({
     totalOrders: 0,
@@ -64,7 +62,7 @@ export default function AdminDashboardPage() {
       { day: "Sun", deliveries: 7 },
     ],
   });
-  
+
   useEffect(() => {
     if (stats) {
       setDashboardData({
@@ -79,10 +77,10 @@ export default function AdminDashboardPage() {
       });
     }
   }, [stats, dashboardData]);
-  
+
   // Pie chart colors
-  const COLORS = ['#0088FE', '#00C49F', '#FF8042'];
-  
+  const COLORS = ["#0088FE", "#00C49F", "#FF8042"];
+
   return (
     <AdminLayout title="Dashboard">
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -92,53 +90,59 @@ export default function AdminDashboardPage() {
             <Package className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{dashboardData.totalOrders}</div>
+            <div className="text-2xl font-bold">
+              {dashboardData.totalOrders}
+            </div>
             <p className="text-xs text-muted-foreground">
               {unassignedOrders.length} unassigned
             </p>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Drivers</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              Active Drivers
+            </CardTitle>
             <Truck className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{dashboardData.activeDrivers}</div>
-            <p className="text-xs text-muted-foreground">
-              Ready for delivery
-            </p>
+            <div className="text-2xl font-bold">
+              {dashboardData.activeDrivers}
+            </div>
+            <p className="text-xs text-muted-foreground">Ready for delivery</p>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Revenue</CardTitle>
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">${dashboardData.revenue.toLocaleString()}</div>
+            <div className="text-2xl font-bold">
+              ${dashboardData.revenue.toLocaleString()}
+            </div>
             <p className="text-xs text-muted-foreground">
               +10% from last month
             </p>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Customers</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              Total Customers
+            </CardTitle>
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{dashboardData.customers}</div>
-            <p className="text-xs text-muted-foreground">
-              +5 in last week
-            </p>
+            <p className="text-xs text-muted-foreground">+5 in last week</p>
           </CardContent>
         </Card>
       </div>
-      
+
       <div className="grid gap-4 md:grid-cols-2 mt-4">
         <Card className="col-span-1">
           <CardHeader>
@@ -156,10 +160,15 @@ export default function AdminDashboardPage() {
                   fill="#8884d8"
                   paddingAngle={5}
                   dataKey="value"
-                  label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                  label={({ name, percent }) =>
+                    `${name} ${(percent * 100).toFixed(0)}%`
+                  }
                 >
                   {dashboardData.ordersByStatus.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    <Cell
+                      key={`cell-${index}`}
+                      fill={COLORS[index % COLORS.length]}
+                    />
                   ))}
                 </Pie>
                 <Legend />
@@ -168,7 +177,7 @@ export default function AdminDashboardPage() {
             </ResponsiveContainer>
           </CardContent>
         </Card>
-        
+
         <Card className="col-span-1">
           <CardHeader>
             <CardTitle>Deliveries by Day</CardTitle>
@@ -194,7 +203,7 @@ export default function AdminDashboardPage() {
           </CardContent>
         </Card>
       </div>
-      
+
       <div className="mt-4">
         <Card>
           <CardHeader>
@@ -203,14 +212,18 @@ export default function AdminDashboardPage() {
           <CardContent>
             <Tabs defaultValue="unassigned">
               <TabsList>
-                <TabsTrigger value="unassigned">Unassigned ({unassignedOrders.length})</TabsTrigger>
+                <TabsTrigger value="unassigned">
+                  Unassigned ({unassignedOrders.length})
+                </TabsTrigger>
                 <TabsTrigger value="all">All Recent</TabsTrigger>
               </TabsList>
               <TabsContent value="unassigned" className="mt-4">
                 {isLoadingUnassigned ? (
                   <div className="text-center py-4">Loading...</div>
                 ) : unassignedOrders.length === 0 ? (
-                  <div className="text-center py-4 text-muted-foreground">No unassigned orders</div>
+                  <div className="text-center py-4 text-muted-foreground">
+                    No unassigned orders
+                  </div>
                 ) : (
                   <div className="rounded-md border">
                     <div className="grid grid-cols-6 gap-4 p-4 font-medium border-b">
@@ -222,12 +235,13 @@ export default function AdminDashboardPage() {
                       <div className="text-right">Actions</div>
                     </div>
                     {unassignedOrders.map((order) => (
-                      <div key={order.id} className="grid grid-cols-6 gap-4 p-4 border-b last:border-b-0">
+                      <div
+                        key={order.id}
+                        className="grid grid-cols-6 gap-4 p-4 border-b last:border-b-0"
+                      >
                         <div>#{order.id}</div>
                         <div>{order.userId}</div>
-                        <div>
-                          {order.locationId || "N/A"}
-                        </div>
+                        <div>{order.locationId || "N/A"}</div>
                         <div>{order.fuelType}</div>
                         <div>{order.amount} gal</div>
                         <div className="text-right">

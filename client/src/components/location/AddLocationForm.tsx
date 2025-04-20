@@ -2,13 +2,24 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Home, Briefcase, MapPin } from "lucide-react";
-import { LocationType, insertLocationSchema, Location as LocationModel } from "@shared/schema";
+import {
+  LocationType,
+  insertLocationSchema,
+  Location as LocationModel,
+} from "@shared/schema";
 import type { Location as LocationFromSchema } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useMutation } from "@tanstack/react-query";
@@ -32,12 +43,18 @@ interface AddLocationFormProps {
   initialData?: Partial<LocationFormValues>;
 }
 
-export default function AddLocationForm({ onSuccess, initialData }: AddLocationFormProps) {
+export default function AddLocationForm({
+  onSuccess,
+  initialData,
+}: AddLocationFormProps) {
   const { toast } = useToast();
-  const [mapCoordinates, setMapCoordinates] = useState<{ lat: number; lng: number }>(
-    initialData?.coordinatesStr 
-      ? JSON.parse(initialData.coordinatesStr) 
-      : { lat: 37.7749, lng: -122.4194 } // Default to San Francisco
+  const [mapCoordinates, setMapCoordinates] = useState<{
+    lat: number;
+    lng: number;
+  }>(
+    initialData?.coordinatesStr
+      ? JSON.parse(initialData.coordinatesStr)
+      : { lat: 37.7749, lng: -122.4194 }, // Default to San Francisco
   );
 
   const form = useForm<LocationFormValues>({
@@ -46,7 +63,8 @@ export default function AddLocationForm({ onSuccess, initialData }: AddLocationF
       name: initialData?.name || "",
       address: initialData?.address || "",
       type: initialData?.type || LocationType.HOME,
-      coordinatesStr: initialData?.coordinatesStr || JSON.stringify(mapCoordinates),
+      coordinatesStr:
+        initialData?.coordinatesStr || JSON.stringify(mapCoordinates),
     },
   });
 
@@ -54,11 +72,11 @@ export default function AddLocationForm({ onSuccess, initialData }: AddLocationF
     mutationFn: async (data: LocationFormValues) => {
       try {
         // First, ensure we have a fresh CSRF token registered with the server
-        const { getCsrfToken, initCsrfToken } = await import('@/lib/csrfToken');
-        
+        const { getCsrfToken, initCsrfToken } = await import("@/lib/csrfToken");
+
         // Refresh CSRF token to ensure it's registered with the server
         await initCsrfToken();
-        
+
         // Convert from our form schema to the API schema
         const apiData = {
           name: data.name,
@@ -67,12 +85,12 @@ export default function AddLocationForm({ onSuccess, initialData }: AddLocationF
           // Pass the coordinates object directly as expected by the API
           coordinates: mapCoordinates,
         };
-        
+
         // Make the API request with the CSRF token
         const res = await apiRequest("POST", "/api/locations", apiData, {
           retries: 2, // Add retries for better reliability
         });
-        
+
         return await res.json();
       } catch (error) {
         console.error("Location creation error:", error);
@@ -80,7 +98,7 @@ export default function AddLocationForm({ onSuccess, initialData }: AddLocationF
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/locations'] });
+      queryClient.invalidateQueries({ queryKey: ["/api/locations"] });
       toast({
         title: "Location added",
         description: "Your new location has been saved",
@@ -117,29 +135,65 @@ export default function AddLocationForm({ onSuccess, initialData }: AddLocationF
                 defaultValue={field.value}
                 className="flex space-x-1"
               >
-                <Card className={`flex-1 cursor-pointer ${field.value === LocationType.HOME ? 'border-primary' : ''}`}>
-                  <CardContent className="p-3 flex flex-col items-center justify-center" onClick={() => field.onChange(LocationType.HOME)}>
-                    <RadioGroupItem value={LocationType.HOME} id="home" className="sr-only" />
+                <Card
+                  className={`flex-1 cursor-pointer ${field.value === LocationType.HOME ? "border-primary" : ""}`}
+                >
+                  <CardContent
+                    className="p-3 flex flex-col items-center justify-center"
+                    onClick={() => field.onChange(LocationType.HOME)}
+                  >
+                    <RadioGroupItem
+                      value={LocationType.HOME}
+                      id="home"
+                      className="sr-only"
+                    />
                     <Home className="h-5 w-5 mb-1 text-primary" />
-                    <label htmlFor="home" className="text-sm font-medium cursor-pointer">
+                    <label
+                      htmlFor="home"
+                      className="text-sm font-medium cursor-pointer"
+                    >
                       Home
                     </label>
                   </CardContent>
                 </Card>
-                <Card className={`flex-1 cursor-pointer ${field.value === LocationType.WORK ? 'border-primary' : ''}`}>
-                  <CardContent className="p-3 flex flex-col items-center justify-center" onClick={() => field.onChange(LocationType.WORK)}>
-                    <RadioGroupItem value={LocationType.WORK} id="work" className="sr-only" />
+                <Card
+                  className={`flex-1 cursor-pointer ${field.value === LocationType.WORK ? "border-primary" : ""}`}
+                >
+                  <CardContent
+                    className="p-3 flex flex-col items-center justify-center"
+                    onClick={() => field.onChange(LocationType.WORK)}
+                  >
+                    <RadioGroupItem
+                      value={LocationType.WORK}
+                      id="work"
+                      className="sr-only"
+                    />
                     <Briefcase className="h-5 w-5 mb-1 text-primary" />
-                    <label htmlFor="work" className="text-sm font-medium cursor-pointer">
+                    <label
+                      htmlFor="work"
+                      className="text-sm font-medium cursor-pointer"
+                    >
                       Work
                     </label>
                   </CardContent>
                 </Card>
-                <Card className={`flex-1 cursor-pointer ${field.value === LocationType.OTHER ? 'border-primary' : ''}`}>
-                  <CardContent className="p-3 flex flex-col items-center justify-center" onClick={() => field.onChange(LocationType.OTHER)}>
-                    <RadioGroupItem value={LocationType.OTHER} id="other" className="sr-only" />
+                <Card
+                  className={`flex-1 cursor-pointer ${field.value === LocationType.OTHER ? "border-primary" : ""}`}
+                >
+                  <CardContent
+                    className="p-3 flex flex-col items-center justify-center"
+                    onClick={() => field.onChange(LocationType.OTHER)}
+                  >
+                    <RadioGroupItem
+                      value={LocationType.OTHER}
+                      id="other"
+                      className="sr-only"
+                    />
                     <MapPin className="h-5 w-5 mb-1 text-primary" />
-                    <label htmlFor="other" className="text-sm font-medium cursor-pointer">
+                    <label
+                      htmlFor="other"
+                      className="text-sm font-medium cursor-pointer"
+                    >
                       Other
                     </label>
                   </CardContent>
@@ -180,8 +234,8 @@ export default function AddLocationForm({ onSuccess, initialData }: AddLocationF
 
         {/* Interactive Map */}
         <div className="w-full h-48">
-          <MapView 
-            selectedLocation={null} 
+          <MapView
+            selectedLocation={null}
             onLocationSelect={(location: any) => {
               // Update form values with the selected location
               // Using any type here to resolve the type conflict
@@ -189,7 +243,10 @@ export default function AddLocationForm({ onSuccess, initialData }: AddLocationF
                 form.setValue("address", location.address);
                 if (location.coordinates) {
                   setMapCoordinates(location.coordinates);
-                  form.setValue("coordinatesStr", JSON.stringify(location.coordinates));
+                  form.setValue(
+                    "coordinatesStr",
+                    JSON.stringify(location.coordinates),
+                  );
                 }
               }
             }}

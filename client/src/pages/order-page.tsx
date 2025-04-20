@@ -1,6 +1,16 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
-import { ArrowLeft, Plus, MapPin, Clock, FileText, CreditCard, ChevronDown, ChevronUp, AlertCircle } from "lucide-react";
+import {
+  ArrowLeft,
+  Plus,
+  MapPin,
+  Clock,
+  FileText,
+  CreditCard,
+  ChevronDown,
+  ChevronUp,
+  AlertCircle,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import MapView from "@/components/location/MapView";
 import { useQuery, useMutation } from "@tanstack/react-query";
@@ -18,7 +28,13 @@ import AddLocationForm from "@/components/location/AddLocationForm";
 import FuelLevelSelector from "@/components/vehicles/FuelLevelSelector";
 import LocationOption from "@/components/location/LocationOption";
 import DeliveryTimeSelector from "@/components/order/DeliveryTimeSelector";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 import { FuelSelector } from "@/components/order/FuelSelector";
@@ -30,17 +46,17 @@ const STEPS = [
   { id: "time", title: "Delivery Time", icon: Clock },
   { id: "instructions", title: "Delivery Instructions", icon: FileText },
   { id: "vehicle", title: "Vehicles", icon: CreditCard },
-  { id: "payment", title: "Payment Method", icon: CreditCard }
+  { id: "payment", title: "Payment Method", icon: CreditCard },
 ];
 
 export default function OrderPage() {
   const [, navigate] = useLocation();
   const { toast } = useToast();
   const [currentStep, setCurrentStep] = useState(0);
-  
+
   // Define proper type for the orderData with explicit Location type
   interface OrderForm {
-    location: Location | null;  // Location type is already defined in shared schema
+    location: Location | null; // Location type is already defined in shared schema
     vehicle: Vehicle | null;
     fuelType: FuelType;
     amount: number;
@@ -51,7 +67,7 @@ export default function OrderPage() {
     instructions: string;
     leaveGasDoorOpen: boolean;
   }
-  
+
   // Form validation errors
   interface FormErrors {
     location?: string;
@@ -61,16 +77,16 @@ export default function OrderPage() {
     deliveryDate?: string;
     deliveryTimeSlot?: string;
   }
-  
+
   // State for validation errors
   const [formErrors, setFormErrors] = useState<FormErrors>({});
-  
+
   // Autosave timer reference
   const [autosaveTimer, setAutosaveTimer] = useState<number | null>(null);
-  
+
   // Load saved form data from localStorage
   const loadSavedForm = (): OrderForm => {
-    const savedData = localStorage.getItem('autofill_order_form');
+    const savedData = localStorage.getItem("autofill_order_form");
     if (savedData) {
       try {
         const parsed = JSON.parse(savedData);
@@ -83,7 +99,7 @@ export default function OrderPage() {
         console.error("Error parsing saved form data", e);
       }
     }
-    
+
     // Default form data
     return {
       location: null,
@@ -95,30 +111,30 @@ export default function OrderPage() {
       deliveryTimeSlot: null,
       repeatWeekly: false,
       instructions: "",
-      leaveGasDoorOpen: false
+      leaveGasDoorOpen: false,
     };
   };
-  
+
   // State with proper typing and saved data
   const [orderData, setOrderData] = useState<OrderForm>(loadSavedForm);
-  
+
   // Save form data to localStorage
   const saveFormData = (data: OrderForm) => {
     try {
-      const dataToSave = {...data};
-      localStorage.setItem('autofill_order_form', JSON.stringify(dataToSave));
+      const dataToSave = { ...data };
+      localStorage.setItem("autofill_order_form", JSON.stringify(dataToSave));
     } catch (e) {
       console.error("Error saving form data", e);
     }
   };
-  
+
   // Auto-save functionality
   useEffect(() => {
     // Clear any existing timer
     if (autosaveTimer) {
       window.clearTimeout(autosaveTimer);
     }
-    
+
     // Set a new timer to save form data
     const timerId = window.setTimeout(() => {
       saveFormData(orderData);
@@ -129,9 +145,9 @@ export default function OrderPage() {
         duration: 1500,
       });
     }, 2000); // save after 2 seconds of inactivity
-    
+
     setAutosaveTimer(timerId);
-    
+
     // Clean up on unmount
     return () => {
       if (autosaveTimer) {
@@ -139,16 +155,16 @@ export default function OrderPage() {
       }
     };
   }, [orderData]);
-  
+
   // Validate the form in real-time
   useEffect(() => {
     const newErrors: FormErrors = {};
-    
+
     // Location validation
     if (currentStep === 0 && !orderData.location) {
       newErrors.location = "Please select a delivery location";
     }
-    
+
     // Delivery time validation
     if (currentStep === 1) {
       if (!orderData.deliveryDate) {
@@ -158,58 +174,64 @@ export default function OrderPage() {
         newErrors.deliveryTimeSlot = "Please select a delivery time slot";
       }
     }
-    
+
     // Vehicle validation
     if (currentStep === 3 && !orderData.vehicle) {
       newErrors.vehicle = "Please select a vehicle for delivery";
     }
-    
+
     // Fuel type validation
     if (currentStep === 4 && !orderData.fuelType) {
       newErrors.fuelType = "Please select a fuel type";
     }
-    
+
     // Payment validation
     if (currentStep === 5 && !orderData.paymentMethod) {
       newErrors.paymentMethod = "Please select a payment method";
     }
-    
+
     setFormErrors(newErrors);
   }, [orderData, currentStep]);
-  
+
   // Fetch user's vehicles with better error handling and retries
-  const { data: vehicles = [], isLoading: vehiclesLoading } = useQuery<Vehicle[]>({
-    queryKey: ['/api/vehicles'],
-    queryFn: getQueryFn({ 
+  const { data: vehicles = [], isLoading: vehiclesLoading } = useQuery<
+    Vehicle[]
+  >({
+    queryKey: ["/api/vehicles"],
+    queryFn: getQueryFn({
       on401: "throw",
       retries: 2,
-      timeout: 8000
+      timeout: 8000,
     }),
     retry: 2,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 10000),
     staleTime: 60 * 1000, // 1 minute
   });
-  
+
   // Fetch user's saved locations
-  const { data: savedLocations = [], isLoading: locationsLoading } = useQuery<Location[]>({
-    queryKey: ['/api/locations'],
-    queryFn: getQueryFn({ 
+  const { data: savedLocations = [], isLoading: locationsLoading } = useQuery<
+    Location[]
+  >({
+    queryKey: ["/api/locations"],
+    queryFn: getQueryFn({
       on401: "throw",
       retries: 2,
-      timeout: 8000
+      timeout: 8000,
     }),
     retry: 2,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 10000),
     staleTime: 60 * 1000, // 1 minute
   });
-  
+
   // Fetch user's payment methods
-  const { data: paymentMethods = [], isLoading: paymentsLoading } = useQuery<PaymentMethod[]>({
-    queryKey: ['/api/payment-methods'],
-    queryFn: getQueryFn({ 
+  const { data: paymentMethods = [], isLoading: paymentsLoading } = useQuery<
+    PaymentMethod[]
+  >({
+    queryKey: ["/api/payment-methods"],
+    queryFn: getQueryFn({
       on401: "throw",
       retries: 2,
-      timeout: 8000
+      timeout: 8000,
     }),
     retry: 2,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 10000),
@@ -223,8 +245,8 @@ export default function OrderPage() {
       return await res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/orders'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/orders/recent'] });
+      queryClient.invalidateQueries({ queryKey: ["/api/orders"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/orders/recent"] });
       toast({
         title: "Order placed successfully",
         description: "Your fuel delivery is on the way!",
@@ -249,17 +271,20 @@ export default function OrderPage() {
         variant: "destructive",
       });
     }
-    
-    if (currentStep === 1 && (!orderData.deliveryDate || !orderData.deliveryTimeSlot)) {
+
+    if (
+      currentStep === 1 &&
+      (!orderData.deliveryDate || !orderData.deliveryTimeSlot)
+    ) {
       return toast({
         title: "Please select a delivery time",
         description: "You need to select when you want your fuel delivered",
         variant: "destructive",
       });
     }
-    
+
     // Instructions step doesn't require validation
-    
+
     if (currentStep === 3 && !orderData.vehicle) {
       return toast({
         title: "Please select a vehicle",
@@ -267,7 +292,7 @@ export default function OrderPage() {
         variant: "destructive",
       });
     }
-    
+
     if (currentStep === 4 && !orderData.fuelType) {
       return toast({
         title: "Please select a fuel type",
@@ -275,7 +300,7 @@ export default function OrderPage() {
         variant: "destructive",
       });
     }
-    
+
     if (currentStep === 5) {
       if (!orderData.paymentMethod) {
         return toast({
@@ -284,26 +309,26 @@ export default function OrderPage() {
           variant: "destructive",
         });
       }
-      
+
       // Submit order
       createOrderMutation.mutate(orderData);
       return;
     }
-    
-    setCurrentStep(prev => prev + 1);
+
+    setCurrentStep((prev) => prev + 1);
   };
-  
+
   const prevStep = () => {
     if (currentStep === 0) {
       navigate("/");
     } else {
-      setCurrentStep(prev => prev - 1);
+      setCurrentStep((prev) => prev - 1);
     }
   };
-  
+
   const selectLocation = (location: Location) => {
     console.log("Selected location:", location);
-    
+
     // Handle location selection
     if (location) {
       try {
@@ -311,7 +336,7 @@ export default function OrderPage() {
         if (!location.coordinates) {
           throw new Error("Location missing coordinates");
         }
-        
+
         // Create a fully valid location object that matches the schema type
         const validLocation: Location = {
           id: location.id || -1,
@@ -321,33 +346,35 @@ export default function OrderPage() {
           type: location.type,
           coordinates: {
             lat: location.coordinates.lat,
-            lng: location.coordinates.lng
+            lng: location.coordinates.lng,
           },
-          createdAt: location.createdAt || new Date()
+          createdAt: location.createdAt || new Date(),
         };
-        
+
         console.log("Validated location object:", validLocation);
-        
+
         // Update order data with the validated location
-        setOrderData(prev => ({ 
-          ...prev, 
-          location: validLocation 
+        setOrderData((prev) => ({
+          ...prev,
+          location: validLocation,
         }));
-        
+
         // Clear any location validation errors
         if (formErrors.location) {
-          setFormErrors(prev => ({ ...prev, location: undefined }));
+          setFormErrors((prev) => ({ ...prev, location: undefined }));
         }
-        
+
         // Show success toast for better user feedback
         toast({
           title: "Location selected",
           description: `Selected ${validLocation.name} for delivery`,
           duration: 2000,
         });
-        
+
         // Close location dropdown if it was open
-        const savedLocationList = document.querySelector('.saved-location-list');
+        const savedLocationList = document.querySelector(
+          ".saved-location-list",
+        );
         if (savedLocationList) {
           // Adding this for future reference if needed
           console.log("Location selected from dropdown");
@@ -356,8 +383,11 @@ export default function OrderPage() {
         console.error("Error processing location:", error);
         toast({
           title: "Error with location",
-          description: error instanceof Error ? error.message : "Please try another location",
-          variant: "destructive"
+          description:
+            error instanceof Error
+              ? error.message
+              : "Please try another location",
+          variant: "destructive",
         });
       }
     } else {
@@ -365,63 +395,67 @@ export default function OrderPage() {
       toast({
         title: "Error selecting location",
         description: "Please try selecting another location",
-        variant: "destructive"
+        variant: "destructive",
       });
     }
   };
-  
+
   const selectVehicle = (vehicle: Vehicle) => {
-    setOrderData(prev => ({ ...prev, vehicle }));
+    setOrderData((prev) => ({ ...prev, vehicle }));
   };
-  
+
   const selectFuelType = (fuelType: FuelType) => {
-    setOrderData(prev => ({ ...prev, fuelType }));
+    setOrderData((prev) => ({ ...prev, fuelType }));
   };
-  
+
   const updateAmount = (amount: number) => {
-    setOrderData(prev => ({ ...prev, amount }));
+    setOrderData((prev) => ({ ...prev, amount }));
   };
-  
+
   const selectPaymentMethod = (paymentMethod: PaymentMethod) => {
-    setOrderData(prev => ({ ...prev, paymentMethod }));
+    setOrderData((prev) => ({ ...prev, paymentMethod }));
   };
-  
-  const updateDeliveryTime = (data: { date: Date; timeSlot: string; repeat: boolean }) => {
-    setOrderData(prev => ({
+
+  const updateDeliveryTime = (data: {
+    date: Date;
+    timeSlot: string;
+    repeat: boolean;
+  }) => {
+    setOrderData((prev) => ({
       ...prev,
       deliveryDate: data.date,
       deliveryTimeSlot: data.timeSlot,
-      repeatWeekly: data.repeat
+      repeatWeekly: data.repeat,
     }));
   };
-  
+
   const updateInstructions = (instructions: string) => {
-    setOrderData(prev => ({ ...prev, instructions }));
+    setOrderData((prev) => ({ ...prev, instructions }));
   };
-  
+
   const toggleLeaveGasDoorOpen = (checked: boolean) => {
-    setOrderData(prev => ({ ...prev, leaveGasDoorOpen: checked }));
+    setOrderData((prev) => ({ ...prev, leaveGasDoorOpen: checked }));
   };
-  
+
   // State for dialogs
   const [showAddLocation, setShowAddLocation] = useState(false);
   const [showFuelLevel, setShowFuelLevel] = useState(false);
   const [showDeliveryTime, setShowDeliveryTime] = useState(false);
-  
+
   // Add an event listener to detect "add-location-requested" events
   useEffect(() => {
     const handleAddLocation = () => {
       console.log("Add location request detected");
       setShowAddLocation(true);
     };
-    
-    window.addEventListener('add-location-requested', handleAddLocation);
-    
+
+    window.addEventListener("add-location-requested", handleAddLocation);
+
     return () => {
-      window.removeEventListener('add-location-requested', handleAddLocation);
+      window.removeEventListener("add-location-requested", handleAddLocation);
     };
   }, []);
-  
+
   const renderStepContent = () => {
     switch (currentStep) {
       case 0:
@@ -431,14 +465,18 @@ export default function OrderPage() {
               <MapPin className="h-6 w-6 text-orange-500 mr-2" />
               <h2 className="text-lg font-semibold">Delivery Location</h2>
             </div>
-            
+
             {orderData.location ? (
               <Card className="mt-4 mb-4">
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between">
                     <div>
-                      <h3 className="font-semibold">{orderData.location.name || 'Selected Location'}</h3>
-                      <p className="text-neutral-600">{orderData.location.address}</p>
+                      <h3 className="font-semibold">
+                        {orderData.location.name || "Selected Location"}
+                      </h3>
+                      <p className="text-neutral-600">
+                        {orderData.location.address}
+                      </p>
                     </div>
                     <ChevronDown className="h-5 w-5 text-neutral-500" />
                   </div>
@@ -446,20 +484,25 @@ export default function OrderPage() {
               </Card>
             ) : (
               <>
-                <MapView 
+                <MapView
                   selectedLocation={orderData.location}
                   onLocationSelect={selectLocation}
                   className="w-full h-48 rounded-lg mt-4 mb-4"
                 />
-                
+
                 <SavedLocationList
                   locations={savedLocations}
-                  selectedLocationId={orderData.location && typeof orderData.location.id === 'number' ? orderData.location.id : null}
+                  selectedLocationId={
+                    orderData.location &&
+                    typeof orderData.location.id === "number"
+                      ? orderData.location.id
+                      : null
+                  }
                   onLocationSelect={selectLocation}
                   isLoading={locationsLoading}
                   className="mb-4"
                 />
-                
+
                 {formErrors.location && (
                   <Alert variant="destructive" className="mb-4">
                     <AlertCircle className="h-4 w-4 mr-2" />
@@ -468,16 +511,16 @@ export default function OrderPage() {
                 )}
               </>
             )}
-            
-            <Button 
-              variant="outline" 
+
+            <Button
+              variant="outline"
               className="w-full flex items-center justify-center"
               onClick={() => setShowAddLocation(true)}
             >
               <Plus className="h-4 w-4 mr-2" />
               Add New Location
             </Button>
-            
+
             <Dialog open={showAddLocation} onOpenChange={setShowAddLocation}>
               <DialogContent className="sm:max-w-[425px]">
                 <DialogHeader>
@@ -486,22 +529,24 @@ export default function OrderPage() {
                     Enter the details of your new delivery location.
                   </DialogDescription>
                 </DialogHeader>
-                <AddLocationForm 
+                <AddLocationForm
                   onSuccess={() => {
                     setShowAddLocation(false);
                     // Invalidate the locations query to refresh the list
-                    queryClient.invalidateQueries({ queryKey: ['/api/locations'] });
+                    queryClient.invalidateQueries({
+                      queryKey: ["/api/locations"],
+                    });
                     toast({
                       title: "Location added",
-                      description: "Your new location has been saved."
+                      description: "Your new location has been saved.",
                     });
-                  }} 
+                  }}
                 />
               </DialogContent>
             </Dialog>
           </div>
         );
-      
+
       case 1:
         return (
           <div id="step-time" className="mb-6">
@@ -509,18 +554,29 @@ export default function OrderPage() {
               <Clock className="h-6 w-6 text-orange-500 mr-2" />
               <h2 className="text-lg font-semibold">Delivery Time</h2>
             </div>
-            
+
             {orderData.deliveryDate && orderData.deliveryTimeSlot ? (
-              <Card className="mt-4 mb-4" onClick={() => setShowDeliveryTime(true)}>
+              <Card
+                className="mt-4 mb-4"
+                onClick={() => setShowDeliveryTime(true)}
+              >
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between">
                     <div>
                       <h3 className="font-semibold">
-                        {orderData.deliveryDate.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}
+                        {orderData.deliveryDate.toLocaleDateString("en-US", {
+                          weekday: "long",
+                          month: "short",
+                          day: "numeric",
+                        })}
                       </h3>
-                      <p className="text-neutral-600">{orderData.deliveryTimeSlot}</p>
+                      <p className="text-neutral-600">
+                        {orderData.deliveryTimeSlot}
+                      </p>
                       {orderData.repeatWeekly && (
-                        <p className="text-sm text-orange-500 mt-1">Repeats Weekly</p>
+                        <p className="text-sm text-orange-500 mt-1">
+                          Repeats Weekly
+                        </p>
                       )}
                     </div>
                     <ChevronDown className="h-5 w-5 text-neutral-500" />
@@ -529,13 +585,13 @@ export default function OrderPage() {
               </Card>
             ) : (
               <>
-                <Button 
-                  className="w-full mt-4 bg-orange-500 hover:bg-orange-600 text-white" 
+                <Button
+                  className="w-full mt-4 bg-orange-500 hover:bg-orange-600 text-white"
                   onClick={() => setShowDeliveryTime(true)}
                 >
                   Select Delivery Time
                 </Button>
-                
+
                 {/* Show validation errors if they exist */}
                 {(formErrors.deliveryDate || formErrors.deliveryTimeSlot) && (
                   <Alert variant="destructive" className="mt-4 mb-4">
@@ -547,7 +603,7 @@ export default function OrderPage() {
                 )}
               </>
             )}
-            
+
             <Dialog open={showDeliveryTime} onOpenChange={setShowDeliveryTime}>
               <DialogContent className="sm:max-w-[425px] p-0">
                 <DeliveryTimeSelector
@@ -561,7 +617,7 @@ export default function OrderPage() {
             </Dialog>
           </div>
         );
-        
+
       case 2:
         return (
           <div id="step-instructions" className="mb-6">
@@ -569,12 +625,14 @@ export default function OrderPage() {
               <FileText className="h-6 w-6 text-orange-500 mr-2" />
               <h2 className="text-lg font-semibold">Delivery Instructions</h2>
             </div>
-            
+
             <div className="mt-4">
               <Card className="mb-4">
                 <CardContent className="p-4">
-                  <h3 className="font-medium text-neutral-700 mb-3">Additional Instructions</h3>
-                  
+                  <h3 className="font-medium text-neutral-700 mb-3">
+                    Additional Instructions
+                  </h3>
+
                   <Textarea
                     placeholder="Add any special delivery instructions here..."
                     value={orderData.instructions}
@@ -583,18 +641,18 @@ export default function OrderPage() {
                   />
                 </CardContent>
               </Card>
-              
+
               <Card className="mb-4">
                 <CardContent className="p-4">
                   <div className="flex items-start space-x-2">
-                    <Checkbox 
-                      id="gas-door" 
+                    <Checkbox
+                      id="gas-door"
                       checked={orderData.leaveGasDoorOpen}
                       onCheckedChange={toggleLeaveGasDoorOpen}
                     />
                     <div className="grid gap-1.5 leading-none">
-                      <Label 
-                        htmlFor="gas-door" 
+                      <Label
+                        htmlFor="gas-door"
                         className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
                       >
                         Leave gas door open
@@ -609,7 +667,7 @@ export default function OrderPage() {
             </div>
           </div>
         );
-        
+
       case 3:
         return (
           <div id="step-vehicle" className="mb-6">
@@ -617,7 +675,7 @@ export default function OrderPage() {
               <CreditCard className="h-6 w-6 text-orange-500 mr-2" />
               <h2 className="text-lg font-semibold">Select Vehicle</h2>
             </div>
-            
+
             {vehiclesLoading ? (
               <div className="text-center py-4">
                 {/* Content-aware skeleton screen */}
@@ -628,16 +686,18 @@ export default function OrderPage() {
               </div>
             ) : vehicles.length === 0 ? (
               <div className="text-center py-4">
-                <p className="mb-3 text-neutral-500">You don't have any vehicles yet</p>
+                <p className="mb-3 text-neutral-500">
+                  You don't have any vehicles yet
+                </p>
                 <Button variant="outline" onClick={() => navigate("/vehicles")}>
                   Add a Vehicle
                 </Button>
               </div>
             ) : (
               <div className="mt-4">
-                {vehicles.map(vehicle => (
-                  <div 
-                    key={vehicle.id} 
+                {vehicles.map((vehicle) => (
+                  <div
+                    key={vehicle.id}
                     className="mb-3 active:scale-[0.98] transition-transform touch-manipulation"
                   >
                     <VehicleCard
@@ -646,13 +706,13 @@ export default function OrderPage() {
                       isSelected={orderData.vehicle?.id === vehicle.id}
                       showActions={true}
                       actionButtons={
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
+                        <Button
+                          variant="outline"
+                          size="sm"
                           className="min-h-[44px] min-w-[44px] px-4" // Larger touch target
                           onClick={(e) => {
                             e.stopPropagation();
-                            setOrderData(prev => ({ ...prev, vehicle }));
+                            setOrderData((prev) => ({ ...prev, vehicle }));
                             setShowFuelLevel(true);
                           }}
                         >
@@ -662,7 +722,7 @@ export default function OrderPage() {
                     />
                   </div>
                 ))}
-                
+
                 {/* Real-time validation error */}
                 {formErrors.vehicle && (
                   <Alert variant="destructive" className="mt-4">
@@ -672,28 +732,29 @@ export default function OrderPage() {
                 )}
               </div>
             )}
-            
+
             <Dialog open={showFuelLevel} onOpenChange={setShowFuelLevel}>
               <DialogContent className="sm:max-w-[425px]">
                 <FuelLevelSelector
-                  vehicleName={`${orderData.vehicle?.make || ''} ${orderData.vehicle?.model || ''}`}
+                  vehicleName={`${orderData.vehicle?.make || ""} ${orderData.vehicle?.model || ""}`}
                   initialLevel={orderData.vehicle?.fuelLevel || 50}
                   onSave={(level) => {
                     // Update vehicle with new fuel level
                     if (orderData.vehicle) {
                       const updatedVehicle = {
                         ...orderData.vehicle,
-                        fuelLevel: level
+                        fuelLevel: level,
                       };
-                      setOrderData(prev => ({
+                      setOrderData((prev) => ({
                         ...prev,
-                        vehicle: updatedVehicle
+                        vehicle: updatedVehicle,
                       }));
                     }
                     setShowFuelLevel(false);
                     toast({
                       title: "Fuel level updated",
-                      description: "Your vehicle's fuel level has been updated."
+                      description:
+                        "Your vehicle's fuel level has been updated.",
                     });
                   }}
                   onClose={() => setShowFuelLevel(false)}
@@ -702,7 +763,7 @@ export default function OrderPage() {
             </Dialog>
           </div>
         );
-      
+
       case 4:
         return (
           <div id="step-fuel" className="mb-6">
@@ -710,7 +771,7 @@ export default function OrderPage() {
               <CreditCard className="h-6 w-6 text-orange-500 mr-2" />
               <h2 className="text-lg font-semibold">Fuel Type & Amount</h2>
             </div>
-            
+
             <div className="mt-4">
               {/* Use our enhanced fuel selector component with visual previews */}
               <EnhancedFuelSelector
@@ -720,7 +781,7 @@ export default function OrderPage() {
                 onAmountChange={updateAmount}
                 vehicle={orderData.vehicle || undefined}
               />
-              
+
               {/* Real-time validation error */}
               {formErrors.fuelType && (
                 <Alert variant="destructive" className="mt-4">
@@ -731,7 +792,7 @@ export default function OrderPage() {
             </div>
           </div>
         );
-      
+
       case 5:
         return (
           <div id="step-payment" className="mb-6">
@@ -739,32 +800,47 @@ export default function OrderPage() {
               <CreditCard className="h-6 w-6 text-orange-500 mr-2" />
               <h2 className="text-lg font-semibold">Review & Payment</h2>
             </div>
-            
+
             <Card className="mb-4">
               <CardContent className="p-4 divide-y">
                 <div className="pb-3">
-                  <h3 className="font-medium text-neutral-700 mb-1">Delivery To</h3>
-                  <p className="text-neutral-600">{orderData.location?.address || 'No location selected'}</p>
+                  <h3 className="font-medium text-neutral-700 mb-1">
+                    Delivery To
+                  </h3>
+                  <p className="text-neutral-600">
+                    {orderData.location?.address || "No location selected"}
+                  </p>
                 </div>
-                
+
                 <div className="py-3">
                   <h3 className="font-medium text-neutral-700 mb-1">Vehicle</h3>
                   <p className="text-neutral-600">
-                    {orderData.vehicle ? `${orderData.vehicle.make} ${orderData.vehicle.model} (${orderData.vehicle.year})` : 'No vehicle selected'}
+                    {orderData.vehicle
+                      ? `${orderData.vehicle.make} ${orderData.vehicle.model} (${orderData.vehicle.year})`
+                      : "No vehicle selected"}
                   </p>
                 </div>
-                
+
                 <div className="py-3">
                   <h3 className="font-medium text-neutral-700 mb-1">Fuel</h3>
                   <p className="text-neutral-600">
-                    {orderData.fuelType.replace('_', ' ')} - {orderData.amount} gallons
+                    {orderData.fuelType.replace("_", " ")} - {orderData.amount}{" "}
+                    gallons
                   </p>
                 </div>
-                
+
                 <div className="py-3">
                   <h3 className="font-medium text-neutral-700 mb-1">Total</h3>
                   <p className="text-lg font-semibold">
-                    ${(orderData.amount * (orderData.fuelType === "PREMIUM_UNLEADED" ? 4.59 : orderData.fuelType === "DIESEL" ? 4.29 : 3.99)).toFixed(2)}
+                    $
+                    {(
+                      orderData.amount *
+                      (orderData.fuelType === "PREMIUM_UNLEADED"
+                        ? 4.59
+                        : orderData.fuelType === "DIESEL"
+                          ? 4.29
+                          : 3.99)
+                    ).toFixed(2)}
                   </p>
                 </div>
               </CardContent>
@@ -774,12 +850,20 @@ export default function OrderPage() {
             {paymentMethods.length > 0 && (
               <Card className="mb-4">
                 <CardContent className="p-4">
-                  <h3 className="font-medium text-neutral-700 mb-3">Saved Payment Methods</h3>
-                  
-                  <RadioGroup 
-                    value={orderData.paymentMethod?.id ? String(orderData.paymentMethod.id) : undefined} 
+                  <h3 className="font-medium text-neutral-700 mb-3">
+                    Saved Payment Methods
+                  </h3>
+
+                  <RadioGroup
+                    value={
+                      orderData.paymentMethod?.id
+                        ? String(orderData.paymentMethod.id)
+                        : undefined
+                    }
                     onValueChange={(value) => {
-                      const method = paymentMethods.find(m => String(m.id) === value);
+                      const method = paymentMethods.find(
+                        (m) => String(m.id) === value,
+                      );
                       if (method) selectPaymentMethod(method);
                     }}
                     className="space-y-2"
@@ -791,23 +875,37 @@ export default function OrderPage() {
                         <div className="h-16 bg-gray-100 animate-pulse rounded-lg"></div>
                       </div>
                     ) : (
-                      paymentMethods.map(method => (
-                        <div 
-                          key={method.id} 
+                      paymentMethods.map((method) => (
+                        <div
+                          key={method.id}
                           className="flex items-center space-x-2 border p-3 rounded-lg active:scale-[0.98] transition-transform touch-manipulation"
                           onClick={() => selectPaymentMethod(method)} // Additional touch target
                         >
-                          <RadioGroupItem value={String(method.id)} id={`payment-${method.id}`} />
-                          <Label htmlFor={`payment-${method.id}`} className="flex justify-between w-full">
+                          <RadioGroupItem
+                            value={String(method.id)}
+                            id={`payment-${method.id}`}
+                          />
+                          <Label
+                            htmlFor={`payment-${method.id}`}
+                            className="flex justify-between w-full"
+                          >
                             <div className="flex items-center">
                               <div className="mr-3">
-                                {method.type === 'visa' && <span className="text-blue-500">Visa</span>}
-                                {method.type === 'mastercard' && <span className="text-red-500">MC</span>}
-                                {method.type === 'amex' && <span className="text-blue-400">Amex</span>}
+                                {method.type === "visa" && (
+                                  <span className="text-blue-500">Visa</span>
+                                )}
+                                {method.type === "mastercard" && (
+                                  <span className="text-red-500">MC</span>
+                                )}
+                                {method.type === "amex" && (
+                                  <span className="text-blue-400">Amex</span>
+                                )}
                               </div>
                               <span>•••• {method.last4}</span>
                             </div>
-                            <span className="text-sm text-neutral-500">Exp: {method.expiry}</span>
+                            <span className="text-sm text-neutral-500">
+                              Exp: {method.expiry}
+                            </span>
                           </Label>
                         </div>
                       ))
@@ -816,7 +914,7 @@ export default function OrderPage() {
                 </CardContent>
               </Card>
             )}
-            
+
             {/* Payment validation error */}
             {formErrors.paymentMethod && (
               <Alert variant="destructive" className="mb-4">
@@ -824,27 +922,38 @@ export default function OrderPage() {
                 <AlertDescription>{formErrors.paymentMethod}</AlertDescription>
               </Alert>
             )}
-            
+
             {/* Stripe Payment Integration */}
             <div className="mb-4">
-              <h3 className="font-medium text-neutral-700 mb-3">Pay with Card</h3>
-              <StripePayment 
-                amount={parseFloat((orderData.amount * (orderData.fuelType === "PREMIUM_UNLEADED" ? 4.59 : orderData.fuelType === "DIESEL" ? 4.29 : 3.99)).toFixed(2))}
+              <h3 className="font-medium text-neutral-700 mb-3">
+                Pay with Card
+              </h3>
+              <StripePayment
+                amount={parseFloat(
+                  (
+                    orderData.amount *
+                    (orderData.fuelType === "PREMIUM_UNLEADED"
+                      ? 4.59
+                      : orderData.fuelType === "DIESEL"
+                        ? 4.29
+                        : 3.99)
+                  ).toFixed(2),
+                )}
                 orderId={orderData.vehicle?.id || 1} // Using vehicle ID as a placeholder for now
                 onPaymentSuccess={() => {
                   // Create a dummy payment method object for the order
                   const dummyPaymentMethod: PaymentMethod = {
                     id: 999, // Use a numeric ID
                     userId: 1,
-                    type: 'credit-card',
-                    last4: '1234',
-                    expiry: '12/25',
+                    type: "credit-card",
+                    last4: "1234",
+                    expiry: "12/25",
                     cardHolder: null,
                     createdAt: new Date(),
-                    updatedAt: new Date()
+                    updatedAt: new Date(),
                   };
                   selectPaymentMethod(dummyPaymentMethod);
-                  
+
                   // Move to next step or submit the order
                   setTimeout(() => {
                     createOrderMutation.mutate(orderData);
@@ -852,7 +961,7 @@ export default function OrderPage() {
                 }}
               />
             </div>
-            
+
             {/* Link to manage payment methods */}
             <div className="text-center mt-6">
               <Button variant="link" onClick={() => navigate("/account")}>
@@ -863,19 +972,24 @@ export default function OrderPage() {
         );
     }
   };
-  
+
   return (
     <div className="h-screen-minus-tab overflow-y-auto">
       {/* Toolbar Header */}
       <header className="bg-white shadow-sm">
         <div className="px-4 py-4 flex items-center">
-          <Button variant="ghost" size="icon" className="mr-2" onClick={prevStep}>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="mr-2"
+            onClick={prevStep}
+          >
             <ArrowLeft className="h-6 w-6 text-neutral-700" />
           </Button>
           <h1 className="text-xl font-bold font-heading">Order Fuel</h1>
         </div>
       </header>
-      
+
       {/* Order Step Indicator */}
       <div className="bg-white shadow-sm">
         <div className="px-4 py-3">
@@ -883,43 +997,55 @@ export default function OrderPage() {
             <div className="flex items-center">
               {STEPS.map((step, index) => (
                 <div key={step.id} className="flex items-center">
-                  <div className={`flex items-center justify-center w-8 h-8 rounded-full ${index <= currentStep ? 'bg-primary text-white' : 'bg-neutral-200 text-neutral-500'} font-medium text-sm`}>
+                  <div
+                    className={`flex items-center justify-center w-8 h-8 rounded-full ${index <= currentStep ? "bg-primary text-white" : "bg-neutral-200 text-neutral-500"} font-medium text-sm`}
+                  >
                     {index + 1}
                   </div>
                   {index < STEPS.length - 1 && (
-                    <div className={`w-8 h-1 ${index < currentStep ? 'bg-primary' : 'bg-neutral-200'}`}></div>
+                    <div
+                      className={`w-8 h-1 ${index < currentStep ? "bg-primary" : "bg-neutral-200"}`}
+                    ></div>
                   )}
                 </div>
               ))}
             </div>
-            <span className="text-sm text-neutral-500">Step {currentStep + 1} of {STEPS.length}</span>
+            <span className="text-sm text-neutral-500">
+              Step {currentStep + 1} of {STEPS.length}
+            </span>
           </div>
         </div>
       </div>
-      
+
       {/* Order Process Content */}
       <div className="p-4 animate-in fade-in slide-in-from-bottom-4 duration-300">
         {renderStepContent()}
-        
+
         {/* Action Button */}
-        <Button 
-          className="w-full min-h-[50px] text-base" 
+        <Button
+          className="w-full min-h-[50px] text-base"
           onClick={nextStep}
-          disabled={createOrderMutation.isPending || Object.keys(formErrors).length > 0}
+          disabled={
+            createOrderMutation.isPending || Object.keys(formErrors).length > 0
+          }
         >
           {createOrderMutation.isPending ? (
             <div className="flex items-center">
               <span className="animate-spin mr-2 h-4 w-4 border-2 border-current border-t-transparent rounded-full"></span>
               Processing...
             </div>
+          ) : currentStep === STEPS.length - 1 ? (
+            "Place Order"
           ) : (
-            currentStep === STEPS.length - 1 ? "Place Order" : "Continue"
+            "Continue"
           )}
         </Button>
-        
+
         {/* Auto-save indicator */}
         <div className="text-center mt-2">
-          <p className="text-xs text-muted-foreground">Your order details are automatically saved</p>
+          <p className="text-xs text-muted-foreground">
+            Your order details are automatically saved
+          </p>
         </div>
       </div>
     </div>

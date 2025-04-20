@@ -4,10 +4,10 @@
  */
 
 export const breakpoints = {
-  xs: 320,  // Extra small devices (phones)
-  sm: 576,  // Small devices (large phones, portrait tablets)
-  md: 768,  // Medium devices (tablets)
-  lg: 992,  // Large devices (desktops)
+  xs: 320, // Extra small devices (phones)
+  sm: 576, // Small devices (large phones, portrait tablets)
+  md: 768, // Medium devices (tablets)
+  lg: 992, // Large devices (desktops)
   xl: 1200, // Extra large devices (large desktops)
 };
 
@@ -20,7 +20,7 @@ export const mediaQueries = {
   md: `@media (min-width: ${breakpoints.md}px)`,
   lg: `@media (min-width: ${breakpoints.lg}px)`,
   xl: `@media (min-width: ${breakpoints.xl}px)`,
-  
+
   // Max-width queries (mobile-first approach)
   maxXs: `@media (max-width: ${breakpoints.xs - 1}px)`,
   maxSm: `@media (max-width: ${breakpoints.sm - 1}px)`,

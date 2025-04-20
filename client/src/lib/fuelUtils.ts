@@ -15,7 +15,7 @@ export interface FuelOption {
 
 // Default pricing in case API fails
 export const DEFAULT_FUEL_PRICES = {
-  [FuelType.REGULAR_UNLEADED]: 3.49, 
+  [FuelType.REGULAR_UNLEADED]: 3.49,
   [FuelType.PREMIUM_UNLEADED]: 3.99,
   [FuelType.DIESEL]: 3.79,
 };
@@ -24,17 +24,24 @@ export const DEFAULT_FUEL_PRICES = {
 export const FUEL_PRICES: Record<FuelType, number> = { ...DEFAULT_FUEL_PRICES };
 
 // Function to fetch current fuel prices from the API
-export async function fetchCurrentFuelPrices(stateCode = "FL"): Promise<Record<FuelType, number>> {
+export async function fetchCurrentFuelPrices(
+  stateCode = "FL",
+): Promise<Record<FuelType, number>> {
   try {
-    const response = await apiRequest("GET", `/api/fuel-prices?state=${stateCode}`, undefined, {
-      retries: 2,
-      timeout: 5000 // Shorter timeout to avoid blocking UI
-    });
+    const response = await apiRequest(
+      "GET",
+      `/api/fuel-prices?state=${stateCode}`,
+      undefined,
+      {
+        retries: 2,
+        timeout: 5000, // Shorter timeout to avoid blocking UI
+      },
+    );
     const prices = await response.json();
-    
+
     // Update the exported FUEL_PRICES object with current values
     Object.assign(FUEL_PRICES, prices);
-    
+
     return prices;
   } catch (error) {
     console.error("Error fetching fuel prices:", error);
@@ -63,7 +70,11 @@ export function getFuelPrice(fuelType: FuelType): number {
 }
 
 // Calculate total price for a given amount of fuel
-export function calculateTotalPrice(fuelType: FuelType, amount: number, includeDeliveryFee = true): number {
+export function calculateTotalPrice(
+  fuelType: FuelType,
+  amount: number,
+  includeDeliveryFee = true,
+): number {
   const fuelCost = FUEL_PRICES[fuelType] * amount;
   return includeDeliveryFee ? fuelCost + BASE_DELIVERY_FEE : fuelCost;
 }

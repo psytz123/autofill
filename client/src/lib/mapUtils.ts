@@ -9,13 +9,13 @@ export const DEFAULT_MAP_CONFIG = {
     streetViewControl: false,
     mapTypeControl: false,
     zoomControl: true,
-  }
+  },
 };
 
 // Standard map container style
 export const MAP_CONTAINER_STYLE = {
-  width: '100%',
-  height: '100%'
+  width: "100%",
+  height: "100%",
 };
 
 // Create a new location from coordinates and address
@@ -23,7 +23,7 @@ export function createLocationFromCoordinates(
   coordinates: google.maps.LatLngLiteral,
   address: string,
   name: string = "Selected Location",
-  type: LocationType = LocationType.OTHER
+  type: LocationType = LocationType.OTHER,
 ): Location {
   // Create a valid location object that precisely matches our schema type
   const location: Location = {
@@ -34,29 +34,32 @@ export function createLocationFromCoordinates(
     type,
     coordinates: {
       lat: coordinates.lat,
-      lng: coordinates.lng
+      lng: coordinates.lng,
     },
-    createdAt: new Date() // Must be a Date object, not a string
+    createdAt: new Date(), // Must be a Date object, not a string
   };
-  
+
   console.log("Created location from coordinates:", location);
   return location;
 }
 
 // Format coordinates for display
-export function formatCoordinates(coordinates: google.maps.LatLngLiteral, precision: number = 4): string {
+export function formatCoordinates(
+  coordinates: google.maps.LatLngLiteral,
+  precision: number = 4,
+): string {
   return `Lat: ${coordinates.lat.toFixed(precision)}, Lng: ${coordinates.lng.toFixed(precision)}`;
 }
 
 // Geocode an address to coordinates - updated for new Google Maps API
 export async function geocodeAddress(
   geocoder: google.maps.Geocoder,
-  address: string
+  address: string,
 ): Promise<google.maps.GeocoderResult | null> {
   try {
     const request: google.maps.GeocoderRequest = { address };
     const response = await geocoder.geocode(request);
-    
+
     if (response.results && response.results.length > 0) {
       return response.results[0];
     } else {
@@ -72,16 +75,19 @@ export async function geocodeAddress(
 // Reverse geocode coordinates to address - updated for new Google Maps API
 export async function reverseGeocode(
   geocoder: google.maps.Geocoder,
-  coordinates: google.maps.LatLngLiteral
+  coordinates: google.maps.LatLngLiteral,
 ): Promise<google.maps.GeocoderResult | null> {
   try {
     const request: google.maps.GeocoderRequest = { location: coordinates };
     const response = await geocoder.geocode(request);
-    
+
     if (response.results && response.results.length > 0) {
       return response.results[0];
     } else {
-      console.error("Reverse geocode returned no results for coordinates:", coordinates);
+      console.error(
+        "Reverse geocode returned no results for coordinates:",
+        coordinates,
+      );
       return null;
     }
   } catch (error) {

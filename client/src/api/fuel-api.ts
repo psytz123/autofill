@@ -3,8 +3,8 @@
  * Handles fetching and caching fuel prices
  */
 
-import { FuelType } from '@shared/schema';
-import { BaseApi, ApiResponse } from './base-api';
+import { FuelType } from "@shared/schema";
+import { BaseApi, ApiResponse } from "./base-api";
 
 /**
  * API service for fuel price operations
@@ -17,17 +17,17 @@ class FuelApi extends BaseApi {
    * @returns Current fuel prices by fuel type
    */
   async getFuelPrices(
-    stateCode: string = 'FL',
-    forceRefresh: boolean = false
+    stateCode: string = "FL",
+    forceRefresh: boolean = false,
   ): Promise<ApiResponse<Record<FuelType, number>>> {
     try {
-      const url = `/api/fuel-prices?state=${stateCode}${forceRefresh ? '&refresh=true' : ''}`;
+      const url = `/api/fuel-prices?state=${stateCode}${forceRefresh ? "&refresh=true" : ""}`;
       return await this.get(url);
     } catch (error) {
-      return this.handleError(error, 'Failed to fetch fuel prices');
+      return this.handleError(error, "Failed to fetch fuel prices");
     }
   }
-  
+
   /**
    * Get the price of a specific fuel type
    * @param fuelType The type of fuel
@@ -35,17 +35,20 @@ class FuelApi extends BaseApi {
    * @returns Current price for the specified fuel type
    */
   async getFuelPrice(
-    fuelType: FuelType, 
-    stateCode: string = 'FL'
+    fuelType: FuelType,
+    stateCode: string = "FL",
   ): Promise<ApiResponse<number>> {
     try {
       const url = `/api/fuel-price/${fuelType}?state=${stateCode}`;
       return await this.get(url);
     } catch (error) {
-      return this.handleError(error, `Failed to fetch price for ${fuelType} fuel`);
+      return this.handleError(
+        error,
+        `Failed to fetch price for ${fuelType} fuel`,
+      );
     }
   }
-  
+
   /**
    * Calculate the cost for a specific amount of fuel
    * @param amount Amount in gallons
@@ -56,32 +59,36 @@ class FuelApi extends BaseApi {
   async calculateFuelCost(
     amount: number,
     fuelType: FuelType,
-    stateCode: string = 'FL'
-  ): Promise<ApiResponse<{ 
-    cost: number; 
-    pricePerGallon: number;
-  }>> {
+    stateCode: string = "FL",
+  ): Promise<
+    ApiResponse<{
+      cost: number;
+      pricePerGallon: number;
+    }>
+  > {
     try {
       const url = `/api/fuel-cost-calculation`;
       return await this.post(url, { amount, fuelType, stateCode });
     } catch (error) {
-      return this.handleError(error, 'Failed to calculate fuel cost');
+      return this.handleError(error, "Failed to calculate fuel cost");
     }
   }
-  
+
   /**
    * Check if the CollectAPI fuel service is operational
    * @returns Status of the fuel API service
    */
-  async checkServiceStatus(): Promise<ApiResponse<{ 
-    operational: boolean; 
-    lastUpdated: string;
-    message?: string;
-  }>> {
+  async checkServiceStatus(): Promise<
+    ApiResponse<{
+      operational: boolean;
+      lastUpdated: string;
+      message?: string;
+    }>
+  > {
     try {
-      return await this.get('/api/fuel-service-status');
+      return await this.get("/api/fuel-service-status");
     } catch (error) {
-      return this.handleError(error, 'Failed to check fuel service status');
+      return this.handleError(error, "Failed to check fuel service status");
     }
   }
 }

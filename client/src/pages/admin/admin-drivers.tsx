@@ -57,14 +57,17 @@ export default function AdminDriversPage() {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [selectedDriver, setSelectedDriver] = useState<AdminDriver | null>(null);
-  
+  const [selectedDriver, setSelectedDriver] = useState<AdminDriver | null>(
+    null,
+  );
+
   // Fetch all drivers
-  const { data: drivers = [] as AdminDriver[], isLoading: isLoadingDrivers } = useQuery<AdminDriver[]>({
-    queryKey: ['/admin/api/drivers'],
-    queryFn: getQueryFn({ on401: "throw" })
-  });
-  
+  const { data: drivers = [] as AdminDriver[], isLoading: isLoadingDrivers } =
+    useQuery<AdminDriver[]>({
+      queryKey: ["/admin/api/drivers"],
+      queryFn: getQueryFn({ on401: "throw" }),
+    });
+
   // Create driver form
   const addForm = useForm<DriverFormValues>({
     resolver: zodResolver(driverSchema),
@@ -77,7 +80,7 @@ export default function AdminDriversPage() {
       isAvailable: true,
     },
   });
-  
+
   // Edit driver form
   const editForm = useForm<DriverFormValues>({
     resolver: zodResolver(driverSchema),
@@ -90,7 +93,7 @@ export default function AdminDriversPage() {
       isAvailable: true,
     },
   });
-  
+
   // Create driver mutation
   const createDriverMutation = useMutation({
     mutationFn: async (data: DriverFormValues) => {
@@ -98,7 +101,7 @@ export default function AdminDriversPage() {
       return await res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/admin/api/drivers'] });
+      queryClient.invalidateQueries({ queryKey: ["/admin/api/drivers"] });
       toast({
         title: "Driver created",
         description: "New driver has been added successfully",
@@ -112,17 +115,23 @@ export default function AdminDriversPage() {
         description: error.message,
         variant: "destructive",
       });
-    }
+    },
   });
-  
+
   // Update driver mutation
   const updateDriverMutation = useMutation({
-    mutationFn: async ({ id, data }: { id: number, data: DriverFormValues }) => {
+    mutationFn: async ({
+      id,
+      data,
+    }: {
+      id: number;
+      data: DriverFormValues;
+    }) => {
       const res = await apiRequest("PUT", `/admin/api/drivers/${id}`, data);
       return await res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/admin/api/drivers'] });
+      queryClient.invalidateQueries({ queryKey: ["/admin/api/drivers"] });
       toast({
         title: "Driver updated",
         description: "Driver information has been updated successfully",
@@ -136,16 +145,16 @@ export default function AdminDriversPage() {
         description: error.message,
         variant: "destructive",
       });
-    }
+    },
   });
-  
+
   // Delete driver mutation
   const deleteDriverMutation = useMutation({
     mutationFn: async (id: number) => {
       await apiRequest("DELETE", `/admin/api/drivers/${id}`);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/admin/api/drivers'] });
+      queryClient.invalidateQueries({ queryKey: ["/admin/api/drivers"] });
       toast({
         title: "Driver deleted",
         description: "Driver has been removed successfully",
@@ -159,9 +168,9 @@ export default function AdminDriversPage() {
         description: error.message,
         variant: "destructive",
       });
-    }
+    },
   });
-  
+
   const handleEditDriver = (driver: AdminDriver) => {
     setSelectedDriver(driver);
     editForm.reset({
@@ -174,16 +183,16 @@ export default function AdminDriversPage() {
     });
     setIsEditDialogOpen(true);
   };
-  
+
   const handleDeleteDriver = (driver: AdminDriver) => {
     setSelectedDriver(driver);
     setIsDeleteDialogOpen(true);
   };
-  
+
   const onAddSubmit = (data: DriverFormValues) => {
     createDriverMutation.mutate(data);
   };
-  
+
   const onEditSubmit = (data: DriverFormValues) => {
     if (selectedDriver) {
       updateDriverMutation.mutate({
@@ -192,19 +201,19 @@ export default function AdminDriversPage() {
       });
     }
   };
-  
+
   const confirmDelete = () => {
     if (selectedDriver) {
       deleteDriverMutation.mutate(selectedDriver.id);
     }
   };
-  
+
   return (
     <AdminLayout title="Drivers Management">
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>Drivers</CardTitle>
-          <Button 
+          <Button
             onClick={() => setIsAddDialogOpen(true)}
             className="bg-autofill-navy"
           >
@@ -228,7 +237,9 @@ export default function AdminDriversPage() {
                     <th className="py-3 px-4 text-left font-medium">Name</th>
                     <th className="py-3 px-4 text-left font-medium">Contact</th>
                     <th className="py-3 px-4 text-left font-medium">Vehicle</th>
-                    <th className="py-3 px-4 text-left font-medium">License Plate</th>
+                    <th className="py-3 px-4 text-left font-medium">
+                      License Plate
+                    </th>
                     <th className="py-3 px-4 text-left font-medium">Status</th>
                     <th className="py-3 px-4 text-left font-medium">Actions</th>
                   </tr>
@@ -239,29 +250,34 @@ export default function AdminDriversPage() {
                       <td className="py-3 px-4">{driver.name}</td>
                       <td className="py-3 px-4">
                         <div>{driver.phone}</div>
-                        <div className="text-sm text-muted-foreground">{driver.email}</div>
+                        <div className="text-sm text-muted-foreground">
+                          {driver.email}
+                        </div>
                       </td>
                       <td className="py-3 px-4">{driver.vehicleModel}</td>
                       <td className="py-3 px-4">{driver.vehicleLicense}</td>
                       <td className="py-3 px-4">
-                        <Badge className={driver.isAvailable ? 
-                          "bg-green-100 text-green-800" : 
-                          "bg-gray-100 text-gray-800"
-                        }>
+                        <Badge
+                          className={
+                            driver.isAvailable
+                              ? "bg-green-100 text-green-800"
+                              : "bg-gray-100 text-gray-800"
+                          }
+                        >
                           {driver.isAvailable ? "Available" : "Unavailable"}
                         </Badge>
                       </td>
                       <td className="py-3 px-4">
                         <div className="flex space-x-2">
-                          <Button 
-                            size="icon" 
+                          <Button
+                            size="icon"
                             variant="ghost"
                             onClick={() => handleEditDriver(driver)}
                           >
                             <Pencil className="h-4 w-4" />
                           </Button>
-                          <Button 
-                            size="icon" 
+                          <Button
+                            size="icon"
                             variant="ghost"
                             className="text-red-600"
                             onClick={() => handleDeleteDriver(driver)}
@@ -276,7 +292,7 @@ export default function AdminDriversPage() {
               </table>
             </div>
           )}
-          
+
           {/* Add Driver Dialog */}
           <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
             <DialogContent>
@@ -286,9 +302,12 @@ export default function AdminDriversPage() {
                   Enter the details for the new driver.
                 </DialogDescription>
               </DialogHeader>
-              
+
               <Form {...addForm}>
-                <form onSubmit={addForm.handleSubmit(onAddSubmit)} className="space-y-4">
+                <form
+                  onSubmit={addForm.handleSubmit(onAddSubmit)}
+                  className="space-y-4"
+                >
                   <FormField
                     control={addForm.control}
                     name="name"
@@ -302,7 +321,7 @@ export default function AdminDriversPage() {
                       </FormItem>
                     )}
                   />
-                  
+
                   <div className="grid grid-cols-2 gap-4">
                     <FormField
                       control={addForm.control}
@@ -317,7 +336,7 @@ export default function AdminDriversPage() {
                         </FormItem>
                       )}
                     />
-                    
+
                     <FormField
                       control={addForm.control}
                       name="email"
@@ -332,7 +351,7 @@ export default function AdminDriversPage() {
                       )}
                     />
                   </div>
-                  
+
                   <div className="grid grid-cols-2 gap-4">
                     <FormField
                       control={addForm.control}
@@ -347,7 +366,7 @@ export default function AdminDriversPage() {
                         </FormItem>
                       )}
                     />
-                    
+
                     <FormField
                       control={addForm.control}
                       name="vehicleLicense"
@@ -362,7 +381,7 @@ export default function AdminDriversPage() {
                       )}
                     />
                   </div>
-                  
+
                   <FormField
                     control={addForm.control}
                     name="isAvailable"
@@ -380,16 +399,16 @@ export default function AdminDriversPage() {
                       </FormItem>
                     )}
                   />
-                  
+
                   <DialogFooter>
-                    <Button 
+                    <Button
                       type="button"
                       variant="outline"
                       onClick={() => setIsAddDialogOpen(false)}
                     >
                       Cancel
                     </Button>
-                    <Button 
+                    <Button
                       type="submit"
                       disabled={createDriverMutation.isPending}
                     >
@@ -407,7 +426,7 @@ export default function AdminDriversPage() {
               </Form>
             </DialogContent>
           </Dialog>
-          
+
           {/* Edit Driver Dialog */}
           <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
             <DialogContent>
@@ -417,9 +436,12 @@ export default function AdminDriversPage() {
                   Update the driver's information.
                 </DialogDescription>
               </DialogHeader>
-              
+
               <Form {...editForm}>
-                <form onSubmit={editForm.handleSubmit(onEditSubmit)} className="space-y-4">
+                <form
+                  onSubmit={editForm.handleSubmit(onEditSubmit)}
+                  className="space-y-4"
+                >
                   <FormField
                     control={editForm.control}
                     name="name"
@@ -433,7 +455,7 @@ export default function AdminDriversPage() {
                       </FormItem>
                     )}
                   />
-                  
+
                   <div className="grid grid-cols-2 gap-4">
                     <FormField
                       control={editForm.control}
@@ -448,7 +470,7 @@ export default function AdminDriversPage() {
                         </FormItem>
                       )}
                     />
-                    
+
                     <FormField
                       control={editForm.control}
                       name="email"
@@ -463,7 +485,7 @@ export default function AdminDriversPage() {
                       )}
                     />
                   </div>
-                  
+
                   <div className="grid grid-cols-2 gap-4">
                     <FormField
                       control={editForm.control}
@@ -478,7 +500,7 @@ export default function AdminDriversPage() {
                         </FormItem>
                       )}
                     />
-                    
+
                     <FormField
                       control={editForm.control}
                       name="vehicleLicense"
@@ -493,7 +515,7 @@ export default function AdminDriversPage() {
                       )}
                     />
                   </div>
-                  
+
                   <FormField
                     control={editForm.control}
                     name="isAvailable"
@@ -511,16 +533,16 @@ export default function AdminDriversPage() {
                       </FormItem>
                     )}
                   />
-                  
+
                   <DialogFooter>
-                    <Button 
+                    <Button
                       type="button"
                       variant="outline"
                       onClick={() => setIsEditDialogOpen(false)}
                     >
                       Cancel
                     </Button>
-                    <Button 
+                    <Button
                       type="submit"
                       disabled={updateDriverMutation.isPending}
                     >
@@ -538,14 +560,17 @@ export default function AdminDriversPage() {
               </Form>
             </DialogContent>
           </Dialog>
-          
+
           {/* Delete Driver Alert Dialog */}
-          <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+          <AlertDialog
+            open={isDeleteDialogOpen}
+            onOpenChange={setIsDeleteDialogOpen}
+          >
             <AlertDialogContent>
               <AlertDialogHeader>
                 <AlertDialogTitle>Are you sure?</AlertDialogTitle>
                 <AlertDialogDescription>
-                  This will permanently delete the driver 
+                  This will permanently delete the driver
                   {selectedDriver && <strong> {selectedDriver.name}</strong>}.
                   This action cannot be undone.
                 </AlertDialogDescription>

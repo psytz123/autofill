@@ -5,9 +5,22 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Loader2 } from "lucide-react";
 
 // Form validation schema
@@ -28,9 +41,12 @@ const paymentMethodSchema = z.object({
   expiryYear: z
     .string()
     .min(1, "Expiry year is required")
-    .refine((val) => /^\d{4}$/.test(val) && parseInt(val) >= new Date().getFullYear(), {
-      message: "Invalid expiry year",
-    }),
+    .refine(
+      (val) => /^\d{4}$/.test(val) && parseInt(val) >= new Date().getFullYear(),
+      {
+        message: "Invalid expiry year",
+      },
+    ),
   cvv: z
     .string()
     .min(1, "CVV is required")
@@ -48,10 +64,12 @@ interface AddPaymentMethodFormProps {
   onSuccess?: () => void;
 }
 
-export default function AddPaymentMethodForm({ onSuccess }: AddPaymentMethodFormProps) {
+export default function AddPaymentMethodForm({
+  onSuccess,
+}: AddPaymentMethodFormProps) {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  
+
   const form = useForm<FormValues>({
     resolver: zodResolver(paymentMethodSchema),
     defaultValues: {
@@ -63,41 +81,40 @@ export default function AddPaymentMethodForm({ onSuccess }: AddPaymentMethodForm
       type: "visa",
     },
   });
-  
+
   const onSubmit = async (data: FormValues) => {
     setIsSubmitting(true);
-    
+
     try {
       // Format expiry as MM/YY
-      const expiryMonth = data.expiryMonth.padStart(2, '0');
+      const expiryMonth = data.expiryMonth.padStart(2, "0");
       const expiryYear = data.expiryYear.slice(2); // Take just the last 2 digits
       const expiry = `${expiryMonth}/${expiryYear}`;
-      
+
       // Get last 4 digits of card number
       const last4 = data.cardNumber.slice(-4);
-      
+
       const paymentMethodData = {
         type: data.type,
         last4,
         expiry,
         cardHolder: data.cardHolder,
       };
-      
+
       await apiRequest("POST", "/api/payment-methods", paymentMethodData);
-      
+
       toast({
         title: "Payment method added",
         description: "Your payment method has been saved successfully",
       });
-      
-      queryClient.invalidateQueries({ queryKey: ['/api/payment-methods'] });
-      
+
+      queryClient.invalidateQueries({ queryKey: ["/api/payment-methods"] });
+
       if (onSuccess) {
         onSuccess();
       }
-      
+
       form.reset();
-      
     } catch (error: any) {
       toast({
         title: "Failed to add payment method",
@@ -108,7 +125,7 @@ export default function AddPaymentMethodForm({ onSuccess }: AddPaymentMethodForm
       setIsSubmitting(false);
     }
   };
-  
+
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
@@ -124,7 +141,7 @@ export default function AddPaymentMethodForm({ onSuccess }: AddPaymentMethodForm
                   {...field}
                   onChange={(e) => {
                     // Only allow numbers and format with spaces for readability
-                    const value = e.target.value.replace(/\D/g, '');
+                    const value = e.target.value.replace(/\D/g, "");
                     field.onChange(value);
                   }}
                   maxLength={16}
@@ -134,7 +151,7 @@ export default function AddPaymentMethodForm({ onSuccess }: AddPaymentMethodForm
             </FormItem>
           )}
         />
-        
+
         <FormField
           control={form.control}
           name="cardHolder"
@@ -148,7 +165,7 @@ export default function AddPaymentMethodForm({ onSuccess }: AddPaymentMethodForm
             </FormItem>
           )}
         />
-        
+
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-4">
             <FormField
@@ -186,7 +203,7 @@ export default function AddPaymentMethodForm({ onSuccess }: AddPaymentMethodForm
               )}
             />
           </div>
-          
+
           <div className="space-y-4">
             <FormField
               control={form.control}
@@ -220,7 +237,7 @@ export default function AddPaymentMethodForm({ onSuccess }: AddPaymentMethodForm
             />
           </div>
         </div>
-        
+
         <div className="grid grid-cols-2 gap-4">
           <FormField
             control={form.control}
@@ -234,7 +251,7 @@ export default function AddPaymentMethodForm({ onSuccess }: AddPaymentMethodForm
                     {...field}
                     onChange={(e) => {
                       // Only allow numbers
-                      const value = e.target.value.replace(/\D/g, '');
+                      const value = e.target.value.replace(/\D/g, "");
                       field.onChange(value);
                     }}
                     maxLength={4}
@@ -245,7 +262,7 @@ export default function AddPaymentMethodForm({ onSuccess }: AddPaymentMethodForm
               </FormItem>
             )}
           />
-          
+
           <FormField
             control={form.control}
             name="type"
@@ -273,7 +290,7 @@ export default function AddPaymentMethodForm({ onSuccess }: AddPaymentMethodForm
             )}
           />
         </div>
-        
+
         <Button type="submit" className="w-full" disabled={isSubmitting}>
           {isSubmitting ? (
             <>

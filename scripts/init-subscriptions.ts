@@ -4,15 +4,15 @@ import { subscriptionPlans, SubscriptionPlanType } from "../shared/schema";
 async function main() {
   try {
     console.log("Creating subscription plans...");
-    
+
     // Check if plans already exist
     const existingPlans = await db.select().from(subscriptionPlans);
-    
+
     if (existingPlans.length > 0) {
       console.log("Subscription plans already exist. Skipping initialization.");
       return;
     }
-    
+
     // Create basic plan (no subscription, pay per order)
     await db.insert(subscriptionPlans).values({
       name: "Basic",
@@ -24,12 +24,12 @@ async function main() {
         "Standard delivery fee",
         "Order fuel anytime",
         "Track deliveries in real-time",
-        "Multiple vehicle management"
+        "Multiple vehicle management",
       ]),
       stripePriceId: "price_basic", // This would be replaced with actual Stripe price ID in production
       active: true,
     });
-    
+
     // Create premium plan (discounted delivery)
     await db.insert(subscriptionPlans).values({
       name: "Premium",
@@ -42,12 +42,12 @@ async function main() {
         "Priority service",
         "Order fuel anytime",
         "Track deliveries in real-time",
-        "Multiple vehicle management"
+        "Multiple vehicle management",
       ]),
       stripePriceId: "price_premium", // This would be replaced with actual Stripe price ID in production
       active: true,
     });
-    
+
     // Create unlimited plan (unlimited deliveries)
     await db.insert(subscriptionPlans).values({
       name: "Unlimited",
@@ -61,12 +61,12 @@ async function main() {
         "Order fuel anytime",
         "Track deliveries in real-time",
         "Multiple vehicle management",
-        "24/7 priority support"
+        "24/7 priority support",
       ]),
       stripePriceId: "price_unlimited", // This would be replaced with actual Stripe price ID in production
       active: true,
     });
-    
+
     console.log("Subscription plans created successfully!");
   } catch (error) {
     console.error("Error creating subscription plans:", error);

@@ -1,4 +1,3 @@
-
 import React from "react";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
@@ -11,9 +10,12 @@ interface FuelTypeSelectorProps {
   onChange: (value: FuelType) => void;
 }
 
-export function FuelTypeSelector({ selectedType, onChange }: FuelTypeSelectorProps) {
+export function FuelTypeSelector({
+  selectedType,
+  onChange,
+}: FuelTypeSelectorProps) {
   const { fuelOptions } = useFuelOptions();
-  
+
   return (
     <div className="space-y-4">
       <div className="font-medium text-lg">Select Fuel Type</div>
@@ -32,15 +34,21 @@ export function FuelTypeSelector({ selectedType, onChange }: FuelTypeSelectorPro
             <Label
               htmlFor={option.value}
               className={`flex flex-col items-center justify-between rounded-md border-2 p-4 cursor-pointer hover:bg-opacity-80 transition-all
-                ${selectedType === option.value 
-                  ? `border-autofill-navy ring-2 ring-autofill-navy ring-offset-2 ${option.color}` 
-                  : "border-muted bg-popover"}`}
+                ${
+                  selectedType === option.value
+                    ? `border-autofill-navy ring-2 ring-autofill-navy ring-offset-2 ${option.color}`
+                    : "border-muted bg-popover"
+                }`}
             >
-              <div className={`rounded-full p-3 ${selectedType === option.value ? option.color : "bg-muted"}`}>
+              <div
+                className={`rounded-full p-3 ${selectedType === option.value ? option.color : "bg-muted"}`}
+              >
                 {option.icon}
               </div>
               <div className="font-semibold mt-3">{option.label}</div>
-              <div className="text-sm text-muted-foreground text-center mt-1">{option.description}</div>
+              <div className="text-sm text-muted-foreground text-center mt-1">
+                {option.description}
+              </div>
             </Label>
           </div>
         ))}

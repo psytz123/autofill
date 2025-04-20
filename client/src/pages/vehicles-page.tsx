@@ -15,9 +15,9 @@ export default function VehiclesPage() {
   const { toast } = useToast();
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingVehicle, setEditingVehicle] = useState<Vehicle | null>(null);
-  
+
   const { data: vehicles = [], isLoading } = useQuery<Vehicle[]>({
-    queryKey: ['/api/vehicles'],
+    queryKey: ["/api/vehicles"],
     queryFn: getQueryFn({ on401: "throw" }),
   });
 
@@ -26,7 +26,7 @@ export default function VehiclesPage() {
       await apiRequest("DELETE", `/api/vehicles/${id}`);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/vehicles'] });
+      queryClient.invalidateQueries({ queryKey: ["/api/vehicles"] });
       toast({
         title: "Vehicle deleted",
         description: "Your vehicle has been removed successfully",
@@ -58,7 +58,9 @@ export default function VehiclesPage() {
           <Logo size="sm" className="mr-3" />
           <div>
             <h1 className="text-2xl font-bold autofill-navy">My Vehicles</h1>
-            <p className="text-sm text-neutral-500">Manage your cars, boats, and other vehicles</p>
+            <p className="text-sm text-neutral-500">
+              Manage your cars, boats, and other vehicles
+            </p>
           </div>
         </div>
         <div className="px-4 pb-3 flex justify-end">
@@ -85,7 +87,9 @@ export default function VehiclesPage() {
         ) : vehicles.length === 0 && !showAddForm ? (
           <div className="bg-white rounded-xl shadow-sm overflow-hidden border border-neutral-100 mb-4 py-10 text-center">
             <Logo size="sm" className="mx-auto mb-4" />
-            <p className="text-neutral-500 mb-4">You haven't added any vehicles yet</p>
+            <p className="text-neutral-500 mb-4">
+              You haven't added any vehicles yet
+            </p>
             <Button
               onClick={() => setShowAddForm(true)}
               className="mx-auto bg-autofill-orange text-white hover:bg-orange-500"
@@ -94,7 +98,8 @@ export default function VehiclesPage() {
             </Button>
           </div>
         ) : (
-          !showAddForm && vehicles.map(vehicle => (
+          !showAddForm &&
+          vehicles.map((vehicle) => (
             <VehicleCard
               key={vehicle.id}
               vehicle={vehicle}
@@ -104,7 +109,7 @@ export default function VehiclesPage() {
             />
           ))
         )}
-        
+
         {showAddForm && (
           <AddVehicleForm
             vehicle={editingVehicle || undefined}

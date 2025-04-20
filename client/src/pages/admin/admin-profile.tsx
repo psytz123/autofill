@@ -10,7 +10,7 @@ import { ChangePasswordForm } from "@/components/admin/change-password-form";
 
 export default function AdminProfilePage() {
   const { adminUser } = useAdminAuth();
-  
+
   if (!adminUser) {
     return (
       <AdminLayout title="Profile">
@@ -25,7 +25,7 @@ export default function AdminProfilePage() {
     <AdminLayout title="Profile">
       <div className="container py-6">
         <h1 className="text-2xl font-bold mb-6">Admin Profile</h1>
-        
+
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="col-span-1">
             <Card>
@@ -41,7 +41,7 @@ export default function AdminProfilePage() {
                       <p className="font-medium">{adminUser.username}</p>
                     </div>
                   </div>
-                  
+
                   <div className="flex items-center gap-3">
                     <User className="h-5 w-5 text-muted-foreground" />
                     <div>
@@ -49,7 +49,7 @@ export default function AdminProfilePage() {
                       <p className="font-medium">{adminUser.name}</p>
                     </div>
                   </div>
-                  
+
                   <div className="flex items-center gap-3">
                     <ShieldCheck className="h-5 w-5 text-muted-foreground" />
                     <div>
@@ -57,23 +57,27 @@ export default function AdminProfilePage() {
                       <p className="font-medium">{adminUser.role}</p>
                     </div>
                   </div>
-                  
+
                   <Separator className="my-2" />
-                  
+
                   <div className="flex items-center gap-3">
                     <CalendarClock className="h-5 w-5 text-muted-foreground" />
                     <div>
-                      <p className="text-sm text-muted-foreground">Account Created</p>
+                      <p className="text-sm text-muted-foreground">
+                        Account Created
+                      </p>
                       <p className="font-medium">
                         {format(new Date(adminUser.createdAt), "PPP")}
                       </p>
                     </div>
                   </div>
-                  
+
                   <div className="flex items-center gap-3">
                     <CalendarClock className="h-5 w-5 text-muted-foreground" />
                     <div>
-                      <p className="text-sm text-muted-foreground">Last Updated</p>
+                      <p className="text-sm text-muted-foreground">
+                        Last Updated
+                      </p>
                       <p className="font-medium">
                         {format(new Date(adminUser.updatedAt), "PPP 'at' p")}
                       </p>
@@ -83,7 +87,7 @@ export default function AdminProfilePage() {
               </CardContent>
             </Card>
           </div>
-          
+
           <div className="col-span-1 md:col-span-2">
             <ChangePasswordForm />
           </div>

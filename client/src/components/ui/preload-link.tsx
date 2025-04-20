@@ -1,7 +1,7 @@
-import { useState, useEffect, useCallback } from 'react';
-import { Link, useLocation } from 'wouter';
-import { prefetchRouteData } from '@/lib/prefetch';
-import { cn } from '@/lib/utils';
+import { useState, useEffect, useCallback } from "react";
+import { Link, useLocation } from "wouter";
+import { prefetchRouteData } from "@/lib/prefetch";
+import { cn } from "@/lib/utils";
 
 interface PreloadLinkProps {
   href: string;
@@ -19,8 +19,8 @@ interface PreloadLinkProps {
 export function PreloadLink({
   href,
   children,
-  className = '',
-  activeClassName = '',
+  className = "",
+  activeClassName = "",
   prefetch = false,
   onClick,
   ...props
@@ -28,7 +28,7 @@ export function PreloadLink({
   const [location] = useLocation();
   const [hasPrefetched, setHasPrefetched] = useState(false);
   const isActive = location === href;
-  
+
   // Prefetch data for the route
   const handlePrefetch = useCallback(() => {
     if (prefetch && !hasPrefetched) {
@@ -36,14 +36,14 @@ export function PreloadLink({
       setHasPrefetched(true);
     }
   }, [href, prefetch, hasPrefetched]);
-  
+
   // Handle click with analytics tracking capability
   const handleClick = () => {
     if (onClick) {
       onClick();
     }
   };
-  
+
   // Prefetch when component mounts if prefetch is set to true
   useEffect(() => {
     if (prefetch && !hasPrefetched) {
@@ -51,18 +51,15 @@ export function PreloadLink({
       const timer = setTimeout(() => {
         handlePrefetch();
       }, 300);
-      
+
       return () => clearTimeout(timer);
     }
   }, [prefetch, hasPrefetched, handlePrefetch]);
-  
+
   return (
     <Link href={href}>
       <div
-        className={cn(
-          className,
-          isActive && activeClassName
-        )}
+        className={cn(className, isActive && activeClassName)}
         onMouseEnter={handlePrefetch}
         onTouchStart={handlePrefetch}
         onClick={handleClick}

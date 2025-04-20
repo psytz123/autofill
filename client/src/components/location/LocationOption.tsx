@@ -13,7 +13,11 @@ interface LocationOptionProps {
   isSelected?: boolean;
 }
 
-export default function LocationOption({ location, onSelect, isSelected = false }: LocationOptionProps) {
+export default function LocationOption({
+  location,
+  onSelect,
+  isSelected = false,
+}: LocationOptionProps) {
   const getLocationIcon = (type: LocationType) => {
     switch (type) {
       case LocationType.HOME:
@@ -28,8 +32,8 @@ export default function LocationOption({ location, onSelect, isSelected = false 
   };
 
   return (
-    <Card 
-      className={`mb-2 cursor-pointer hover:bg-neutral-50 transition ${isSelected ? 'border-primary' : ''}`}
+    <Card
+      className={`mb-2 cursor-pointer hover:bg-neutral-50 transition ${isSelected ? "border-primary" : ""}`}
       onClick={onSelect}
     >
       <div className="p-3 flex items-center space-x-3">
@@ -38,7 +42,9 @@ export default function LocationOption({ location, onSelect, isSelected = false 
         </div>
         <div className="flex-1">
           <p className="font-medium text-neutral-800">{location.name}</p>
-          <p className="text-sm text-neutral-500 truncate">{location.address}</p>
+          <p className="text-sm text-neutral-500 truncate">
+            {location.address}
+          </p>
         </div>
         {isSelected && <Check className="h-5 w-5 text-primary" />}
       </div>

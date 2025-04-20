@@ -18,9 +18,13 @@ async function main() {
         ALTER TABLE payment_methods 
         ADD COLUMN IF NOT EXISTS card_holder TEXT
       `);
-      console.log("✅ Successfully added card_holder column to payment_methods table");
+      console.log(
+        "✅ Successfully added card_holder column to payment_methods table",
+      );
     } else {
-      console.log("✅ card_holder column already exists in payment_methods table");
+      console.log(
+        "✅ card_holder column already exists in payment_methods table",
+      );
     }
   } catch (error) {
     console.error("❌ Error updating schema:", error);

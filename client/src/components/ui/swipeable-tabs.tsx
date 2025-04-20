@@ -1,6 +1,6 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { motion, AnimatePresence, PanInfo } from 'framer-motion';
-import { cn } from '@/lib/utils';
+import React, { useState, useRef, useEffect } from "react";
+import { motion, AnimatePresence, PanInfo } from "framer-motion";
+import { cn } from "@/lib/utils";
 
 interface Tab {
   id: string;
@@ -25,16 +25,16 @@ export function SwipeableTabs({
   tabs,
   defaultTabIndex = 0,
   onTabChange,
-  tabsClassName = '',
-  contentClassName = '',
-  tabIndicatorClassName = '',
+  tabsClassName = "",
+  contentClassName = "",
+  tabIndicatorClassName = "",
 }: SwipeableTabsProps) {
   const [activeTabIndex, setActiveTabIndex] = useState(defaultTabIndex);
   const [tabWidth, setTabWidth] = useState(0);
   const [tabsContainerWidth, setTabsContainerWidth] = useState(0);
   const tabsRef = useRef<HTMLDivElement>(null);
   const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
-  
+
   // Calculate tab width on mount and window resize
   useEffect(() => {
     const calculateTabDimensions = () => {
@@ -46,15 +46,15 @@ export function SwipeableTabs({
         }
       }
     };
-    
+
     calculateTabDimensions();
-    window.addEventListener('resize', calculateTabDimensions);
-    
+    window.addEventListener("resize", calculateTabDimensions);
+
     return () => {
-      window.removeEventListener('resize', calculateTabDimensions);
+      window.removeEventListener("resize", calculateTabDimensions);
     };
   }, [activeTabIndex, tabs.length]);
-  
+
   // Handle tab change with callback
   const handleTabChange = (index: number) => {
     if (index !== activeTabIndex && index >= 0 && index < tabs.length) {
@@ -64,11 +64,14 @@ export function SwipeableTabs({
       }
     }
   };
-  
+
   // Swipe handlers for touch navigation
-  const handleDragEnd = (_event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
+  const handleDragEnd = (
+    _event: MouseEvent | TouchEvent | PointerEvent,
+    info: PanInfo,
+  ) => {
     const threshold = tabsContainerWidth * 0.2; // 20% of container width
-    
+
     if (Math.abs(info.offset.x) > threshold) {
       if (info.offset.x > 0 && activeTabIndex > 0) {
         // Swipe right, go to previous tab
@@ -79,27 +82,27 @@ export function SwipeableTabs({
       }
     }
   };
-  
+
   // Keyboard navigation for accessibility
   const handleKeyDown = (e: React.KeyboardEvent, index: number) => {
-    if (e.key === 'Enter' || e.key === ' ') {
+    if (e.key === "Enter" || e.key === " ") {
       e.preventDefault();
       handleTabChange(index);
-    } else if (e.key === 'ArrowRight') {
+    } else if (e.key === "ArrowRight") {
       e.preventDefault();
       const nextIndex = (index + 1) % tabs.length;
       handleTabChange(nextIndex);
-    } else if (e.key === 'ArrowLeft') {
+    } else if (e.key === "ArrowLeft") {
       e.preventDefault();
       const prevIndex = (index - 1 + tabs.length) % tabs.length;
       handleTabChange(prevIndex);
     }
   };
-  
+
   return (
     <div>
       {/* Tab Header */}
-      <div 
+      <div
         ref={tabsRef}
         className={cn("flex relative", tabsClassName)}
         role="tablist"
@@ -108,7 +111,7 @@ export function SwipeableTabs({
         {tabs.map((tab, index) => (
           <button
             key={tab.id}
-            ref={el => (tabRefs.current[index] = el)}
+            ref={(el) => (tabRefs.current[index] = el)}
             role="tab"
             aria-selected={activeTabIndex === index}
             aria-controls={`panel-${tab.id}`}
@@ -116,7 +119,9 @@ export function SwipeableTabs({
             tabIndex={activeTabIndex === index ? 0 : -1}
             className={cn(
               "flex-1 px-4 py-2 text-center text-sm font-medium transition-colors relative z-10",
-              activeTabIndex === index ? "text-primary" : "text-muted-foreground hover:text-foreground"
+              activeTabIndex === index
+                ? "text-primary"
+                : "text-muted-foreground hover:text-foreground",
             )}
             onClick={() => handleTabChange(index)}
             onKeyDown={(e) => handleKeyDown(e, index)}
@@ -124,13 +129,13 @@ export function SwipeableTabs({
             {tab.label}
           </button>
         ))}
-        
+
         {/* Active Tab Indicator */}
         {tabRefs.current[activeTabIndex] && (
           <motion.div
             className={cn(
               "absolute bottom-0 h-0.5 bg-primary rounded-full",
-              tabIndicatorClassName
+              tabIndicatorClassName,
             )}
             initial={false}
             animate={{
@@ -141,7 +146,7 @@ export function SwipeableTabs({
           />
         )}
       </div>
-      
+
       {/* Tab Content */}
       <div className={cn("relative", contentClassName)}>
         <AnimatePresence mode="wait">

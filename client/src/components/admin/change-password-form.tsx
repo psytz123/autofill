@@ -5,32 +5,36 @@ import { z } from "zod";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { 
-  Form, 
-  FormField, 
+import {
+  Form,
+  FormField,
   FormItem,
   FormLabel,
   FormControl,
-  FormMessage
+  FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
 
-const passwordSchema = z.object({
-  currentPassword: z.string().min(1, "Current password is required"),
-  newPassword: z.string().min(8, "New password must be at least 8 characters"),
-  confirmPassword: z.string().min(8, "Confirm password is required"),
-}).refine((data) => data.newPassword === data.confirmPassword, {
-  message: "Passwords don't match",
-  path: ["confirmPassword"],
-});
+const passwordSchema = z
+  .object({
+    currentPassword: z.string().min(1, "Current password is required"),
+    newPassword: z
+      .string()
+      .min(8, "New password must be at least 8 characters"),
+    confirmPassword: z.string().min(8, "Confirm password is required"),
+  })
+  .refine((data) => data.newPassword === data.confirmPassword, {
+    message: "Passwords don't match",
+    path: ["confirmPassword"],
+  });
 
 type PasswordFormValues = z.infer<typeof passwordSchema>;
 
 export function ChangePasswordForm() {
   const { toast } = useToast();
-  
+
   const form = useForm<PasswordFormValues>({
     resolver: zodResolver(passwordSchema),
     defaultValues: {
@@ -39,9 +43,12 @@ export function ChangePasswordForm() {
       confirmPassword: "",
     },
   });
-  
+
   const changePasswordMutation = useMutation({
-    mutationFn: async (data: { currentPassword: string, newPassword: string }) => {
+    mutationFn: async (data: {
+      currentPassword: string;
+      newPassword: string;
+    }) => {
       const res = await apiRequest("POST", "/admin/change-password", data);
       return await res.json();
     },
@@ -60,12 +67,12 @@ export function ChangePasswordForm() {
       });
     },
   });
-  
+
   function onSubmit(values: PasswordFormValues) {
     const { currentPassword, newPassword } = values;
     changePasswordMutation.mutate({ currentPassword, newPassword });
   }
-  
+
   return (
     <div className="p-6 rounded-lg border bg-card shadow-sm">
       <h3 className="text-xl font-semibold mb-4">Change Password</h3>
@@ -84,7 +91,7 @@ export function ChangePasswordForm() {
               </FormItem>
             )}
           />
-          
+
           <FormField
             control={form.control}
             name="newPassword"
@@ -98,7 +105,7 @@ export function ChangePasswordForm() {
               </FormItem>
             )}
           />
-          
+
           <FormField
             control={form.control}
             name="confirmPassword"
@@ -112,9 +119,9 @@ export function ChangePasswordForm() {
               </FormItem>
             )}
           />
-          
-          <Button 
-            type="submit" 
+
+          <Button
+            type="submit"
             className="w-full"
             disabled={changePasswordMutation.isPending}
           >

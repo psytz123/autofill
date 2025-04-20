@@ -12,15 +12,15 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { AlertCircle, Car, Info } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import {  
+import {
   DEFAULT_TANK_CAPACITY,
-  getFuelTypeDisplayName, 
+  getFuelTypeDisplayName,
   estimateTankCapacity,
   formatPrice,
-  calculateTotalPrice
+  calculateTotalPrice,
 } from "@/lib/fuelUtils";
 import { useFuelOptions } from "@/providers/FuelOptionsProvider";
-import { 
+import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
@@ -44,15 +44,15 @@ export function EnhancedFuelSelector({
 }: EnhancedFuelSelectorProps) {
   const { getFuelOption } = useFuelOptions();
   const [totalPrice, setTotalPrice] = useState(0);
-  
+
   // Detect fuel type mismatch between vehicle and selection
   const fuelTypeMismatch = vehicle && vehicle.fuelType !== fuelType;
-  
+
   // Get the appropriate tank capacity based on the selected fuel type
-  const tankCapacity = vehicle 
+  const tankCapacity = vehicle
     ? DEFAULT_TANK_CAPACITY[vehicle.fuelType]
     : estimateTankCapacity(fuelType);
-  
+
   // Update the total price whenever fuel type or amount changes
   useEffect(() => {
     const price = calculateTotalPrice(fuelType, amount);
@@ -66,9 +66,9 @@ export function EnhancedFuelSelector({
     <div className="space-y-8">
       {/* Fuel Type Selector Section */}
       <section>
-        <EnhancedFuelTypeSelector 
-          selectedType={fuelType} 
-          onChange={onFuelTypeChange} 
+        <EnhancedFuelTypeSelector
+          selectedType={fuelType}
+          onChange={onFuelTypeChange}
           showPrices={true}
         />
       </section>
@@ -84,7 +84,7 @@ export function EnhancedFuelSelector({
             <CardContent className="p-4">
               <div className="flex items-start gap-3">
                 <Car className="h-5 w-5 mt-0.5 text-autofill-navy flex-shrink-0" />
-                
+
                 <div className="flex-1">
                   <div className="flex justify-between items-start">
                     <div>
@@ -93,12 +93,14 @@ export function EnhancedFuelSelector({
                         {vehicle.year} {vehicle.make} {vehicle.model}
                       </p>
                     </div>
-                    
+
                     <TooltipProvider>
                       <Tooltip>
                         <TooltipTrigger asChild>
-                          <Badge 
-                            variant={fuelTypeMismatch ? "destructive" : "outline"}
+                          <Badge
+                            variant={
+                              fuelTypeMismatch ? "destructive" : "outline"
+                            }
                             className="text-xs ml-2"
                           >
                             Fuel: {getFuelTypeDisplayName(vehicle.fuelType)}
@@ -110,13 +112,15 @@ export function EnhancedFuelSelector({
                       </Tooltip>
                     </TooltipProvider>
                   </div>
-                  
+
                   {/* Fuel level indicator */}
                   <div className="mt-2 flex items-center">
-                    <div className="text-xs text-muted-foreground mr-2">Current Fuel Level:</div>
+                    <div className="text-xs text-muted-foreground mr-2">
+                      Current Fuel Level:
+                    </div>
                     <div className="w-full max-w-xs h-2 bg-gray-200 rounded-full overflow-hidden">
-                      <div 
-                        className="h-full bg-blue-500" 
+                      <div
+                        className="h-full bg-blue-500"
                         style={{ width: `${(vehicle.fuelLevel || 0) * 100}%` }}
                       ></div>
                     </div>
@@ -143,7 +147,10 @@ export function EnhancedFuelSelector({
             <Alert variant="destructive">
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>
-                Warning: The selected fuel type ({getFuelTypeDisplayName(fuelType)}) doesn't match your vehicle's recommended fuel type ({vehicle ? getFuelTypeDisplayName(vehicle.fuelType) : ''}).
+                Warning: The selected fuel type (
+                {getFuelTypeDisplayName(fuelType)}) doesn't match your vehicle's
+                recommended fuel type (
+                {vehicle ? getFuelTypeDisplayName(vehicle.fuelType) : ""}).
               </AlertDescription>
             </Alert>
           </motion.div>
@@ -176,25 +183,33 @@ export function EnhancedFuelSelector({
               </div>
               <Badge variant="outline">Estimated Total</Badge>
             </div>
-            
+
             <div className="mt-3 grid grid-cols-2 gap-3">
               <div>
                 <div className="text-sm text-muted-foreground">Fuel Type</div>
-                <div className="font-medium">{getFuelTypeDisplayName(fuelType)}</div>
+                <div className="font-medium">
+                  {getFuelTypeDisplayName(fuelType)}
+                </div>
               </div>
               <div>
                 <div className="text-sm text-muted-foreground">Amount</div>
                 <div className="font-medium">{amount} gallons</div>
               </div>
               <div>
-                <div className="text-sm text-muted-foreground">Price Per Gallon</div>
+                <div className="text-sm text-muted-foreground">
+                  Price Per Gallon
+                </div>
                 <div className="font-medium">
-                  {selectedFuelOption ? formatPrice(selectedFuelOption.pricePerGallon) : 'Loading...'}
+                  {selectedFuelOption
+                    ? formatPrice(selectedFuelOption.pricePerGallon)
+                    : "Loading..."}
                 </div>
               </div>
               <div>
                 <div className="text-sm text-muted-foreground">Total Price</div>
-                <div className="text-lg font-bold text-autofill-navy">{formatPrice(totalPrice)}</div>
+                <div className="text-lg font-bold text-autofill-navy">
+                  {formatPrice(totalPrice)}
+                </div>
               </div>
             </div>
           </CardContent>

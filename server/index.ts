@@ -5,7 +5,8 @@ import crypto from "crypto";
 import rateLimit from "express-rate-limit";
 
 // Generate a random session secret
-const SESSION_SECRET = process.env.SESSION_SECRET || crypto.randomBytes(32).toString('hex');
+const SESSION_SECRET =
+  process.env.SESSION_SECRET || crypto.randomBytes(32).toString("hex");
 
 // Initialize Express app with security headers
 const app = express();
@@ -15,20 +16,20 @@ app.use((req, res, next) => {
   // Add security headers to prevent common attacks
   res.set({
     // Prevent browser from inferring MIME type (reduces MIME sniffing attacks)
-    'X-Content-Type-Options': 'nosniff',
+    "X-Content-Type-Options": "nosniff",
     // Prevent clickjacking attacks by denying iframe embedding
-    'X-Frame-Options': 'DENY',
+    "X-Frame-Options": "DENY",
     // Set XSS protection mode on browsers that support it
-    'X-XSS-Protection': '1; mode=block',
+    "X-XSS-Protection": "1; mode=block",
     // Prevent referring URLs from being sent in plain HTTP
-    'Referrer-Policy': 'same-origin'
+    "Referrer-Policy": "same-origin",
   });
   next();
 });
 
 // Configure express JSON parser with strict options to avoid injection
-app.use(express.json({ limit: '1mb' })); // Limit payload size
-app.use(express.urlencoded({ extended: false, limit: '1mb' }));
+app.use(express.json({ limit: "1mb" })); // Limit payload size
+app.use(express.urlencoded({ extended: false, limit: "1mb" }));
 
 // CSRF Protection middleware
 const csrfTokens = new Set<string>();
@@ -36,82 +37,87 @@ app.use((req, res, next) => {
   // Paths that should be excluded from CSRF protection
   const excludedPaths = [
     // Auth routes
-    '/api/login',
-    '/api/register',
-    '/api/auth',
+    "/api/login",
+    "/api/register",
+    "/api/auth",
     // Admin routes - ensure we match all admin paths
-    '/admin/',
+    "/admin/",
     // WebSocket path
-    '/ws',
+    "/ws",
     // Ping route for CSRF token registration
-    '/api/ping'
+    "/api/ping",
   ];
-  
+
   // Helper function to check if the path should be excluded
   const isExcludedPath = (path: string) => {
-    return excludedPaths.some(excludedPath => path.startsWith(excludedPath));
+    return excludedPaths.some((excludedPath) => path.startsWith(excludedPath));
   };
-  
+
   // For GET requests, always store the token if provided
-  if (req.headers['x-csrf-token']) {
-    const token = req.headers['x-csrf-token'] as string;
-    if (token && token.length > 16) { // Only store valid tokens
+  if (req.headers["x-csrf-token"]) {
+    const token = req.headers["x-csrf-token"] as string;
+    if (token && token.length > 16) {
+      // Only store valid tokens
       csrfTokens.add(token);
-      if (process.env.NODE_ENV === 'development') {
+      if (process.env.NODE_ENV === "development") {
         console.log(`CSRF token registered: ${token.substring(0, 5)}...`);
       }
     }
-    
+
     // If it's a GET request, continue
-    if (req.method === 'GET') {
+    if (req.method === "GET") {
       return next();
     }
   }
-  
+
   // Skip CSRF checks for excluded paths
   if (isExcludedPath(req.path)) {
     return next();
   }
-  
+
   // Check CSRF for all other mutating operations
-  if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
-    const csrfToken = req.headers['x-csrf-token'] as string;
-    
+  if (["POST", "PUT", "PATCH", "DELETE"].includes(req.method)) {
+    const csrfToken = req.headers["x-csrf-token"] as string;
+
     if (!csrfToken || !csrfTokens.has(csrfToken)) {
       // Log the error in development
-      if (process.env.NODE_ENV === 'development') {
-        console.error('CSRF validation failed:', {
-          token: csrfToken ? `${csrfToken.substring(0, 5)}...` : 'missing',
+      if (process.env.NODE_ENV === "development") {
+        console.error("CSRF validation failed:", {
+          token: csrfToken ? `${csrfToken.substring(0, 5)}...` : "missing",
           path: req.path,
           method: req.method,
-          knownTokensCount: csrfTokens.size
+          knownTokensCount: csrfTokens.size,
         });
       }
-      
+
       // For API routes, return a JSON error
-      if (req.path.startsWith('/api')) {
-        res.set('X-CSRF-Valid', 'false');
-        return res.status(403).json({ message: 'CSRF token validation failed' });
+      if (req.path.startsWith("/api")) {
+        res.set("X-CSRF-Valid", "false");
+        return res
+          .status(403)
+          .json({ message: "CSRF token validation failed" });
       }
       // For other routes, redirect to homepage
       else {
-        return res.redirect('/');
+        return res.redirect("/");
       }
     }
-    
+
     // For valid tokens, add header and continue
-    res.set('X-CSRF-Valid', 'true');
+    res.set("X-CSRF-Valid", "true");
   }
-  
+
   // Clean up old tokens periodically (keep set size manageable)
   if (csrfTokens.size > 1000) {
     const tokensArray = Array.from(csrfTokens);
     csrfTokens.clear();
-    tokensArray.slice(Math.max(0, tokensArray.length - 500)).forEach(token => {
-      csrfTokens.add(token);
-    });
+    tokensArray
+      .slice(Math.max(0, tokensArray.length - 500))
+      .forEach((token) => {
+        csrfTokens.add(token);
+      });
   }
-  
+
   next();
 });
 
@@ -121,17 +127,19 @@ const apiLimiter = rateLimit({
   max: 100, // Limit each IP to 100 requests per window
   standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
   legacyHeaders: false, // Disable the `X-RateLimit-*` headers
-  message: 'Too many requests from this IP, please try again after 15 minutes',
+  message: "Too many requests from this IP, please try again after 15 minutes",
   // Skip rate limiting for trusted networks (like internal services)
   skip: (req) => {
-    const ip = req.ip || '';
+    const ip = req.ip || "";
     // Example: skip for localhost and internal services
-    return ip === '127.0.0.1' || ip.startsWith('10.') || ip.startsWith('172.16.');
-  }
+    return (
+      ip === "127.0.0.1" || ip.startsWith("10.") || ip.startsWith("172.16.")
+    );
+  },
 });
 
 // Apply rate limiting to all API routes
-app.use('/api/', apiLimiter);
+app.use("/api/", apiLimiter);
 
 // Apply stricter rate limiting to auth-related endpoints
 const authLimiter = rateLimit({
@@ -139,12 +147,12 @@ const authLimiter = rateLimit({
   max: 10, // Limit each IP to 10 login attempts per hour
   standardHeaders: true,
   legacyHeaders: false,
-  message: 'Too many login attempts, please try again after an hour'
+  message: "Too many login attempts, please try again after an hour",
 });
 
 // Apply to auth-specific routes
-app.use('/api/login', authLimiter);
-app.use('/api/admin/login', authLimiter);
+app.use("/api/login", authLimiter);
+app.use("/api/admin/login", authLimiter);
 
 app.use((req, res, next) => {
   const start = Date.now();
@@ -200,11 +208,14 @@ app.use((req, res, next) => {
   // this serves both the API and the client.
   // It is the only port that is not firewalled.
   const port = 5000;
-  server.listen({
-    port,
-    host: "0.0.0.0",
-    reusePort: true,
-  }, () => {
-    log(`serving on port ${port}`);
-  });
+  server.listen(
+    {
+      port,
+      host: "0.0.0.0",
+      reusePort: true,
+    },
+    () => {
+      log(`serving on port ${port}`);
+    },
+  );
 })();

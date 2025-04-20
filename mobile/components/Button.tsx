@@ -1,116 +1,132 @@
-import React from 'react';
-import { 
-  StyleSheet, 
-  TouchableOpacity, 
-  Text, 
+import React from "react";
+import {
+  StyleSheet,
+  TouchableOpacity,
+  Text,
   ActivityIndicator,
   TouchableOpacityProps,
   ViewStyle,
-  TextStyle
-} from 'react-native';
+  TextStyle,
+} from "react-native";
 
-interface ButtonProps extends TouchableOpacityProps {
+export interface ButtonProps extends TouchableOpacityProps {
   title: string;
   loading?: boolean;
-  variant?: 'primary' | 'secondary' | 'outline';
-  size?: 'small' | 'medium' | 'large';
+  disabled?: boolean;
+  variant?: "primary" | "secondary" | "outline";
+  size?: "small" | "medium" | "large";
   style?: ViewStyle;
   textStyle?: TextStyle;
+  onPress?: () => void;
 }
 
 const Button: React.FC<ButtonProps> = ({
   title,
   loading = false,
-  variant = 'primary',
-  size = 'medium',
+  disabled = false,
+  variant = "primary",
+  size = "medium",
   style,
   textStyle,
+  onPress,
   ...props
 }) => {
   const getButtonStyle = () => {
     let baseStyle = [styles.button];
-    
+
     // Add variant styles
     switch (variant) {
-      case 'primary':
+      case "primary":
         baseStyle.push(styles.primaryButton);
         break;
-      case 'secondary':
+      case "secondary":
         baseStyle.push(styles.secondaryButton);
         break;
-      case 'outline':
+      case "outline":
         baseStyle.push(styles.outlineButton);
         break;
     }
-    
+
     // Add size styles
     switch (size) {
-      case 'small':
+      case "small":
         baseStyle.push(styles.smallButton);
         break;
-      case 'medium':
+      case "medium":
         baseStyle.push(styles.mediumButton);
         break;
-      case 'large':
+      case "large":
         baseStyle.push(styles.largeButton);
         break;
     }
-    
+
+    // Add disabled style
+    if (disabled || loading) {
+      baseStyle.push(styles.disabledButton);
+    }
+
     // Add custom style
     if (style) {
       baseStyle.push(style);
     }
-    
+
     return baseStyle;
   };
-  
+
   const getTextStyle = () => {
     let baseStyle = [styles.buttonText];
-    
+
     // Add variant text styles
     switch (variant) {
-      case 'primary':
+      case "primary":
         baseStyle.push(styles.primaryButtonText);
         break;
-      case 'secondary':
+      case "secondary":
         baseStyle.push(styles.secondaryButtonText);
         break;
-      case 'outline':
+      case "outline":
         baseStyle.push(styles.outlineButtonText);
         break;
     }
-    
+
     // Add size text styles
     switch (size) {
-      case 'small':
+      case "small":
         baseStyle.push(styles.smallButtonText);
         break;
-      case 'medium':
+      case "medium":
         baseStyle.push(styles.mediumButtonText);
         break;
-      case 'large':
+      case "large":
         baseStyle.push(styles.largeButtonText);
         break;
     }
-    
+
+    // Add disabled text style
+    if (disabled || loading) {
+      baseStyle.push(styles.disabledButtonText);
+    }
+
     // Add custom text style
     if (textStyle) {
       baseStyle.push(textStyle);
     }
-    
+
     return baseStyle;
   };
-  
+
   return (
     <TouchableOpacity
       style={getButtonStyle()}
-      disabled={loading || props.disabled}
+      disabled={loading || disabled}
+      onPress={onPress}
+      activeOpacity={0.7}
       {...props}
     >
       {loading ? (
-        <ActivityIndicator 
-          color={variant === 'outline' ? '#f97316' : '#ffffff'} 
-          size="small" 
+        <ActivityIndicator
+          color={variant === "outline" ? "#f97316" : "#ffffff"}
+          size="small"
         />
       ) : (
         <Text style={getTextStyle()}>{title}</Text>
@@ -122,19 +138,22 @@ const Button: React.FC<ButtonProps> = ({
 const styles = StyleSheet.create({
   button: {
     borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   primaryButton: {
-    backgroundColor: '#f97316',
+    backgroundColor: "#f97316",
   },
   secondaryButton: {
-    backgroundColor: '#64748b',
+    backgroundColor: "#64748b",
   },
   outlineButton: {
-    backgroundColor: 'transparent',
+    backgroundColor: "transparent",
     borderWidth: 1,
-    borderColor: '#f97316',
+    borderColor: "#f97316",
+  },
+  disabledButton: {
+    opacity: 0.6,
   },
   smallButton: {
     height: 36,
@@ -149,17 +168,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: 32,
   },
   buttonText: {
-    fontWeight: '600',
-    textAlign: 'center',
+    fontWeight: "600",
+    textAlign: "center",
   },
   primaryButtonText: {
-    color: '#ffffff',
+    color: "#ffffff",
   },
   secondaryButtonText: {
-    color: '#ffffff',
+    color: "#ffffff",
   },
   outlineButtonText: {
-    color: '#f97316',
+    color: "#f97316",
+  },
+  disabledButtonText: {
+    opacity: 0.8,
   },
   smallButtonText: {
     fontSize: 14,

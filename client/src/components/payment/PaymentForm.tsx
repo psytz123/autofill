@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
-import { 
-  PaymentElement, 
-  useStripe, 
-  useElements 
+import {
+  PaymentElement,
+  useStripe,
+  useElements,
 } from "@stripe/react-stripe-js";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -14,11 +14,15 @@ interface PaymentFormProps {
   onPaymentSuccess: () => void;
 }
 
-export default function PaymentForm({ amount, orderId, onPaymentSuccess }: PaymentFormProps) {
+export default function PaymentForm({
+  amount,
+  orderId,
+  onPaymentSuccess,
+}: PaymentFormProps) {
   const stripe = useStripe();
   const elements = useElements();
   const { toast } = useToast();
-  
+
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 
@@ -29,7 +33,7 @@ export default function PaymentForm({ amount, orderId, onPaymentSuccess }: Payme
 
     // Check for payment result when the page loads or when stripe changes
     const clientSecret = new URLSearchParams(window.location.search).get(
-      "payment_intent_client_secret"
+      "payment_intent_client_secret",
     );
 
     if (!clientSecret) {
@@ -38,7 +42,7 @@ export default function PaymentForm({ amount, orderId, onPaymentSuccess }: Payme
 
     stripe.retrievePaymentIntent(clientSecret).then(({ paymentIntent }) => {
       if (!paymentIntent) return;
-      
+
       switch (paymentIntent.status) {
         case "succeeded":
           setMessage("Payment succeeded!");
@@ -104,19 +108,19 @@ export default function PaymentForm({ amount, orderId, onPaymentSuccess }: Payme
         <p className="text-sm text-gray-500 mb-4">
           Amount: ${amount.toFixed(2)}
         </p>
-        
+
         <PaymentElement />
       </div>
-      
+
       {message && (
         <div className="bg-secondary/20 p-3 rounded-md">
           <p className="text-sm text-secondary-foreground">{message}</p>
         </div>
       )}
-      
-      <Button 
-        type="submit" 
-        disabled={isLoading || !stripe || !elements} 
+
+      <Button
+        type="submit"
+        disabled={isLoading || !stripe || !elements}
         className="w-full"
       >
         {isLoading ? (

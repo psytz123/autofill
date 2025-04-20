@@ -31,34 +31,50 @@ export default function AdminOrdersPage() {
   const [assignDialogOpen, setAssignDialogOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<AdminOrder | null>(null);
   const [selectedDriver, setSelectedDriver] = useState<string>("");
-  
+
   // Fetch all orders
-  const { data: orders = [] as AdminOrder[], isLoading: isLoadingOrders } = useQuery<AdminOrder[]>({
-    queryKey: ['/admin/api/orders'],
-    queryFn: getQueryFn({ on401: "throw" }),
-  });
-  
+  const { data: orders = [] as AdminOrder[], isLoading: isLoadingOrders } =
+    useQuery<AdminOrder[]>({
+      queryKey: ["/admin/api/orders"],
+      queryFn: getQueryFn({ on401: "throw" }),
+    });
+
   // Fetch unassigned orders
-  const { data: unassignedOrders = [] as AdminOrder[], isLoading: isLoadingUnassigned } = useQuery<AdminOrder[]>({
-    queryKey: ['/admin/api/orders/unassigned'],
+  const {
+    data: unassignedOrders = [] as AdminOrder[],
+    isLoading: isLoadingUnassigned,
+  } = useQuery<AdminOrder[]>({
+    queryKey: ["/admin/api/orders/unassigned"],
     queryFn: getQueryFn({ on401: "throw" }),
   });
-  
+
   // Fetch assigned orders
-  const { data: assignedOrders = [] as AssignedOrder[], isLoading: isLoadingAssigned } = useQuery<AssignedOrder[]>({
-    queryKey: ['/admin/api/orders/assigned'],
+  const {
+    data: assignedOrders = [] as AssignedOrder[],
+    isLoading: isLoadingAssigned,
+  } = useQuery<AssignedOrder[]>({
+    queryKey: ["/admin/api/orders/assigned"],
     queryFn: getQueryFn({ on401: "throw" }),
   });
-  
+
   // Fetch available drivers
-  const { data: availableDrivers = [] as AdminDriver[], isLoading: isLoadingDrivers } = useQuery<AdminDriver[]>({
-    queryKey: ['/admin/api/drivers/available'],
+  const {
+    data: availableDrivers = [] as AdminDriver[],
+    isLoading: isLoadingDrivers,
+  } = useQuery<AdminDriver[]>({
+    queryKey: ["/admin/api/drivers/available"],
     queryFn: getQueryFn({ on401: "throw" }),
   });
-  
+
   // Assign order to driver mutation
   const assignOrderMutation = useMutation({
-    mutationFn: async ({ orderId, driverId }: { orderId: number, driverId: number }) => {
+    mutationFn: async ({
+      orderId,
+      driverId,
+    }: {
+      orderId: number;
+      driverId: number;
+    }) => {
       const res = await apiRequest("POST", "/admin/api/orders/assign", {
         orderId,
         driverId,
@@ -67,15 +83,19 @@ export default function AdminOrdersPage() {
     },
     onSuccess: () => {
       // Invalidate and refetch relevant queries
-      queryClient.invalidateQueries({ queryKey: ['/admin/api/orders'] });
-      queryClient.invalidateQueries({ queryKey: ['/admin/api/orders/unassigned'] });
-      queryClient.invalidateQueries({ queryKey: ['/admin/api/orders/assigned'] });
-      
+      queryClient.invalidateQueries({ queryKey: ["/admin/api/orders"] });
+      queryClient.invalidateQueries({
+        queryKey: ["/admin/api/orders/unassigned"],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["/admin/api/orders/assigned"],
+      });
+
       toast({
         title: "Order assigned",
         description: "The order has been assigned to the driver successfully",
       });
-      
+
       setAssignDialogOpen(false);
       setSelectedOrder(null);
       setSelectedDriver("");
@@ -86,36 +106,36 @@ export default function AdminOrdersPage() {
         description: error.message,
         variant: "destructive",
       });
-    }
+    },
   });
-  
+
   const handleAssignOrder = (order: AdminOrder) => {
     setSelectedOrder(order);
     setAssignDialogOpen(true);
   };
-  
+
   const confirmAssignOrder = () => {
     if (!selectedOrder || !selectedDriver) return;
-    
+
     assignOrderMutation.mutate({
       orderId: selectedOrder.id,
       driverId: parseInt(selectedDriver),
     });
   };
-  
+
   const getStatusBadgeColor = (status: string) => {
     switch (status.toUpperCase()) {
-      case 'IN_PROGRESS':
-        return 'bg-blue-100 text-blue-800';
-      case 'COMPLETED':
-        return 'bg-green-100 text-green-800';
-      case 'CANCELLED':
-        return 'bg-red-100 text-red-800';
+      case "IN_PROGRESS":
+        return "bg-blue-100 text-blue-800";
+      case "COMPLETED":
+        return "bg-green-100 text-green-800";
+      case "CANCELLED":
+        return "bg-red-100 text-red-800";
       default:
-        return 'bg-gray-100 text-gray-800';
+        return "bg-gray-100 text-gray-800";
     }
   };
-  
+
   return (
     <AdminLayout title="Orders Management">
       <Card>
@@ -135,7 +155,7 @@ export default function AdminOrdersPage() {
                 All Orders ({orders.length})
               </TabsTrigger>
             </TabsList>
-          
+
             <TabsContent value="unassigned">
               {isLoadingUnassigned ? (
                 <div className="flex justify-center py-8">
@@ -150,13 +170,27 @@ export default function AdminOrdersPage() {
                   <table className="w-full">
                     <thead>
                       <tr className="border-b">
-                        <th className="py-3 px-4 text-left font-medium">Order ID</th>
-                        <th className="py-3 px-4 text-left font-medium">Customer</th>
-                        <th className="py-3 px-4 text-left font-medium">Date</th>
-                        <th className="py-3 px-4 text-left font-medium">Fuel Type</th>
-                        <th className="py-3 px-4 text-left font-medium">Amount</th>
-                        <th className="py-3 px-4 text-left font-medium">Status</th>
-                        <th className="py-3 px-4 text-left font-medium">Actions</th>
+                        <th className="py-3 px-4 text-left font-medium">
+                          Order ID
+                        </th>
+                        <th className="py-3 px-4 text-left font-medium">
+                          Customer
+                        </th>
+                        <th className="py-3 px-4 text-left font-medium">
+                          Date
+                        </th>
+                        <th className="py-3 px-4 text-left font-medium">
+                          Fuel Type
+                        </th>
+                        <th className="py-3 px-4 text-left font-medium">
+                          Amount
+                        </th>
+                        <th className="py-3 px-4 text-left font-medium">
+                          Status
+                        </th>
+                        <th className="py-3 px-4 text-left font-medium">
+                          Actions
+                        </th>
                       </tr>
                     </thead>
                     <tbody>
@@ -170,13 +204,15 @@ export default function AdminOrdersPage() {
                           <td className="py-3 px-4">{order.fuelType}</td>
                           <td className="py-3 px-4">{order.amount} gal</td>
                           <td className="py-3 px-4">
-                            <Badge className={getStatusBadgeColor(order.status)}>
+                            <Badge
+                              className={getStatusBadgeColor(order.status)}
+                            >
                               {order.status}
                             </Badge>
                           </td>
                           <td className="py-3 px-4">
-                            <Button 
-                              size="sm" 
+                            <Button
+                              size="sm"
                               variant="outline"
                               onClick={() => handleAssignOrder(order)}
                             >
@@ -190,7 +226,7 @@ export default function AdminOrdersPage() {
                 </div>
               )}
             </TabsContent>
-            
+
             <TabsContent value="assigned">
               {isLoadingAssigned ? (
                 <div className="flex justify-center py-8">
@@ -205,13 +241,27 @@ export default function AdminOrdersPage() {
                   <table className="w-full">
                     <thead>
                       <tr className="border-b">
-                        <th className="py-3 px-4 text-left font-medium">Order ID</th>
-                        <th className="py-3 px-4 text-left font-medium">Customer</th>
-                        <th className="py-3 px-4 text-left font-medium">Date</th>
-                        <th className="py-3 px-4 text-left font-medium">Fuel Type</th>
-                        <th className="py-3 px-4 text-left font-medium">Driver</th>
-                        <th className="py-3 px-4 text-left font-medium">Status</th>
-                        <th className="py-3 px-4 text-left font-medium">Est. Delivery</th>
+                        <th className="py-3 px-4 text-left font-medium">
+                          Order ID
+                        </th>
+                        <th className="py-3 px-4 text-left font-medium">
+                          Customer
+                        </th>
+                        <th className="py-3 px-4 text-left font-medium">
+                          Date
+                        </th>
+                        <th className="py-3 px-4 text-left font-medium">
+                          Fuel Type
+                        </th>
+                        <th className="py-3 px-4 text-left font-medium">
+                          Driver
+                        </th>
+                        <th className="py-3 px-4 text-left font-medium">
+                          Status
+                        </th>
+                        <th className="py-3 px-4 text-left font-medium">
+                          Est. Delivery
+                        </th>
                       </tr>
                     </thead>
                     <tbody>
@@ -225,13 +275,17 @@ export default function AdminOrdersPage() {
                           <td className="py-3 px-4">{order.fuelType}</td>
                           <td className="py-3 px-4">{order.driver_name}</td>
                           <td className="py-3 px-4">
-                            <Badge className={getStatusBadgeColor(order.status)}>
+                            <Badge
+                              className={getStatusBadgeColor(order.status)}
+                            >
                               {order.status}
                             </Badge>
                           </td>
                           <td className="py-3 px-4">
                             {order.estimated_delivery_time
-                              ? new Date(order.estimated_delivery_time).toLocaleTimeString()
+                              ? new Date(
+                                  order.estimated_delivery_time,
+                                ).toLocaleTimeString()
                               : "N/A"}
                           </td>
                         </tr>
@@ -241,7 +295,7 @@ export default function AdminOrdersPage() {
                 </div>
               )}
             </TabsContent>
-            
+
             <TabsContent value="all">
               {isLoadingOrders ? (
                 <div className="flex justify-center py-8">
@@ -256,13 +310,27 @@ export default function AdminOrdersPage() {
                   <table className="w-full">
                     <thead>
                       <tr className="border-b">
-                        <th className="py-3 px-4 text-left font-medium">Order ID</th>
-                        <th className="py-3 px-4 text-left font-medium">Customer</th>
-                        <th className="py-3 px-4 text-left font-medium">Date</th>
-                        <th className="py-3 px-4 text-left font-medium">Fuel Type</th>
-                        <th className="py-3 px-4 text-left font-medium">Amount</th>
-                        <th className="py-3 px-4 text-left font-medium">Total</th>
-                        <th className="py-3 px-4 text-left font-medium">Status</th>
+                        <th className="py-3 px-4 text-left font-medium">
+                          Order ID
+                        </th>
+                        <th className="py-3 px-4 text-left font-medium">
+                          Customer
+                        </th>
+                        <th className="py-3 px-4 text-left font-medium">
+                          Date
+                        </th>
+                        <th className="py-3 px-4 text-left font-medium">
+                          Fuel Type
+                        </th>
+                        <th className="py-3 px-4 text-left font-medium">
+                          Amount
+                        </th>
+                        <th className="py-3 px-4 text-left font-medium">
+                          Total
+                        </th>
+                        <th className="py-3 px-4 text-left font-medium">
+                          Status
+                        </th>
                       </tr>
                     </thead>
                     <tbody>
@@ -275,9 +343,13 @@ export default function AdminOrdersPage() {
                           </td>
                           <td className="py-3 px-4">{order.fuelType}</td>
                           <td className="py-3 px-4">{order.amount} gal</td>
-                          <td className="py-3 px-4">${order.totalPrice.toFixed(2)}</td>
                           <td className="py-3 px-4">
-                            <Badge className={getStatusBadgeColor(order.status)}>
+                            ${order.totalPrice.toFixed(2)}
+                          </td>
+                          <td className="py-3 px-4">
+                            <Badge
+                              className={getStatusBadgeColor(order.status)}
+                            >
                               {order.status}
                             </Badge>
                           </td>
@@ -289,7 +361,7 @@ export default function AdminOrdersPage() {
               )}
             </TabsContent>
           </Tabs>
-          
+
           {/* Assign Driver Dialog */}
           <Dialog open={assignDialogOpen} onOpenChange={setAssignDialogOpen}>
             <DialogContent>
@@ -299,14 +371,18 @@ export default function AdminOrdersPage() {
                   Select a driver to fulfill this order.
                 </DialogDescription>
               </DialogHeader>
-              
+
               {selectedOrder && (
                 <div className="py-4">
                   <div className="flex justify-between mb-4">
-                    <span className="font-medium">Order #{selectedOrder.id}</span>
-                    <span>{new Date(selectedOrder.createdAt).toLocaleDateString()}</span>
+                    <span className="font-medium">
+                      Order #{selectedOrder.id}
+                    </span>
+                    <span>
+                      {new Date(selectedOrder.createdAt).toLocaleDateString()}
+                    </span>
                   </div>
-                  
+
                   <div className="grid grid-cols-2 gap-2 mb-4">
                     <div>
                       <p className="text-sm text-muted-foreground">Fuel Type</p>
@@ -327,7 +403,7 @@ export default function AdminOrdersPage() {
                   </div>
                 </div>
               )}
-              
+
               <div className="mb-4">
                 <label className="block text-sm font-medium mb-1">
                   Select Driver
@@ -350,7 +426,10 @@ export default function AdminOrdersPage() {
                       </div>
                     ) : (
                       availableDrivers.map((driver) => (
-                        <SelectItem key={driver.id} value={driver.id.toString()}>
+                        <SelectItem
+                          key={driver.id}
+                          value={driver.id.toString()}
+                        >
                           {driver.name}
                         </SelectItem>
                       ))
@@ -358,7 +437,7 @@ export default function AdminOrdersPage() {
                   </SelectContent>
                 </Select>
               </div>
-              
+
               <DialogFooter>
                 <Button
                   variant="outline"

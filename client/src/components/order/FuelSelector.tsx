@@ -7,7 +7,11 @@ import { Vehicle } from "@shared/schema";
 import { Badge } from "@/components/ui/badge";
 import { AlertCircle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { DEFAULT_TANK_CAPACITY, getFuelTypeDisplayName, estimateTankCapacity } from "@/lib/fuelUtils";
+import {
+  DEFAULT_TANK_CAPACITY,
+  getFuelTypeDisplayName,
+  estimateTankCapacity,
+} from "@/lib/fuelUtils";
 
 interface FuelSelectorProps {
   fuelType: FuelType;
@@ -26,9 +30,9 @@ export function FuelSelector({
 }: FuelSelectorProps) {
   // Detect fuel type mismatch between vehicle and selection
   const fuelTypeMismatch = vehicle && vehicle.fuelType !== fuelType;
-  
+
   // Get the appropriate tank capacity based on the selected fuel type
-  const tankCapacity = vehicle?.fuelType 
+  const tankCapacity = vehicle?.fuelType
     ? DEFAULT_TANK_CAPACITY[vehicle.fuelType]
     : estimateTankCapacity(fuelType);
 
@@ -43,8 +47,10 @@ export function FuelSelector({
                 {vehicle.year} {vehicle.make} {vehicle.model}
               </Badge>
             </div>
-            <Badge 
-              variant={vehicle.fuelType === fuelType ? "default" : "destructive"}
+            <Badge
+              variant={
+                vehicle.fuelType === fuelType ? "default" : "destructive"
+              }
               className="text-xs"
             >
               {getFuelTypeDisplayName(vehicle.fuelType)}
@@ -56,20 +62,22 @@ export function FuelSelector({
           <Alert variant="destructive" className="mb-4">
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>
-              Warning: The selected fuel type doesn't match your vehicle's recommended fuel type ({vehicle ? getFuelTypeDisplayName(vehicle.fuelType) : ''}).
+              Warning: The selected fuel type doesn't match your vehicle's
+              recommended fuel type (
+              {vehicle ? getFuelTypeDisplayName(vehicle.fuelType) : ""}).
             </AlertDescription>
           </Alert>
         )}
 
         <div className="space-y-8">
-          <FuelTypeSelector 
-            selectedType={fuelType} 
-            onChange={onFuelTypeChange} 
+          <FuelTypeSelector
+            selectedType={fuelType}
+            onChange={onFuelTypeChange}
           />
-          
-          <FuelQuantitySelector 
-            amount={amount} 
-            onChange={onAmountChange} 
+
+          <FuelQuantitySelector
+            amount={amount}
+            onChange={onAmountChange}
             fuelType={fuelType}
             vehicleTankCapacity={tankCapacity}
           />

@@ -35,7 +35,7 @@ export default function FuelLevelSelector({
         </div>
       );
     }
-    
+
     return (
       <div className="flex space-x-1">
         {Array.from({ length: 4 }).map((_, i) => {
@@ -52,10 +52,7 @@ export default function FuelLevelSelector({
           } else {
             // For EMPTY, render all bars as empty
             return (
-              <div
-                key={i}
-                className="h-3 w-8 rounded-full bg-neutral-200/50"
-              />
+              <div key={i} className="h-3 w-8 rounded-full bg-neutral-200/50" />
             );
           }
         })}
@@ -69,7 +66,12 @@ export default function FuelLevelSelector({
         <CardTitle className="text-xl font-bold text-neutral-800">
           CURRENT FUEL LEVEL
         </CardTitle>
-        <Button variant="ghost" size="icon" onClick={onClose} className="text-neutral-500 hover:text-red-500">
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={onClose}
+          className="text-neutral-500 hover:text-red-500"
+        >
           <X className="h-6 w-6" />
         </Button>
       </CardHeader>
@@ -85,7 +87,9 @@ export default function FuelLevelSelector({
               onClick={() => setSelectedLevel(level.value)}
             >
               <div className="flex items-center gap-4">
-                <div className="font-medium text-neutral-700 w-20">{level.label}</div>
+                <div className="font-medium text-neutral-700 w-20">
+                  {level.label}
+                </div>
                 {renderFuelIndicator(level.value, level.color)}
               </div>
               {selectedLevel === level.value && (

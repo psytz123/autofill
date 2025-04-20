@@ -16,31 +16,38 @@ async function hashPassword(password: string) {
 async function main() {
   try {
     console.log("Creating admin user...");
-    
+
     // Check if admin already exists
-    const existingAdmin = await db.select().from(adminUsers).where(eq(adminUsers.username, "admin"));
-    
+    const existingAdmin = await db
+      .select()
+      .from(adminUsers)
+      .where(eq(adminUsers.username, "admin"));
+
     if (existingAdmin.length > 0) {
       console.log("Admin user already exists");
       process.exit(0);
     }
-    
+
     // Create admin with default credentials
-    const [admin] = await db.insert(adminUsers).values({
-      username: "admin",
-      password: await hashPassword("admin123"), // Default password
-      name: "Admin User",
-      role: "ADMIN",
-      createdAt: new Date(),
-      updatedAt: new Date()
-    }).returning();
-    
+    const [admin] = await db
+      .insert(adminUsers)
+      .values({
+        username: "admin",
+        password: await hashPassword("admin123"), // Default password
+        name: "Admin User",
+        role: "ADMIN",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .returning();
+
     console.log("Admin user created successfully:", admin);
     console.log("\nDefault admin credentials:");
     console.log("Username: admin");
     console.log("Password: admin123");
-    console.log("\nIMPORTANT: Please change the default password after first login!");
-    
+    console.log(
+      "\nIMPORTANT: Please change the default password after first login!",
+    );
   } catch (error) {
     console.error("Error creating admin user:", error);
   } finally {

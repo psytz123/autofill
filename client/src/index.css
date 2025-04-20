@@ -8,40 +8,40 @@
     /* Navy Blue: #002B5B */
     /* Vibrant Orange: #FF6B00 */
     /* White: #FFFFFF */
-    
+
     --background: 0 0% 100%;
     --foreground: 210 70% 18%;
-    
+
     /* Navy Blue as primary */
     --primary: 210 100% 18%;
     --primary-foreground: 0 0% 100%;
-    
+
     /* Vibrant Orange as secondary */
     --secondary: 25 100% 50%;
     --secondary-foreground: 0 0% 100%;
 
     --card: 0 0% 100%;
     --card-foreground: 210 70% 18%;
-    
+
     --popover: 0 0% 100%;
     --popover-foreground: 210 70% 18%;
-    
+
     --muted: 210 20% 97%;
     --muted-foreground: 210 40% 40%;
-    
+
     --accent: 210 20% 96%;
     --accent-foreground: 210 70% 18%;
-    
+
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 100%;
 
     --success: 160 84% 39%;
     --success-foreground: 0 0% 100%;
-    
+
     --border: 210 20% 90%;
     --input: 210 20% 90%;
     --ring: 210 70% 18%;
-    
+
     --radius: 0.5rem;
 
     /* Chart colors */
@@ -51,11 +51,11 @@
     --chart-4: 0 84.2% 60.2%;
     --chart-5: 262.1 83.3% 57.8%;
   }
-  
+
   * {
     @apply border-border;
   }
-  
+
   body {
     @apply font-sans antialiased bg-background text-foreground;
     -webkit-tap-highlight-color: transparent; /* Removes tap highlight on mobile */
@@ -63,7 +63,10 @@
   }
 
   /* Improve input elements on mobile */
-  input, textarea, select, button {
+  input,
+  textarea,
+  select,
+  button {
     @apply text-base;
     font-size: 16px; /* Prevents iOS zoom on focus */
   }
@@ -78,7 +81,7 @@
   }
 
   .font-heading {
-    font-family: 'Montserrat', sans-serif;
+    font-family: "Montserrat", sans-serif;
   }
 
   .h-screen-minus-tab {
@@ -95,33 +98,33 @@
   .tab-inactive {
     @apply text-neutral-500;
   }
-  
+
   /* AutoFill Brand Specific Classes */
   .autofill-navy {
-    color: #002B5B;
+    color: #002b5b;
   }
-  
+
   .autofill-orange {
-    color: #FF6B00;
+    color: #ff6b00;
   }
-  
+
   .bg-autofill-navy {
-    background-color: #002B5B;
+    background-color: #002b5b;
   }
-  
+
   .bg-autofill-orange {
-    background-color: #FF6B00;
+    background-color: #ff6b00;
   }
 
   /* AutoFill Brand Button Variants */
   .btn-autofill-primary {
     @apply bg-primary text-white hover:bg-primary/90;
   }
-  
+
   .btn-autofill-secondary {
     @apply bg-secondary text-white hover:bg-secondary/90;
   }
-  
+
   /* AutoFill Custom Tab Styling */
   [data-state="active"][data-orientation="horizontal"] {
     @apply bg-autofill-navy text-white;
@@ -133,38 +136,38 @@
   .safe-bottom {
     padding-bottom: env(safe-area-inset-bottom, 0px);
   }
-  
+
   .safe-top {
     padding-top: env(safe-area-inset-top, 0px);
   }
-  
+
   .touch-scroll {
     -webkit-overflow-scrolling: touch;
     scroll-behavior: smooth;
   }
-  
+
   /* Improved text readability for small screens */
   .mobile-text-base {
     @apply text-base;
   }
-  
+
   @media (max-width: 640px) {
     .mobile-text-base {
       @apply text-sm;
     }
   }
-  
+
   /* No tap highlight on mobile */
   .no-tap-highlight {
     -webkit-tap-highlight-color: transparent;
   }
-  
+
   /* Hide scrollbar but keep functionality */
   .hide-scrollbar {
-    -ms-overflow-style: none;  /* IE and Edge */
-    scrollbar-width: none;  /* Firefox */
+    -ms-overflow-style: none; /* IE and Edge */
+    scrollbar-width: none; /* Firefox */
   }
-  
+
   .hide-scrollbar::-webkit-scrollbar {
     display: none; /* Chrome, Safari, Opera */
   }

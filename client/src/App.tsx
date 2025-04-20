@@ -12,22 +12,21 @@ import { FuelOptionsProvider } from "@/providers/FuelOptionsProvider";
 
 // Define module chunks with more specific prefetch and dynamic import options
 // Create dynamic imports with customized loading priority
-const importWithPriority = (path: string, priority: 'low' | 'high' = 'low') => {
+const importWithPriority = (path: string, priority: "low" | "high" = "low") => {
   return lazy(() => {
     // Add a small delay for low priority imports to prioritize critical resources
-    if (priority === 'low') {
+    if (priority === "low") {
       return new Promise<{ default: ComponentType<any> }>((resolve) => {
         // Use requestIdleCallback when browser is idle or setTimeout as fallback
-        const requestIdleCallback = 
-          window.requestIdleCallback || 
-          ((cb) => setTimeout(cb, 1));
-        
+        const requestIdleCallback =
+          window.requestIdleCallback || ((cb) => setTimeout(cb, 1));
+
         requestIdleCallback(() => {
           import(/* @vite-ignore */ path).then(resolve);
         });
       });
     }
-    
+
     // High priority modules are loaded immediately
     return import(/* @vite-ignore */ path);
   });
@@ -52,11 +51,15 @@ const PaymentMethodsPage = lazy(() => import("@/pages/payment-methods-page"));
 
 // Subscription feature bundle (lower priority)
 const SubscriptionPage = lazy(() => import("@/pages/subscription-page"));
-const SubscriptionSuccessPage = lazy(() => import("@/pages/subscription-success"));
+const SubscriptionSuccessPage = lazy(
+  () => import("@/pages/subscription-success"),
+);
 
 // Testing pages (lowest priority)
 const FuelSelectorTest = lazy(() => import("@/pages/fuel-selector-test"));
-const EnhancedFuelSelectorTest = lazy(() => import("@/pages/enhanced-fuel-selector-test"));
+const EnhancedFuelSelectorTest = lazy(
+  () => import("@/pages/enhanced-fuel-selector-test"),
+);
 
 // Admin module (completely separate chunk)
 const AdminLoginPage = lazy(() => import("@/pages/admin/admin-login"));
@@ -75,13 +78,13 @@ const PageLoader = () => (
 );
 
 // Custom SuspenseRoute for better loading states
-const SuspenseRoute = ({ 
-  path, 
+const SuspenseRoute = ({
+  path,
   component: Component,
-  fallback = <PageLoader />
-}: { 
-  path: string; 
-  component: ComponentType<any>; 
+  fallback = <PageLoader />,
+}: {
+  path: string;
+  component: ComponentType<any>;
   fallback?: React.ReactNode;
 }) => {
   return (
@@ -99,27 +102,27 @@ const SuspenseRoute = ({
 const ProtectedSuspenseRoute = ({
   path,
   component: Component,
-  fallback = <PageLoader />
+  fallback = <PageLoader />,
 }: {
   path: string;
   component: ComponentType<any>;
   fallback?: React.ReactNode;
 }) => {
   const { user, isLoading } = useAuth();
-  
+
   return (
     <Route path={path}>
       {() => {
         if (isLoading) {
           return <PageLoader />;
         }
-        
+
         if (!user) {
           // Redirect to auth page
           window.location.href = "/auth";
           return null;
         }
-        
+
         return (
           <Suspense fallback={fallback}>
             <Component />
@@ -132,56 +135,35 @@ const ProtectedSuspenseRoute = ({
 
 function CustomerRouter() {
   const { user } = useAuth();
-  
+
   return (
     <div className="flex flex-col min-h-screen">
       <Switch>
-        <SuspenseRoute 
-          path="/auth" 
-          component={AuthPage} 
+        <SuspenseRoute path="/auth" component={AuthPage} />
+        <ProtectedRoute path="/" component={HomePage} />
+        <ProtectedRoute path="/order" component={OrderPage} />
+        <ProtectedRoute path="/orders" component={OrdersPage} />
+        <ProtectedRoute path="/vehicles" component={VehiclesPage} />
+        <ProtectedRoute path="/account" component={AccountPage} />
+        <ProtectedRoute
+          path="/payment-methods"
+          component={PaymentMethodsPage}
         />
-        <ProtectedRoute 
-          path="/" 
-          component={HomePage} 
+        <ProtectedRoute path="/subscription" component={SubscriptionPage} />
+        <ProtectedRoute
+          path="/subscription-success"
+          component={SubscriptionSuccessPage}
         />
-        <ProtectedRoute 
-          path="/order" 
-          component={OrderPage} 
+        <SuspenseRoute
+          path="/fuel-selector-test"
+          component={FuelSelectorTest}
         />
-        <ProtectedRoute 
-          path="/orders" 
-          component={OrdersPage} 
-        />
-        <ProtectedRoute 
-          path="/vehicles" 
-          component={VehiclesPage} 
-        />
-        <ProtectedRoute 
-          path="/account" 
-          component={AccountPage} 
-        />
-        <ProtectedRoute 
-          path="/payment-methods" 
-          component={PaymentMethodsPage} 
-        />
-        <ProtectedRoute 
-          path="/subscription" 
-          component={SubscriptionPage} 
-        />
-        <ProtectedRoute 
-          path="/subscription-success" 
-          component={SubscriptionSuccessPage} 
-        />
-        <SuspenseRoute 
-          path="/fuel-selector-test" 
-          component={FuelSelectorTest} 
-        />
-        <SuspenseRoute 
-          path="/enhanced-fuel-selector-test" 
-          component={EnhancedFuelSelectorTest} 
+        <SuspenseRoute
+          path="/enhanced-fuel-selector-test"
+          component={EnhancedFuelSelectorTest}
         />
       </Switch>
-      
+
       {user && <TabBar />}
     </div>
   );
@@ -191,7 +173,7 @@ function CustomerRouter() {
 const AdminSuspenseRoute = ({
   path,
   component: Component,
-  fallback = <PageLoader />
+  fallback = <PageLoader />,
 }: {
   path: string;
   component: ComponentType<any>;
@@ -212,34 +194,22 @@ const AdminSuspenseRoute = ({
 function AdminRouter() {
   return (
     <Switch>
-      <SuspenseRoute 
-        path="/admin/login" 
-        component={AdminLoginPage} 
+      <SuspenseRoute path="/admin/login" component={AdminLoginPage} />
+      <AdminSuspenseRoute
+        path="/admin/dashboard"
+        component={AdminDashboardPage}
       />
-      <AdminSuspenseRoute 
-        path="/admin/dashboard" 
-        component={AdminDashboardPage} 
+      <AdminSuspenseRoute path="/admin/orders" component={AdminOrdersPage} />
+      <AdminSuspenseRoute path="/admin/drivers" component={AdminDriversPage} />
+      <AdminSuspenseRoute
+        path="/admin/customers"
+        component={AdminCustomersPage}
       />
-      <AdminSuspenseRoute 
-        path="/admin/orders" 
-        component={AdminOrdersPage} 
+      <AdminSuspenseRoute
+        path="/admin/analytics"
+        component={AdminAnalyticsPage}
       />
-      <AdminSuspenseRoute 
-        path="/admin/drivers" 
-        component={AdminDriversPage} 
-      />
-      <AdminSuspenseRoute 
-        path="/admin/customers" 
-        component={AdminCustomersPage} 
-      />
-      <AdminSuspenseRoute 
-        path="/admin/analytics" 
-        component={AdminAnalyticsPage} 
-      />
-      <AdminSuspenseRoute 
-        path="/admin/profile" 
-        component={AdminProfilePage} 
-      />
+      <AdminSuspenseRoute path="/admin/profile" component={AdminProfilePage} />
       <Route path="/admin/settings">
         {() => {
           window.location.href = "/admin/profile";
@@ -258,7 +228,7 @@ function AdminRouter() {
 
 function AppRouter() {
   const { user } = useAuth();
-  
+
   return (
     <Suspense fallback={<PageLoader />}>
       <Switch>
@@ -268,9 +238,7 @@ function AppRouter() {
         <Route path="/*">
           <CustomerRouter />
         </Route>
-        <Route path="*">
-          {() => <NotFound />}
-        </Route>
+        <Route path="*">{() => <NotFound />}</Route>
       </Switch>
     </Suspense>
   );
@@ -296,7 +264,7 @@ function App() {
 // Component to handle prefetching critical data
 function DataPrefetcher({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
-  
+
   // Prefetch critical data on initial load
   useEffect(() => {
     // Import dynamically to avoid circular dependencies
@@ -304,7 +272,7 @@ function DataPrefetcher({ children }: { children: React.ReactNode }) {
       prefetchCriticalData(!!user);
     });
   }, [user]);
-  
+
   return <>{children}</>;
 }
 

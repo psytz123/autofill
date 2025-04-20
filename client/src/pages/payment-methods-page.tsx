@@ -6,8 +6,21 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { Loader2, Plus, ArrowLeft, CreditCard } from "lucide-react";
 import PaymentMethodCard from "@/components/payment/PaymentMethodCard";
 import AddPaymentMethodForm from "@/components/payment/AddPaymentMethodForm";
@@ -18,19 +31,19 @@ export default function PaymentMethodsPage() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const [addingPayment, setAddingPayment] = useState(false);
-  
+
   // We don't need to manually redirect because ProtectedRoute will handle authentication
-  
+
   // Fetch payment methods
-  const { 
-    data: paymentMethods = [], 
+  const {
+    data: paymentMethods = [],
     isLoading: isLoadingPayments,
-    error: paymentError
+    error: paymentError,
   } = useQuery<PaymentMethod[]>({
-    queryKey: ['/api/payment-methods'],
+    queryKey: ["/api/payment-methods"],
     queryFn: getQueryFn({ on401: "throw" }),
   });
-  
+
   // Delete payment method mutation
   const deletePaymentMutation = useMutation({
     mutationFn: async (id: number) => {
@@ -41,7 +54,7 @@ export default function PaymentMethodsPage() {
         title: "Payment method deleted",
         description: "Your payment method has been removed",
       });
-      queryClient.invalidateQueries({ queryKey: ['/api/payment-methods'] });
+      queryClient.invalidateQueries({ queryKey: ["/api/payment-methods"] });
     },
     onError: (error: Error) => {
       toast({
@@ -51,7 +64,7 @@ export default function PaymentMethodsPage() {
       });
     },
   });
-  
+
   if (isLoadingPayments) {
     return (
       <div className="container py-6 flex flex-col min-h-screen">
@@ -62,22 +75,22 @@ export default function PaymentMethodsPage() {
       </div>
     );
   }
-  
+
   if (paymentError) {
     return (
       <div className="container py-6 flex flex-col min-h-screen">
         <div className="flex-1">
           <div className="mb-4">
-            <Button 
-              variant="ghost" 
-              className="p-0 h-auto" 
-              onClick={() => setLocation('/account')}
+            <Button
+              variant="ghost"
+              className="p-0 h-auto"
+              onClick={() => setLocation("/account")}
             >
               <ArrowLeft className="h-4 w-4 mr-2" />
               Back to Account
             </Button>
           </div>
-          
+
           <Card>
             <CardHeader>
               <CardTitle>Error</CardTitle>
@@ -92,20 +105,20 @@ export default function PaymentMethodsPage() {
       </div>
     );
   }
-  
+
   return (
     <div className="container py-6 flex flex-col min-h-screen">
       <div className="flex-1">
         <div className="mb-4 flex items-center justify-between">
-          <Button 
-            variant="ghost" 
-            className="p-0 h-auto" 
-            onClick={() => setLocation('/account')}
+          <Button
+            variant="ghost"
+            className="p-0 h-auto"
+            onClick={() => setLocation("/account")}
           >
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back to Account
           </Button>
-          
+
           <Dialog open={addingPayment} onOpenChange={setAddingPayment}>
             <DialogTrigger asChild>
               <Button size="sm">
@@ -120,8 +133,8 @@ export default function PaymentMethodsPage() {
                   Enter your card details to add a new payment method.
                 </DialogDescription>
               </DialogHeader>
-              
-              <AddPaymentMethodForm 
+
+              <AddPaymentMethodForm
                 onSuccess={() => {
                   setAddingPayment(false);
                   toast({
@@ -133,16 +146,18 @@ export default function PaymentMethodsPage() {
             </DialogContent>
           </Dialog>
         </div>
-        
+
         <h1 className="text-2xl font-bold mb-4">Payment Methods</h1>
-        
+
         {paymentMethods.length === 0 ? (
           <Card>
             <CardContent className="p-6 flex flex-col items-center justify-center">
               <div className="bg-muted rounded-full p-3 mb-4">
                 <CreditCard className="h-6 w-6 text-muted-foreground" />
               </div>
-              <p className="text-center mb-4">You don't have any payment methods yet</p>
+              <p className="text-center mb-4">
+                You don't have any payment methods yet
+              </p>
               <Button onClick={() => setAddingPayment(true)}>
                 <Plus className="h-4 w-4 mr-2" />
                 Add Payment Method

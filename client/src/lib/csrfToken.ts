@@ -15,8 +15,8 @@ function generateToken(): string {
   const random = new Uint8Array(16);
   window.crypto.getRandomValues(random);
   return Array.from(random)
-    .map(b => b.toString(16).padStart(2, '0'))
-    .join('');
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
 }
 
 /**
@@ -26,24 +26,24 @@ function generateToken(): string {
 async function registerTokenWithServer(token: string): Promise<void> {
   try {
     // Send a GET request to register the token with the server
-    await fetch('/api/ping', {
-      method: 'GET',
+    await fetch("/api/ping", {
+      method: "GET",
       headers: {
-        'X-CSRF-Token': token,
-        'X-Requested-With': 'XMLHttpRequest'
+        "X-CSRF-Token": token,
+        "X-Requested-With": "XMLHttpRequest",
       },
-      credentials: 'include'
+      credentials: "include",
     });
-    
+
     // Store in localStorage for persistence across page reloads
-    localStorage.setItem('csrfToken', token);
-    
-    console.log('CSRF token registered with server');
+    localStorage.setItem("csrfToken", token);
+
+    console.log("CSRF token registered with server");
   } catch (error) {
-    console.error('Failed to register CSRF token with server:', error);
+    console.error("Failed to register CSRF token with server:", error);
     // If registration fails, reset the token so we'll try again next time
     csrfToken = null;
-    localStorage.removeItem('csrfToken');
+    localStorage.removeItem("csrfToken");
   }
 }
 
@@ -52,8 +52,8 @@ async function registerTokenWithServer(token: string): Promise<void> {
  */
 export async function initCsrfToken(): Promise<void> {
   // Check for an existing token in localStorage
-  const storedToken = localStorage.getItem('csrfToken');
-  
+  const storedToken = localStorage.getItem("csrfToken");
+
   if (storedToken) {
     csrfToken = storedToken;
     // Re-register in case server has restarted
@@ -87,7 +87,7 @@ export function getCsrfToken(): string {
  */
 export function addCsrfHeader(headers: HeadersInit = {}): HeadersInit {
   const headersObj = new Headers(headers);
-  headersObj.set('X-CSRF-Token', getCsrfToken());
+  headersObj.set("X-CSRF-Token", getCsrfToken());
   return headersObj;
 }
 
@@ -96,7 +96,7 @@ export function addCsrfHeader(headers: HeadersInit = {}): HeadersInit {
  */
 export function resetCsrfToken(): void {
   csrfToken = null;
-  localStorage.removeItem('csrfToken');
+  localStorage.removeItem("csrfToken");
   // Generate and register a new token
   getCsrfToken();
 }

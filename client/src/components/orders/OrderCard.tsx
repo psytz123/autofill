@@ -20,7 +20,7 @@ interface OrderCardProps {
 const STATUS_CONFIG = {
   COMPLETED: { className: "bg-success text-white", label: "Completed" },
   IN_PROGRESS: { className: "bg-secondary text-white", label: "In Progress" },
-  CANCELLED: { className: "bg-destructive text-white", label: "Cancelled" }
+  CANCELLED: { className: "bg-destructive text-white", label: "Cancelled" },
 };
 
 // Memoized status badge component to prevent unnecessary re-renders
@@ -30,31 +30,27 @@ const StatusBadge = memo(({ status }: { status: OrderStatus }) => {
 });
 
 // Add display name for debugging
-StatusBadge.displayName = 'StatusBadge';
+StatusBadge.displayName = "StatusBadge";
 
 // Memoized vehicle info component
 const VehicleInfo = memo(({ vehicle }: { vehicle: any }) => {
-  const info = vehicle ? 
-    `${vehicle.make} ${vehicle.model} (${vehicle.year})` : 
-    'No vehicle information';
-  
-  return (
-    <span className="font-medium text-neutral-700 mr-2">
-      {info}
-    </span>
-  );
+  const info = vehicle
+    ? `${vehicle.make} ${vehicle.model} (${vehicle.year})`
+    : "No vehicle information";
+
+  return <span className="font-medium text-neutral-700 mr-2">{info}</span>;
 });
 
 // Add display name for debugging
-VehicleInfo.displayName = 'VehicleInfo';
+VehicleInfo.displayName = "VehicleInfo";
 
 // Create a memoized OrderCard component to prevent re-renders when parent components change
-function OrderCard({ 
-  order, 
-  showViewDetails = false, 
-  onViewDetails, 
+function OrderCard({
+  order,
+  showViewDetails = false,
+  onViewDetails,
   actions,
-  className = "" 
+  className = "",
 }: OrderCardProps) {
   // Memoize the view details handler
   const handleViewDetails = useCallback(() => {
@@ -62,44 +58,47 @@ function OrderCard({
       onViewDetails(order.id);
     }
   }, [onViewDetails, order.id]);
-  
+
   // Format a date string for display - memoized to prevent recreation
   const formattedDate = useMemo(() => {
-    if (!order.createdAt) return '';
+    if (!order.createdAt) return "";
     return formatDistanceToNow(new Date(order.createdAt), { addSuffix: true });
   }, [order.createdAt]);
-  
+
   return (
     <Card className={`mb-4 ${className}`}>
       <CardContent className="p-4">
         <div className="flex justify-between items-start mb-3">
           <div>
-            <h3 className="font-semibold text-neutral-800">Order #{order.id}</h3>
-            <p className="text-xs text-neutral-500">
-              {formattedDate}
-            </p>
+            <h3 className="font-semibold text-neutral-800">
+              Order #{order.id}
+            </h3>
+            <p className="text-xs text-neutral-500">{formattedDate}</p>
           </div>
           <StatusBadge status={order.status} />
         </div>
-        
+
         <div className="flex items-center text-sm mb-3">
           <VehicleInfo vehicle={order.vehicle} />
-          <span className="text-neutral-500">• {getFuelTypeDisplayName(order.fuelType)}</span>
+          <span className="text-neutral-500">
+            • {getFuelTypeDisplayName(order.fuelType)}
+          </span>
         </div>
-        
+
         <div className="flex justify-between text-sm mb-3">
           <span className="text-neutral-500">{order.amount} gallons</span>
           <span className="font-medium">${order.totalPrice}</span>
         </div>
-        
+
         {/* Custom actions or default view details button */}
         {actions ? (
           <div className="mt-3">{actions}</div>
-        ) : showViewDetails && (
-          onViewDetails ? (
-            <Button 
-              variant="outline" 
-              className="w-full" 
+        ) : (
+          showViewDetails &&
+          (onViewDetails ? (
+            <Button
+              variant="outline"
+              className="w-full"
               onClick={handleViewDetails}
             >
               View Details
@@ -110,7 +109,7 @@ function OrderCard({
                 View Details
               </Button>
             </Link>
-          )
+          ))
         )}
       </CardContent>
     </Card>

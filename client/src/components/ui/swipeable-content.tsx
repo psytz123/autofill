@@ -26,32 +26,32 @@ export function SwipeableContent({
   const [dragX, setDragX] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState(0);
-  
+
   useEffect(() => {
     if (containerRef.current) {
       setContainerWidth(containerRef.current.offsetWidth);
-      
+
       // Update width on resize
       const handleResize = () => {
         if (containerRef.current) {
           setContainerWidth(containerRef.current.offsetWidth);
         }
       };
-      
-      window.addEventListener('resize', handleResize);
-      return () => window.removeEventListener('resize', handleResize);
+
+      window.addEventListener("resize", handleResize);
+      return () => window.removeEventListener("resize", handleResize);
     }
   }, []);
-  
+
   const bind = useDrag(
     ({ down, movement: [mx], cancel, direction: [xDir], velocity: [vx] }) => {
       if (disableSwipe) return;
-      
+
       const swipeThreshold = containerWidth * threshold;
       const isSwipeLeft = mx < 0 && mx < -swipeThreshold;
       const isSwipeRight = mx > 0 && mx > swipeThreshold;
       const isHighVelocity = vx > 1; // High velocity threshold
-      
+
       if (down) {
         setDragX(mx);
       } else {
@@ -77,48 +77,54 @@ export function SwipeableContent({
           setDragX(0);
         }
       }
-      
+
       // If exceeding maximum drag distance, cancel the gesture
       if (Math.abs(mx) > containerWidth * 0.7) {
         cancel();
         setDragX(0);
       }
     },
-    { filterTaps: true, axis: "x" }
+    { filterTaps: true, axis: "x" },
   );
-  
+
   // Calculate opacity of action indicators based on swipe progress
-  const leftOpacity = Math.min(Math.abs(Math.min(dragX, 0)) / (containerWidth * threshold), 1);
-  const rightOpacity = Math.min(Math.max(dragX, 0) / (containerWidth * threshold), 1);
-  
+  const leftOpacity = Math.min(
+    Math.abs(Math.min(dragX, 0)) / (containerWidth * threshold),
+    1,
+  );
+  const rightOpacity = Math.min(
+    Math.max(dragX, 0) / (containerWidth * threshold),
+    1,
+  );
+
   return (
-    <div 
+    <div
       ref={containerRef}
       className={`relative overflow-hidden touch-pan-y ${className}`}
     >
       {leftAction && (
-        <div 
+        <div
           className="absolute top-0 right-0 h-full flex items-center justify-center px-4"
           style={{ opacity: leftOpacity }}
         >
           {leftAction}
         </div>
       )}
-      
+
       {rightAction && (
-        <div 
+        <div
           className="absolute top-0 left-0 h-full flex items-center justify-center px-4"
           style={{ opacity: rightOpacity }}
         >
           {rightAction}
         </div>
       )}
-      
-      <motion.div 
+
+      <motion.div
         {...bind()}
-        style={{ 
+        style={{
           x: dragX,
-          transition: dragX === 0 ? 'transform 0.3s ease-out' : 'none',
+          transition: dragX === 0 ? "transform 0.3s ease-out" : "none",
         }}
         className="w-full"
       >

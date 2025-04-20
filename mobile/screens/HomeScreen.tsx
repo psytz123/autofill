@@ -1,40 +1,34 @@
-import React, { useState, useEffect } from 'react';
-import { 
-  StyleSheet, 
-  Text, 
-  View, 
-  SafeAreaView, 
-  ScrollView, 
+import React, { useState, useEffect } from "react";
+import {
+  StyleSheet,
+  Text,
+  View,
+  SafeAreaView,
+  ScrollView,
   ActivityIndicator,
   RefreshControl,
-  Image,
-  TouchableOpacity
-} from 'react-native';
-import { StackNavigationProp } from '@react-navigation/stack';
-import { RootStackParamList } from '../App';
-import Card from '../components/Card';
-import Button from '../components/Button';
-import { vehicles, orders, fuel } from '../utils/api';
-import { Vehicle, Order, FuelType } from '../utils/types';
+  TouchableOpacity,
+} from "react-native";
+import Card from "../components/Card";
+import Button from "../components/Button";
+import { vehicles, orders, fuel } from "../utils/api";
+import { Vehicle, Order, FuelType } from "../utils/types";
+import { HomeScreenProps } from "../types/navigation";
 
-type HomeScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Home'>;
-
-interface HomeScreenProps {
-  navigation: HomeScreenNavigationProp;
-}
-
-const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
+const HomeScreen: React.FC<Partial<HomeScreenProps>> = ({ navigation }) => {
   const [userVehicles, setUserVehicles] = useState<Vehicle[]>([]);
   const [recentOrders, setRecentOrders] = useState<Order[]>([]);
-  const [fuelPrices, setFuelPrices] = useState<Record<FuelType, number> | null>(null);
+  const [fuelPrices, setFuelPrices] = useState<Record<FuelType, number> | null>(
+    null,
+  );
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  
+
   // Fetch data when component mounts
   useEffect(() => {
     fetchInitialData();
   }, []);
-  
+
   const fetchInitialData = async () => {
     setLoading(true);
     try {
@@ -42,29 +36,29 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
       const [vehiclesData, ordersData, pricesData] = await Promise.all([
         vehicles.getAll(),
         orders.getRecent(),
-        fuel.getPrices('FL')
+        fuel.getPrices("FL"),
       ]);
-      
+
       setUserVehicles(vehiclesData);
       setRecentOrders(ordersData);
       setFuelPrices(pricesData);
     } catch (error) {
-      console.error('Error fetching data:', error);
+      console.error("Error fetching data:", error);
     } finally {
       setLoading(false);
     }
   };
-  
+
   const onRefresh = async () => {
     setRefreshing(true);
     await fetchInitialData();
     setRefreshing(false);
   };
-  
+
   const handleNewOrder = () => {
-    navigation.navigate('Order');
+    navigation?.navigate("Order");
   };
-  
+
   if (loading) {
     return (
       <SafeAreaView style={styles.loadingContainer}>
@@ -73,14 +67,14 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
       </SafeAreaView>
     );
   }
-  
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.appName}>AutoFill</Text>
       </View>
-      
-      <ScrollView 
+
+      <ScrollView
         contentContainerStyle={styles.scrollContent}
         refreshControl={
           <RefreshControl
@@ -97,7 +91,9 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
               <View style={styles.orderCardContent}>
                 <View>
                   <Text style={styles.orderCardTitle}>Order Fuel Now</Text>
-                  <Text style={styles.orderCardSubtitle}>Get fuel delivered to your location</Text>
+                  <Text style={styles.orderCardSubtitle}>
+                    Get fuel delivered to your location
+                  </Text>
                 </View>
                 {fuelPrices && (
                   <View style={styles.priceTag}>
@@ -110,15 +106,15 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
             </Card.Content>
           </Card>
         </View>
-        
+
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Recent Orders</Text>
           {recentOrders.length === 0 ? (
             <View style={styles.emptyStateContainer}>
               <Text style={styles.emptyStateText}>No recent orders found</Text>
-              <Button 
-                title="Place Your First Order" 
-                variant="outline" 
+              <Button
+                title="Place Your First Order"
+                variant="outline"
                 size="small"
                 onPress={handleNewOrder}
                 style={styles.emptyStateButton}
@@ -130,10 +126,12 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
                 <Card.Content>
                   <View style={styles.orderHistoryHeader}>
                     <Text style={styles.orderHistoryId}>Order #{order.id}</Text>
-                    <View style={[
-                      styles.statusPill, 
-                      { backgroundColor: getStatusColor(order.status) }
-                    ]}>
+                    <View
+                      style={[
+                        styles.statusPill,
+                        { backgroundColor: getStatusColor(order.status) },
+                      ]}
+                    >
                       <Text style={styles.statusText}>{order.status}</Text>
                     </View>
                   </View>
@@ -150,15 +148,15 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
             ))
           )}
         </View>
-        
+
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>My Vehicles</Text>
           {userVehicles.length === 0 ? (
             <View style={styles.emptyStateContainer}>
               <Text style={styles.emptyStateText}>No vehicles added yet</Text>
-              <Button 
-                title="Add a Vehicle" 
-                variant="outline" 
+              <Button
+                title="Add a Vehicle"
+                variant="outline"
                 size="small"
                 style={styles.emptyStateButton}
               />
@@ -193,28 +191,28 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
 // Helper functions
 const getStatusColor = (status: string): string => {
   switch (status.toUpperCase()) {
-    case 'COMPLETED':
-      return '#10b981';
-    case 'IN_PROGRESS':
-    case 'EN_ROUTE':
-      return '#3b82f6';
-    case 'PENDING':
-      return '#f59e0b';
-    case 'CANCELLED':
-      return '#ef4444';
+    case "COMPLETED":
+      return "#10b981";
+    case "IN_PROGRESS":
+    case "EN_ROUTE":
+      return "#3b82f6";
+    case "PENDING":
+      return "#f59e0b";
+    case "CANCELLED":
+      return "#ef4444";
     default:
-      return '#6b7280';
+      return "#6b7280";
   }
 };
 
 const formatFuelType = (fuelType: FuelType): string => {
   switch (fuelType) {
     case FuelType.REGULAR_UNLEADED:
-      return 'Regular Unleaded';
+      return "Regular Unleaded";
     case FuelType.PREMIUM_UNLEADED:
-      return 'Premium Unleaded';
+      return "Premium Unleaded";
     case FuelType.DIESEL:
-      return 'Diesel';
+      return "Diesel";
     default:
       return fuelType;
   }
@@ -223,32 +221,32 @@ const formatFuelType = (fuelType: FuelType): string => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f7fa',
+    backgroundColor: "#f5f7fa",
   },
   loadingContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#f5f7fa',
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#f5f7fa",
   },
   loadingText: {
     marginTop: 12,
     fontSize: 16,
-    color: '#64748b',
+    color: "#64748b",
   },
   header: {
-    backgroundColor: '#ffffff',
+    backgroundColor: "#ffffff",
     padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#e2e8f0',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    borderBottomColor: "#e2e8f0",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
   },
   appName: {
     fontSize: 24,
-    fontWeight: 'bold',
-    color: '#f97316',
+    fontWeight: "bold",
+    color: "#f97316",
   },
   scrollContent: {
     padding: 16,
@@ -259,52 +257,52 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 18,
-    fontWeight: '600',
-    color: '#1e293b',
+    fontWeight: "600",
+    color: "#1e293b",
     marginBottom: 12,
   },
   orderCard: {
-    backgroundColor: '#ffffff',
+    backgroundColor: "#ffffff",
   },
   orderCardContent: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
   },
   orderCardTitle: {
     fontSize: 18,
-    fontWeight: '600',
-    color: '#f97316',
+    fontWeight: "600",
+    color: "#f97316",
     marginBottom: 4,
   },
   orderCardSubtitle: {
     fontSize: 14,
-    color: '#64748b',
+    color: "#64748b",
   },
   priceTag: {
-    backgroundColor: '#f8fafc',
+    backgroundColor: "#f8fafc",
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#e2e8f0',
+    borderColor: "#e2e8f0",
   },
   priceTagText: {
-    color: '#0f172a',
-    fontWeight: '600',
+    color: "#0f172a",
+    fontWeight: "600",
     fontSize: 14,
   },
   emptyStateContainer: {
-    backgroundColor: '#ffffff',
+    backgroundColor: "#ffffff",
     borderRadius: 10,
     padding: 24,
-    alignItems: 'center',
+    alignItems: "center",
     borderWidth: 1,
-    borderColor: '#e2e8f0',
-    borderStyle: 'dashed',
+    borderColor: "#e2e8f0",
+    borderStyle: "dashed",
   },
   emptyStateText: {
-    color: '#64748b',
+    color: "#64748b",
     fontSize: 16,
     marginBottom: 12,
   },
@@ -315,15 +313,15 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   orderHistoryHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: 12,
   },
   orderHistoryId: {
     fontSize: 16,
-    fontWeight: '600',
-    color: '#0f172a',
+    fontWeight: "600",
+    color: "#0f172a",
   },
   statusPill: {
     paddingHorizontal: 8,
@@ -331,22 +329,22 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   statusText: {
-    color: '#ffffff',
+    color: "#ffffff",
     fontSize: 12,
-    fontWeight: '600',
-    textTransform: 'uppercase',
+    fontWeight: "600",
+    textTransform: "uppercase",
   },
   orderHistoryDetails: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    justifyContent: "space-between",
   },
   orderHistoryLabel: {
-    color: '#64748b',
+    color: "#64748b",
     fontSize: 14,
   },
   orderHistoryValue: {
-    color: '#0f172a',
-    fontWeight: '600',
+    color: "#0f172a",
+    fontWeight: "600",
     fontSize: 16,
   },
   vehicleCard: {
@@ -354,27 +352,27 @@ const styles = StyleSheet.create({
   },
   vehicleTitle: {
     fontSize: 16,
-    fontWeight: '600',
-    color: '#0f172a',
+    fontWeight: "600",
+    color: "#0f172a",
   },
   vehicleSubtitle: {
     fontSize: 14,
-    color: '#64748b',
+    color: "#64748b",
     marginTop: 4,
   },
   licensePlateContainer: {
-    backgroundColor: '#f1f5f9',
-    alignSelf: 'flex-start',
+    backgroundColor: "#f1f5f9",
+    alignSelf: "flex-start",
     paddingVertical: 4,
     paddingHorizontal: 8,
     borderRadius: 4,
     marginTop: 8,
   },
   licensePlateText: {
-    color: '#334155',
-    fontWeight: '600',
+    color: "#334155",
+    fontWeight: "600",
     fontSize: 12,
-    textTransform: 'uppercase',
+    textTransform: "uppercase",
   },
 });
 

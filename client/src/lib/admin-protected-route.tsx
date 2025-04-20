@@ -3,7 +3,9 @@ import { Loader2 } from "lucide-react";
 import { ComponentType, LazyExoticComponent } from "react";
 import { Redirect, Route } from "wouter";
 
-type ComponentProp = LazyExoticComponent<() => JSX.Element> | (() => JSX.Element);
+type ComponentProp =
+  | LazyExoticComponent<() => JSX.Element>
+  | (() => JSX.Element);
 
 export function AdminProtectedRoute({
   path,
@@ -32,9 +34,5 @@ export function AdminProtectedRoute({
     );
   }
 
-  return (
-    <Route path={path}>
-      {() => <Component />}
-    </Route>
-  );
+  return <Route path={path}>{() => <Component />}</Route>;
 }

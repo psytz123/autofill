@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, RefObject } from 'react';
+import { useState, useEffect, useRef, RefObject } from "react";
 
 interface IntersectionObserverOptions {
   root?: Element | null;
@@ -13,7 +13,7 @@ interface IntersectionObserverOptions {
  */
 export function useIntersectionObserver({
   root = null,
-  rootMargin = '0px',
+  rootMargin = "0px",
   threshold = 0,
   triggerOnce = false,
 }: IntersectionObserverOptions = {}) {
@@ -26,7 +26,7 @@ export function useIntersectionObserver({
   const updateEntry = ([entry]: IntersectionObserverEntry[]): void => {
     setEntry(entry);
     setIsIntersecting(entry.isIntersecting);
-    
+
     // If triggerOnce is true, we stop observing after the first intersection
     if (triggerOnce && entry.isIntersecting && !hasTriggered) {
       setHasTriggered(true);

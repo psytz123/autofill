@@ -1,11 +1,24 @@
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
+import {
+  Form,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormControl,
+  FormMessage,
+} from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -25,7 +38,16 @@ const vehicleSchema = z.object({
 type VehicleFormValues = z.infer<typeof vehicleSchema>;
 
 // Mock data for selects
-const makes = ["Honda", "Toyota", "Ford", "Chevrolet", "BMW", "Mercedes", "Audi", "Tesla"];
+const makes = [
+  "Honda",
+  "Toyota",
+  "Ford",
+  "Chevrolet",
+  "BMW",
+  "Mercedes",
+  "Audi",
+  "Tesla",
+];
 const models = {
   Honda: ["Civic", "Accord", "CR-V", "Pilot", "HR-V"],
   Toyota: ["Camry", "Corolla", "RAV4", "Highlander", "Tacoma"],
@@ -44,10 +66,14 @@ interface AddVehicleFormProps {
   onSuccess: () => void;
 }
 
-export default function AddVehicleForm({ vehicle, onCancel, onSuccess }: AddVehicleFormProps) {
+export default function AddVehicleForm({
+  vehicle,
+  onCancel,
+  onSuccess,
+}: AddVehicleFormProps) {
   const { toast } = useToast();
   const isEditing = !!vehicle;
-  
+
   const form = useForm<VehicleFormValues>({
     resolver: zodResolver(vehicleSchema),
     defaultValues: {
@@ -65,7 +91,7 @@ export default function AddVehicleForm({ vehicle, onCancel, onSuccess }: AddVehi
       return await res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/vehicles'] });
+      queryClient.invalidateQueries({ queryKey: ["/api/vehicles"] });
       toast({
         title: "Vehicle added",
         description: "Your vehicle has been added successfully",
@@ -87,7 +113,7 @@ export default function AddVehicleForm({ vehicle, onCancel, onSuccess }: AddVehi
       return await res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/vehicles'] });
+      queryClient.invalidateQueries({ queryKey: ["/api/vehicles"] });
       toast({
         title: "Vehicle updated",
         description: "Your vehicle has been updated successfully",
@@ -114,8 +140,10 @@ export default function AddVehicleForm({ vehicle, onCancel, onSuccess }: AddVehi
   return (
     <Card className="mb-4">
       <CardContent className="p-4">
-        <h3 className="font-semibold text-lg mb-4">{isEditing ? "Edit Vehicle" : "Add New Vehicle"}</h3>
-        
+        <h3 className="font-semibold text-lg mb-4">
+          {isEditing ? "Edit Vehicle" : "Add New Vehicle"}
+        </h3>
+
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <div className="grid grid-cols-2 gap-3">
@@ -125,15 +153,20 @@ export default function AddVehicleForm({ vehicle, onCancel, onSuccess }: AddVehi
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Make</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <Select
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                    >
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Select Make" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {makes.map(make => (
-                          <SelectItem key={make} value={make}>{make}</SelectItem>
+                        {makes.map((make) => (
+                          <SelectItem key={make} value={make}>
+                            {make}
+                          </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
@@ -141,23 +174,31 @@ export default function AddVehicleForm({ vehicle, onCancel, onSuccess }: AddVehi
                   </FormItem>
                 )}
               />
-              
+
               <FormField
                 control={form.control}
                 name="model"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Model</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <Select
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                    >
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Select Model" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {form.watch("make") && models[form.watch("make") as keyof typeof models]?.map(model => (
-                          <SelectItem key={model} value={model}>{model}</SelectItem>
-                        ))}
+                        {form.watch("make") &&
+                          models[
+                            form.watch("make") as keyof typeof models
+                          ]?.map((model) => (
+                            <SelectItem key={model} value={model}>
+                              {model}
+                            </SelectItem>
+                          ))}
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -165,7 +206,7 @@ export default function AddVehicleForm({ vehicle, onCancel, onSuccess }: AddVehi
                 )}
               />
             </div>
-            
+
             <div className="grid grid-cols-2 gap-3">
               <FormField
                 control={form.control}
@@ -173,15 +214,20 @@ export default function AddVehicleForm({ vehicle, onCancel, onSuccess }: AddVehi
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Year</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <Select
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                    >
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Select Year" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {years.map(year => (
-                          <SelectItem key={year} value={year}>{year}</SelectItem>
+                        {years.map((year) => (
+                          <SelectItem key={year} value={year}>
+                            {year}
+                          </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
@@ -189,22 +235,29 @@ export default function AddVehicleForm({ vehicle, onCancel, onSuccess }: AddVehi
                   </FormItem>
                 )}
               />
-              
+
               <FormField
                 control={form.control}
                 name="fuelType"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Fuel Type</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <Select
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                    >
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Select Fuel Type" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="REGULAR_UNLEADED">Regular Unleaded</SelectItem>
-                        <SelectItem value="PREMIUM_UNLEADED">Premium Unleaded</SelectItem>
+                        <SelectItem value="REGULAR_UNLEADED">
+                          Regular Unleaded
+                        </SelectItem>
+                        <SelectItem value="PREMIUM_UNLEADED">
+                          Premium Unleaded
+                        </SelectItem>
                         <SelectItem value="DIESEL">Diesel</SelectItem>
                       </SelectContent>
                     </Select>
@@ -213,7 +266,7 @@ export default function AddVehicleForm({ vehicle, onCancel, onSuccess }: AddVehi
                 )}
               />
             </div>
-            
+
             <FormField
               control={form.control}
               name="licensePlate"
@@ -227,22 +280,24 @@ export default function AddVehicleForm({ vehicle, onCancel, onSuccess }: AddVehi
                 </FormItem>
               )}
             />
-            
+
             <div className="flex justify-end space-x-2 pt-2">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={onCancel}
-              >
+              <Button type="button" variant="outline" onClick={onCancel}>
                 Cancel
               </Button>
               <Button
                 type="submit"
-                disabled={createVehicleMutation.isPending || updateVehicleMutation.isPending}
+                disabled={
+                  createVehicleMutation.isPending ||
+                  updateVehicleMutation.isPending
+                }
               >
-                {createVehicleMutation.isPending || updateVehicleMutation.isPending
+                {createVehicleMutation.isPending ||
+                updateVehicleMutation.isPending
                   ? "Saving..."
-                  : isEditing ? "Update Vehicle" : "Save Vehicle"}
+                  : isEditing
+                    ? "Update Vehicle"
+                    : "Save Vehicle"}
               </Button>
             </div>
           </form>

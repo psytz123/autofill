@@ -7,7 +7,7 @@
 export enum LocationType {
   HOME = "HOME",
   WORK = "WORK",
-  OTHER = "OTHER"
+  OTHER = "OTHER",
 }
 
 export interface Location {
@@ -41,7 +41,7 @@ export interface Vehicle {
 export enum FuelType {
   REGULAR_UNLEADED = "REGULAR_UNLEADED",
   PREMIUM_UNLEADED = "PREMIUM_UNLEADED",
-  DIESEL = "DIESEL"
+  DIESEL = "DIESEL",
 }
 
 // Payment method types
@@ -76,7 +76,7 @@ export interface Order {
 export enum SubscriptionType {
   BASIC = "BASIC",
   PREMIUM = "PREMIUM",
-  FAMILY = "FAMILY"
+  FAMILY = "FAMILY",
 }
 
 export interface SubscriptionPlan {

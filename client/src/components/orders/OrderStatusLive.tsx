@@ -13,34 +13,34 @@ export default function OrderStatusLive({ order }: OrderStatusLiveProps) {
   const { user } = useAuth();
   const [status, setStatus] = useState<OrderStatus>(order.status);
   const [statusUpdating, setStatusUpdating] = useState(false);
-  
+
   useEffect(() => {
     if (user?.id && order.id) {
       // Set up WebSocket connection for status updates
       orderTrackingService.authenticate(user.id);
-      
-      orderTrackingService.on('statusUpdate', (data) => {
-        console.log('Received order status update:', data);
+
+      orderTrackingService.on("statusUpdate", (data) => {
+        console.log("Received order status update:", data);
         if (data.orderId === order.id) {
           setStatus(data.status as OrderStatus);
           setStatusUpdating(false);
         }
       });
-      
-      orderTrackingService.on('connected', () => {
+
+      orderTrackingService.on("connected", () => {
         // Start tracking order when connected
         orderTrackingService.trackOrder(order.id);
       });
-      
+
       orderTrackingService.connect();
-      
+
       return () => {
-        orderTrackingService.off('statusUpdate');
-        orderTrackingService.off('connected');
+        orderTrackingService.off("statusUpdate");
+        orderTrackingService.off("connected");
       };
     }
   }, [user, order.id]);
-  
+
   // Update status when prop changes
   useEffect(() => {
     if (order.status !== status) {
@@ -48,7 +48,7 @@ export default function OrderStatusLive({ order }: OrderStatusLiveProps) {
       setStatus(order.status);
     }
   }, [order.status]);
-  
+
   const getStatusBadge = (status: OrderStatus) => {
     switch (status) {
       case OrderStatus.COMPLETED:
@@ -61,7 +61,7 @@ export default function OrderStatusLive({ order }: OrderStatusLiveProps) {
         return <Badge>Unknown</Badge>;
     }
   };
-  
+
   return (
     <div className="relative inline-flex items-center">
       {statusUpdating && (

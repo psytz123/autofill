@@ -23,19 +23,19 @@ export default function SavedLocationList({
   const [expanded, setExpanded] = useState(false);
   const [sanitizedLocations, setSanitizedLocations] = useState<Location[]>([]);
   const { toast } = useToast();
-  
+
   // Process and sanitize locations to ensure they match expected type format
   useEffect(() => {
     if (locations && locations.length > 0) {
       try {
         // Make sure all locations have valid coordinates and other required properties
-        const processed = locations.map(location => ({
+        const processed = locations.map((location) => ({
           ...location,
           id: location.id || -1,
           coordinates: location.coordinates || { lat: 0, lng: 0 },
-          type: location.type || LocationType.OTHER
+          type: location.type || LocationType.OTHER,
         }));
-        
+
         setSanitizedLocations(processed);
         console.log("Processed locations for dropdown:", processed);
       } catch (error) {
@@ -43,7 +43,7 @@ export default function SavedLocationList({
         toast({
           title: "Error loading locations",
           description: "There was a problem processing your saved locations.",
-          variant: "destructive"
+          variant: "destructive",
         });
       }
     } else {
@@ -65,7 +65,9 @@ export default function SavedLocationList({
   };
 
   // Find the selected location for display
-  const selectedLocation = sanitizedLocations.find(loc => loc.id === selectedLocationId);
+  const selectedLocation = sanitizedLocations.find(
+    (loc) => loc.id === selectedLocationId,
+  );
 
   if (isLoading) {
     return (
@@ -86,8 +88,8 @@ export default function SavedLocationList({
   return (
     <div className={`w-full ${className}`}>
       {/* Selected Location or Collapsed View */}
-      <Card 
-        className="w-full mb-2 cursor-pointer border-2" 
+      <Card
+        className="w-full mb-2 cursor-pointer border-2"
         onClick={() => setExpanded(!expanded)}
       >
         <CardContent className="p-4">
@@ -97,12 +99,16 @@ export default function SavedLocationList({
                 {getLocationIcon(selectedLocation.type)}
               </div>
               <div className="flex-1">
-                <p className="font-medium text-neutral-800">{selectedLocation.name}</p>
-                <p className="text-sm text-neutral-500 truncate">{selectedLocation.address}</p>
+                <p className="font-medium text-neutral-800">
+                  {selectedLocation.name}
+                </p>
+                <p className="text-sm text-neutral-500 truncate">
+                  {selectedLocation.address}
+                </p>
               </div>
-              <Button 
-                variant="ghost" 
-                size="icon" 
+              <Button
+                variant="ghost"
+                size="icon"
                 className="h-8 w-8 rounded-full"
                 onClick={(e) => {
                   e.stopPropagation();
@@ -119,7 +125,7 @@ export default function SavedLocationList({
                   strokeWidth="2"
                   strokeLinecap="round"
                   strokeLinejoin="round"
-                  className={`h-4 w-4 transition-transform ${expanded ? 'rotate-180' : ''}`}
+                  className={`h-4 w-4 transition-transform ${expanded ? "rotate-180" : ""}`}
                 >
                   <polyline points="6 9 12 15 18 9" />
                 </svg>
@@ -131,11 +137,13 @@ export default function SavedLocationList({
                 <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
                   <MapPin className="h-5 w-5 text-primary" />
                 </div>
-                <span className="text-neutral-500">Select delivery location</span>
+                <span className="text-neutral-500">
+                  Select delivery location
+                </span>
               </div>
-              <Button 
-                variant="ghost" 
-                size="icon" 
+              <Button
+                variant="ghost"
+                size="icon"
                 className="h-8 w-8 rounded-full"
                 onClick={(e) => {
                   e.stopPropagation();
@@ -152,7 +160,7 @@ export default function SavedLocationList({
                   strokeWidth="2"
                   strokeLinecap="round"
                   strokeLinejoin="round"
-                  className={`h-4 w-4 transition-transform ${expanded ? 'rotate-180' : ''}`}
+                  className={`h-4 w-4 transition-transform ${expanded ? "rotate-180" : ""}`}
                 >
                   <polyline points="6 9 12 15 18 9" />
                 </svg>
@@ -169,14 +177,16 @@ export default function SavedLocationList({
             {sanitizedLocations.length === 0 ? (
               <div className="p-4 text-center text-neutral-500">
                 <p>No saved locations found</p>
-                <Button 
-                  variant="link" 
+                <Button
+                  variant="link"
                   className="mt-1 text-primary"
                   onClick={(e) => {
                     e.stopPropagation();
-                    if (typeof window !== 'undefined') {
+                    if (typeof window !== "undefined") {
                       // Dispatch an event to trigger "Add New Location" dialog
-                      window.dispatchEvent(new CustomEvent('add-location-requested'));
+                      window.dispatchEvent(
+                        new CustomEvent("add-location-requested"),
+                      );
                     }
                   }}
                 >
@@ -186,9 +196,9 @@ export default function SavedLocationList({
             ) : (
               sanitizedLocations.map((location) => (
                 <div
-                  key={location.id} 
+                  key={location.id}
                   className={`flex items-center p-3 hover:bg-neutral-100 cursor-pointer ${
-                    selectedLocationId === location.id ? 'bg-primary/5' : ''
+                    selectedLocationId === location.id ? "bg-primary/5" : ""
                   }`}
                   onClick={() => {
                     console.log("Location selected from dropdown:", location);
@@ -197,7 +207,7 @@ export default function SavedLocationList({
                       ...location,
                       id: location.id || -1,
                       coordinates: location.coordinates || { lat: 0, lng: 0 },
-                      type: location.type
+                      type: location.type,
                     };
                     onLocationSelect(safeLocation);
                     setExpanded(false);
@@ -207,8 +217,12 @@ export default function SavedLocationList({
                     {getLocationIcon(location.type)}
                   </div>
                   <div className="flex-1">
-                    <p className="font-medium text-neutral-800">{location.name}</p>
-                    <p className="text-sm text-neutral-500 truncate">{location.address}</p>
+                    <p className="font-medium text-neutral-800">
+                      {location.name}
+                    </p>
+                    <p className="text-sm text-neutral-500 truncate">
+                      {location.address}
+                    </p>
                   </div>
                   {selectedLocationId === location.id && (
                     <Check className="h-5 w-5 text-primary" />
@@ -216,15 +230,17 @@ export default function SavedLocationList({
                 </div>
               ))
             )}
-            
-            <Button 
-              variant="ghost" 
+
+            <Button
+              variant="ghost"
               className="w-full py-3 flex items-center justify-center text-primary"
               onClick={(e) => {
                 e.stopPropagation();
-                if (typeof window !== 'undefined') {
+                if (typeof window !== "undefined") {
                   // Dispatch an event to trigger "Add New Location" dialog
-                  window.dispatchEvent(new CustomEvent('add-location-requested'));
+                  window.dispatchEvent(
+                    new CustomEvent("add-location-requested"),
+                  );
                 }
               }}
             >

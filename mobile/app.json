@@ -26,9 +26,7 @@
     "web": {
       "favicon": "./assets/favicon.png"
     },
-    "plugins": [
-      "expo-dev-client"
-    ],
+    "plugins": ["expo-dev-client"],
     "extra": {
       "eas": {
         "projectId": "autofill-mobile"

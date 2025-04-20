@@ -18,14 +18,14 @@ interface EnhancedFuelTypeSelectorProps {
   showPrices?: boolean;
 }
 
-export function EnhancedFuelTypeSelector({ 
-  selectedType, 
+export function EnhancedFuelTypeSelector({
+  selectedType,
   onChange,
   showPrices = true,
 }: EnhancedFuelTypeSelectorProps) {
   const { fuelOptions } = useFuelOptions();
   const [hoveredType, setHoveredType] = useState<FuelType | null>(null);
-  
+
   // Get the fuel icon based on type
   const getFuelIcon = (type: FuelType) => {
     switch (type) {
@@ -37,7 +37,7 @@ export function EnhancedFuelTypeSelector({
         return <Truck className="h-8 w-8" />;
     }
   };
-  
+
   // Get the background color for the fuel type
   const getFuelColor = (type: FuelType, isSelected: boolean) => {
     switch (type) {
@@ -49,9 +49,13 @@ export function EnhancedFuelTypeSelector({
         return isSelected ? "bg-yellow-100" : "bg-yellow-50";
     }
   };
-  
+
   // Get the border color for the fuel type
-  const getBorderColor = (type: FuelType, isSelected: boolean, isHovered: boolean) => {
+  const getBorderColor = (
+    type: FuelType,
+    isSelected: boolean,
+    isHovered: boolean,
+  ) => {
     if (isSelected) {
       switch (type) {
         case FuelType.REGULAR_UNLEADED:
@@ -76,7 +80,7 @@ export function EnhancedFuelTypeSelector({
         {fuelOptions.map((option) => {
           const isSelected = selectedType === option.value;
           const isHovered = hoveredType === option.value;
-          
+
           return (
             <motion.div
               key={option.value}
@@ -100,32 +104,40 @@ export function EnhancedFuelTypeSelector({
                 onMouseLeave={() => setHoveredType(null)}
               >
                 <div className="relative">
-                  <div className={`rounded-full p-3 ${getFuelColor(option.value, true)}`}>
+                  <div
+                    className={`rounded-full p-3 ${getFuelColor(option.value, true)}`}
+                  >
                     {getFuelIcon(option.value)}
                   </div>
                   {isSelected && (
-                    <motion.div 
+                    <motion.div
                       className="absolute -right-1 -top-1 bg-green-500 rounded-full p-1"
                       initial={{ scale: 0 }}
                       animate={{ scale: 1 }}
-                      transition={{ type: "spring", stiffness: 500, damping: 15 }}
+                      transition={{
+                        type: "spring",
+                        stiffness: 500,
+                        damping: 15,
+                      }}
                     >
                       <Check className="h-3 w-3 text-white" />
                     </motion.div>
                   )}
                 </div>
-                
+
                 <div className="font-semibold mt-3">{option.label}</div>
-                <div className="text-sm text-muted-foreground text-center mt-1">{option.description}</div>
-                
+                <div className="text-sm text-muted-foreground text-center mt-1">
+                  {option.description}
+                </div>
+
                 {showPrices && (
                   <div className="mt-3 font-medium text-lg">
                     {formatPrice(option.pricePerGallon)}/gal
                   </div>
                 )}
-                
+
                 {isSelected && (
-                  <motion.div 
+                  <motion.div
                     className="w-full h-1 bg-primary absolute bottom-0 left-0 right-0"
                     initial={{ scaleX: 0 }}
                     animate={{ scaleX: 1 }}

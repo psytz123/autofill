@@ -3,8 +3,8 @@
  * Handles all order-related API requests
  */
 
-import { Order, InsertOrder, OrderStatus, FuelType } from '@shared/schema';
-import { ApiService, ApiResponse, ApiRequestOptions } from './base-api';
+import { Order, InsertOrder, OrderStatus, FuelType } from "@shared/schema";
+import { ApiService, ApiResponse, ApiRequestOptions } from "./base-api";
 
 /**
  * Order tracking update
@@ -30,12 +30,12 @@ class OrdersApi extends ApiService {
    */
   async getOrders(): Promise<ApiResponse<Order[]>> {
     try {
-      return await this.get('/api/orders');
+      return await this.get("/api/orders");
     } catch (error) {
-      return this.handleError(error, 'Failed to fetch orders');
+      return this.handleError(error, "Failed to fetch orders");
     }
   }
-  
+
   /**
    * Get recent orders for current user
    * @param limit Maximum number of orders to return
@@ -45,10 +45,10 @@ class OrdersApi extends ApiService {
     try {
       return await this.get(`/api/recent-orders?limit=${limit}`);
     } catch (error) {
-      return this.handleError(error, 'Failed to fetch recent orders');
+      return this.handleError(error, "Failed to fetch recent orders");
     }
   }
-  
+
   /**
    * Get a specific order by ID
    * @param orderId Order ID
@@ -58,10 +58,10 @@ class OrdersApi extends ApiService {
     try {
       return await this.get(`/api/orders/${orderId}`);
     } catch (error) {
-      return this.handleError(error, 'Failed to fetch order details');
+      return this.handleError(error, "Failed to fetch order details");
     }
   }
-  
+
   /**
    * Create a new order
    * @param order Order details
@@ -69,26 +69,29 @@ class OrdersApi extends ApiService {
    */
   async createOrder(order: InsertOrder): Promise<ApiResponse<Order>> {
     try {
-      return await this.post('/api/orders', order);
+      return await this.post("/api/orders", order);
     } catch (error) {
-      return this.handleError(error, 'Failed to create order');
+      return this.handleError(error, "Failed to create order");
     }
   }
-  
+
   /**
    * Cancel an order
    * @param orderId Order ID
    * @param reason Optional cancellation reason
    * @returns Updated order with cancelled status
    */
-  async cancelOrder(orderId: number, reason?: string): Promise<ApiResponse<Order>> {
+  async cancelOrder(
+    orderId: number,
+    reason?: string,
+  ): Promise<ApiResponse<Order>> {
     try {
       return await this.post(`/api/orders/${orderId}/cancel`, { reason });
     } catch (error) {
-      return this.handleError(error, 'Failed to cancel order');
+      return this.handleError(error, "Failed to cancel order");
     }
   }
-  
+
   /**
    * Rate an order and provide feedback
    * @param orderId Order ID
@@ -96,42 +99,54 @@ class OrdersApi extends ApiService {
    * @param feedback Optional feedback message
    * @returns Success response
    */
-  async rateOrder(orderId: number, rating: number, feedback?: string): Promise<ApiResponse<{ success: boolean }>> {
+  async rateOrder(
+    orderId: number,
+    rating: number,
+    feedback?: string,
+  ): Promise<ApiResponse<{ success: boolean }>> {
     try {
-      return await this.post(`/api/orders/${orderId}/rate`, { rating, feedback });
+      return await this.post(`/api/orders/${orderId}/rate`, {
+        rating,
+        feedback,
+      });
     } catch (error) {
-      return this.handleError(error, 'Failed to submit rating');
+      return this.handleError(error, "Failed to submit rating");
     }
   }
-  
+
   /**
    * Get current fuel prices by location
    * @param lat Latitude of location
    * @param lng Longitude of location
    * @returns Fuel price information for all types
    */
-  async getFuelPrices(lat?: number, lng?: number): Promise<ApiResponse<Record<FuelType, number>>> {
+  async getFuelPrices(
+    lat?: number,
+    lng?: number,
+  ): Promise<ApiResponse<Record<FuelType, number>>> {
     try {
-      const query = lat && lng ? `?lat=${lat}&lng=${lng}` : '';
+      const query = lat && lng ? `?lat=${lat}&lng=${lng}` : "";
       return await this.get(`/api/fuel-prices${query}`);
     } catch (error) {
-      return this.handleError(error, 'Failed to fetch fuel prices');
+      return this.handleError(error, "Failed to fetch fuel prices");
     }
   }
-  
+
   /**
    * Get tracking information for an order
    * @param orderId Order ID
    * @returns Order tracking details
    */
-  async getOrderTracking(orderId: number): Promise<ApiResponse<OrderTrackingUpdate>> {
+  async getOrderTracking(
+    orderId: number,
+  ): Promise<ApiResponse<OrderTrackingUpdate>> {
     try {
       return await this.get(`/api/orders/${orderId}/tracking`);
     } catch (error) {
-      return this.handleError(error, 'Failed to fetch tracking information');
+      return this.handleError(error, "Failed to fetch tracking information");
     }
   }
-  
+
   /**
    * Get order history with filtering options
    * @param options Filter and pagination options
@@ -143,24 +158,27 @@ class OrdersApi extends ApiService {
     status?: OrderStatus;
     limit?: number;
     offset?: number;
-  }): Promise<ApiResponse<{
-    orders: Order[];
-    total: number;
-    hasMore: boolean;
-  }>> {
+  }): Promise<
+    ApiResponse<{
+      orders: Order[];
+      total: number;
+      hasMore: boolean;
+    }>
+  > {
     try {
       const queryParams = new URLSearchParams();
-      
-      if (options.startDate) queryParams.append('startDate', options.startDate);
-      if (options.endDate) queryParams.append('endDate', options.endDate);
-      if (options.status) queryParams.append('status', options.status);
-      if (options.limit) queryParams.append('limit', options.limit.toString());
-      if (options.offset) queryParams.append('offset', options.offset.toString());
-      
-      const query = queryParams.toString() ? `?${queryParams.toString()}` : '';
+
+      if (options.startDate) queryParams.append("startDate", options.startDate);
+      if (options.endDate) queryParams.append("endDate", options.endDate);
+      if (options.status) queryParams.append("status", options.status);
+      if (options.limit) queryParams.append("limit", options.limit.toString());
+      if (options.offset)
+        queryParams.append("offset", options.offset.toString());
+
+      const query = queryParams.toString() ? `?${queryParams.toString()}` : "";
       return await this.get(`/api/order-history${query}`);
     } catch (error) {
-      return this.handleError(error, 'Failed to fetch order history');
+      return this.handleError(error, "Failed to fetch order history");
     }
   }
 }

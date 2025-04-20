@@ -8,7 +8,7 @@ import PaymentForm from "./PaymentForm";
 
 // Get publishable key from env (or use placeholder for now)
 const stripePromise = loadStripe(
-  import.meta.env.VITE_STRIPE_PUBLIC_KEY || "pk_test_placeholder"
+  import.meta.env.VITE_STRIPE_PUBLIC_KEY || "pk_test_placeholder",
 );
 
 interface StripePaymentProps {
@@ -17,10 +17,10 @@ interface StripePaymentProps {
   onPaymentSuccess: () => void;
 }
 
-export default function StripePayment({ 
-  amount, 
-  orderId, 
-  onPaymentSuccess 
+export default function StripePayment({
+  amount,
+  orderId,
+  onPaymentSuccess,
 }: StripePaymentProps) {
   const [clientSecret, setClientSecret] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -31,21 +31,29 @@ export default function StripePayment({
     const createPaymentIntent = async () => {
       try {
         setIsLoading(true);
-        const response = await apiRequest("POST", "/api/create-payment-intent", {
-          amount,
-          orderId
-        });
-        
+        const response = await apiRequest(
+          "POST",
+          "/api/create-payment-intent",
+          {
+            amount,
+            orderId,
+          },
+        );
+
         const data = await response.json();
-        
+
         if (response.ok) {
           setClientSecret(data.clientSecret);
         } else {
-          setError(data.message || "Something went wrong with the payment service.");
+          setError(
+            data.message || "Something went wrong with the payment service.",
+          );
         }
       } catch (err) {
         console.error("Error creating payment intent:", err);
-        setError("Failed to connect to payment service. Please try again later.");
+        setError(
+          "Failed to connect to payment service. Please try again later.",
+        );
       } finally {
         setIsLoading(false);
       }
@@ -55,12 +63,12 @@ export default function StripePayment({
   }, [amount, orderId]);
 
   const appearance = {
-    theme: 'stripe',
+    theme: "stripe",
     variables: {
-      colorPrimary: '#0A2540',
-      colorBackground: '#ffffff',
-      colorText: '#1A1A1A'
-    }
+      colorPrimary: "#0A2540",
+      colorBackground: "#ffffff",
+      colorText: "#1A1A1A",
+    },
   };
 
   if (isLoading) {
@@ -101,17 +109,17 @@ export default function StripePayment({
       </CardHeader>
       <CardContent>
         {clientSecret && (
-          <Elements 
-            stripe={stripePromise} 
-            options={{ 
-              clientSecret, 
-              appearance: appearance as any
+          <Elements
+            stripe={stripePromise}
+            options={{
+              clientSecret,
+              appearance: appearance as any,
             }}
           >
-            <PaymentForm 
-              amount={amount} 
-              orderId={orderId} 
-              onPaymentSuccess={onPaymentSuccess} 
+            <PaymentForm
+              amount={amount}
+              orderId={orderId}
+              onPaymentSuccess={onPaymentSuccess}
             />
           </Elements>
         )}

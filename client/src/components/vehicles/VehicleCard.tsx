@@ -3,7 +3,17 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ChevronDown, Edit, Check } from "lucide-react";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Vehicle, FuelType } from "@shared/schema";
 
 interface VehicleCardProps {
@@ -23,34 +33,34 @@ function VehicleCard({
   onDelete,
   isSelected = false,
   showActions = false,
-  actionButtons
+  actionButtons,
 }: VehicleCardProps) {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  
+
   const getFuelTypeLabel = (fuelType: string) => {
     const typeMap: Record<string, string> = {
-      "REGULAR_UNLEADED": "Regular",
-      "PREMIUM_UNLEADED": "Premium",
-      "DIESEL": "Diesel"
+      REGULAR_UNLEADED: "Regular",
+      PREMIUM_UNLEADED: "Premium",
+      DIESEL: "Diesel",
     };
-    return typeMap[fuelType] || fuelType.replace('_', ' ');
+    return typeMap[fuelType] || fuelType.replace("_", " ");
   };
-  
+
   const getFuelTypeBackground = (fuelType: string) => {
     const bgMap: Record<string, string> = {
-      "REGULAR_UNLEADED": "bg-green-100 text-green-700",
-      "PREMIUM_UNLEADED": "bg-amber-100 text-amber-700",
-      "DIESEL": "bg-red-100 text-red-700"
+      REGULAR_UNLEADED: "bg-green-100 text-green-700",
+      PREMIUM_UNLEADED: "bg-amber-100 text-amber-700",
+      DIESEL: "bg-red-100 text-red-700",
     };
     return bgMap[fuelType] || "bg-neutral-100 text-neutral-700";
   };
-  
+
   const getBorderColor = (isSelected: boolean) => {
-    return isSelected ? 'border-autofill-orange' : 'border-gray-200';
+    return isSelected ? "border-autofill-orange" : "border-gray-200";
   };
-  
+
   return (
-    <Card 
+    <Card
       className={`mb-3 overflow-hidden cursor-pointer transition-all ${getBorderColor(isSelected)}`}
       onClick={onSelect}
     >
@@ -58,10 +68,14 @@ function VehicleCard({
         {isSelected && (
           <div className="w-3 bg-autofill-orange absolute top-0 bottom-0 left-0"></div>
         )}
-        <div className={`flex items-center p-3 sm:p-4 ${isSelected ? 'pl-5 sm:pl-6' : ''}`}>
+        <div
+          className={`flex items-center p-3 sm:p-4 ${isSelected ? "pl-5 sm:pl-6" : ""}`}
+        >
           <div className="flex-grow">
             <div className="flex justify-between mb-1 sm:mb-2">
-              <h3 className="font-bold text-base sm:text-xl text-neutral-800">{vehicle.make} {vehicle.model}</h3>
+              <h3 className="font-bold text-base sm:text-xl text-neutral-800">
+                {vehicle.make} {vehicle.model}
+              </h3>
               {onEdit && (
                 <Button
                   variant="ghost"
@@ -76,9 +90,13 @@ function VehicleCard({
                 </Button>
               )}
             </div>
-            <div className="text-xs sm:text-sm text-neutral-600 mb-1">Tag: {vehicle.licensePlate}</div>
+            <div className="text-xs sm:text-sm text-neutral-600 mb-1">
+              Tag: {vehicle.licensePlate}
+            </div>
             <div className="flex flex-wrap items-center gap-2 sm:gap-4 mt-2">
-              <div className={`rounded-md py-0.5 sm:py-1 px-2 sm:px-3 text-xs sm:text-sm font-medium ${getFuelTypeBackground(vehicle.fuelType)}`}>
+              <div
+                className={`rounded-md py-0.5 sm:py-1 px-2 sm:px-3 text-xs sm:text-sm font-medium ${getFuelTypeBackground(vehicle.fuelType)}`}
+              >
                 {getFuelTypeLabel(vehicle.fuelType)}
               </div>
               {showActions && (
@@ -109,10 +127,10 @@ function VehicleCard({
               )}
             </div>
           </div>
-          
+
           {onSelect && (
-            <div 
-              className="ml-3 sm:ml-4" 
+            <div
+              className="ml-3 sm:ml-4"
               onClick={(e) => {
                 e.stopPropagation();
                 if (onSelect) onSelect();
@@ -128,15 +146,18 @@ function VehicleCard({
             </div>
           )}
         </div>
-        
+
         {showActions && actionButtons && (
           <div className="border-t px-4 py-2 bg-neutral-50">
             {actionButtons}
           </div>
         )}
-        
+
         {onDelete && (
-          <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+          <AlertDialog
+            open={showDeleteDialog}
+            onOpenChange={setShowDeleteDialog}
+          >
             <AlertDialogTrigger asChild>
               <Button
                 variant="outline"

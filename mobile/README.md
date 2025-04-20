@@ -26,25 +26,29 @@ This is the iOS mobile application for AutoFill, a fuel delivery service. This a
 ### Installation
 
 1. Navigate to the mobile directory:
+
    ```
    cd mobile
    ```
 
 2. Install dependencies:
+
    ```
    npm install
    ```
 
 3. Start the development server:
+
    ```
    npm start
    ```
 
 4. For iOS:
+
    ```
    npm run ios
    ```
-   
+
    This will open the app in the iOS Simulator if you have Xcode installed.
 
 ## Project Structure

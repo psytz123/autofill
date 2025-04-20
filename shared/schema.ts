@@ -1,4 +1,13 @@
-import { pgTable, text, serial, integer, boolean, jsonb, timestamp, varchar } from "drizzle-orm/pg-core";
+import {
+  pgTable,
+  text,
+  serial,
+  integer,
+  boolean,
+  jsonb,
+  timestamp,
+  varchar,
+} from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 import { relations } from "drizzle-orm";
@@ -7,19 +16,19 @@ import { relations } from "drizzle-orm";
 export enum FuelType {
   REGULAR_UNLEADED = "REGULAR_UNLEADED",
   PREMIUM_UNLEADED = "PREMIUM_UNLEADED",
-  DIESEL = "DIESEL"
+  DIESEL = "DIESEL",
 }
 
 export enum OrderStatus {
   IN_PROGRESS = "IN_PROGRESS",
   COMPLETED = "COMPLETED",
-  CANCELLED = "CANCELLED"
+  CANCELLED = "CANCELLED",
 }
 
 export enum LocationType {
   HOME = "home",
   WORK = "work",
-  OTHER = "other"
+  OTHER = "other",
 }
 
 // Users
@@ -59,11 +68,14 @@ export const vehicles = pgTable("vehicles", {
 });
 
 export const insertVehicleSchema = createInsertSchema(vehicles).extend({
-  fuelType: z.nativeEnum(FuelType)
+  fuelType: z.nativeEnum(FuelType),
 });
 
 export type InsertVehicle = z.infer<typeof insertVehicleSchema>;
-export type Vehicle = typeof vehicles.$inferSelect & { fuelType: FuelType, fuelLevel?: number };
+export type Vehicle = typeof vehicles.$inferSelect & {
+  fuelType: FuelType;
+  fuelLevel?: number;
+};
 
 // Orders
 export const orders = pgTable("orders", {
@@ -80,37 +92,40 @@ export const orders = pgTable("orders", {
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
-export const insertOrderSchema = createInsertSchema(orders).extend({
-  fuelType: z.nativeEnum(FuelType),
-  status: z.nativeEnum(OrderStatus),
-  totalPrice: z.number().optional(),
-  vehicle: z.any(), // For the frontend form
-  location: z.any(), // For the frontend form
-  paymentMethod: z.any(), // For the frontend form
-}).omit({ 
-  totalPrice: true,
-  vehicleId: true,
-  locationId: true,
-  paymentMethodId: true
-}).transform((data) => {
-  return {
-    userId: data.userId,
-    vehicleId: data.vehicle.id,
-    locationId: data.location.id,
-    paymentMethodId: data.paymentMethod.id,
-    status: data.status,
-    fuelType: data.fuelType,
-    amount: data.amount,
-  };
-});
+export const insertOrderSchema = createInsertSchema(orders)
+  .extend({
+    fuelType: z.nativeEnum(FuelType),
+    status: z.nativeEnum(OrderStatus),
+    totalPrice: z.number().optional(),
+    vehicle: z.any(), // For the frontend form
+    location: z.any(), // For the frontend form
+    paymentMethod: z.any(), // For the frontend form
+  })
+  .omit({
+    totalPrice: true,
+    vehicleId: true,
+    locationId: true,
+    paymentMethodId: true,
+  })
+  .transform((data) => {
+    return {
+      userId: data.userId,
+      vehicleId: data.vehicle.id,
+      locationId: data.location.id,
+      paymentMethodId: data.paymentMethod.id,
+      status: data.status,
+      fuelType: data.fuelType,
+      amount: data.amount,
+    };
+  });
 
 export type InsertOrder = z.infer<typeof insertOrderSchema>;
-export type Order = typeof orders.$inferSelect & { 
-  fuelType: FuelType,
-  status: OrderStatus,
-  vehicle?: Vehicle,
-  location?: Location,
-  paymentMethod?: PaymentMethod
+export type Order = typeof orders.$inferSelect & {
+  fuelType: FuelType;
+  status: OrderStatus;
+  vehicle?: Vehicle;
+  location?: Location;
+  paymentMethod?: PaymentMethod;
 };
 
 // Payment Methods
@@ -144,22 +159,22 @@ export const locations = pgTable("locations", {
 export const insertLocationSchema = createInsertSchema(locations).extend({
   coordinates: z.object({
     lat: z.number(),
-    lng: z.number()
+    lng: z.number(),
   }),
-  type: z.nativeEnum(LocationType)
+  type: z.nativeEnum(LocationType),
 });
 
 export type InsertLocation = z.infer<typeof insertLocationSchema>;
-export type Location = typeof locations.$inferSelect & { 
-  coordinates: { lat: number, lng: number },
-  type: LocationType
+export type Location = typeof locations.$inferSelect & {
+  coordinates: { lat: number; lng: number };
+  type: LocationType;
 };
 
 // Subscription Plans
 export enum SubscriptionPlanType {
-  BASIC = "BASIC",        // Regular one-time orders
-  PREMIUM = "PREMIUM",    // Monthly subscription with discounted delivery
-  UNLIMITED = "UNLIMITED" // Monthly subscription with unlimited deliveries
+  BASIC = "BASIC", // Regular one-time orders
+  PREMIUM = "PREMIUM", // Monthly subscription with discounted delivery
+  UNLIMITED = "UNLIMITED", // Monthly subscription with unlimited deliveries
 }
 
 export const subscriptionPlans = pgTable("subscription_plans", {
@@ -176,21 +191,27 @@ export const subscriptionPlans = pgTable("subscription_plans", {
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
-export const insertSubscriptionPlanSchema = createInsertSchema(subscriptionPlans).extend({
+export const insertSubscriptionPlanSchema = createInsertSchema(
+  subscriptionPlans,
+).extend({
   type: z.nativeEnum(SubscriptionPlanType),
-  features: z.array(z.string())
+  features: z.array(z.string()),
 });
 
-export type InsertSubscriptionPlan = z.infer<typeof insertSubscriptionPlanSchema>;
+export type InsertSubscriptionPlan = z.infer<
+  typeof insertSubscriptionPlanSchema
+>;
 export type SubscriptionPlan = typeof subscriptionPlans.$inferSelect & {
-  type: SubscriptionPlanType,
-  features: string[]
+  type: SubscriptionPlanType;
+  features: string[];
 };
 
 // Push Notification Subscriptions
 export const pushSubscriptions = pgTable("push_subscriptions", {
   id: serial("id").primaryKey(),
-  userId: integer("user_id").notNull().references(() => users.id),
+  userId: integer("user_id")
+    .notNull()
+    .references(() => users.id),
   endpoint: text("endpoint").notNull().unique(),
   p256dh: text("p256dh").notNull(),
   auth: text("auth").notNull(),
@@ -198,9 +219,12 @@ export const pushSubscriptions = pgTable("push_subscriptions", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
-export const insertPushSubscriptionSchema = createInsertSchema(pushSubscriptions);
+export const insertPushSubscriptionSchema =
+  createInsertSchema(pushSubscriptions);
 
-export type InsertPushSubscription = z.infer<typeof insertPushSubscriptionSchema>;
+export type InsertPushSubscription = z.infer<
+  typeof insertPushSubscriptionSchema
+>;
 export type PushSubscription = typeof pushSubscriptions.$inferSelect;
 
 // Set up table relations
@@ -209,52 +233,55 @@ export const usersRelations = relations(users, ({ many }) => ({
   orders: many(orders),
   paymentMethods: many(paymentMethods),
   locations: many(locations),
-  pushSubscriptions: many(pushSubscriptions)
+  pushSubscriptions: many(pushSubscriptions),
 }));
 
 export const vehiclesRelations = relations(vehicles, ({ one }) => ({
   user: one(users, {
     fields: [vehicles.userId],
-    references: [users.id]
-  })
+    references: [users.id],
+  }),
 }));
 
 export const ordersRelations = relations(orders, ({ one }) => ({
   user: one(users, {
     fields: [orders.userId],
-    references: [users.id]
+    references: [users.id],
   }),
   vehicle: one(vehicles, {
     fields: [orders.vehicleId],
-    references: [vehicles.id]
+    references: [vehicles.id],
   }),
   location: one(locations, {
     fields: [orders.locationId],
-    references: [locations.id]
+    references: [locations.id],
   }),
   paymentMethod: one(paymentMethods, {
     fields: [orders.paymentMethodId],
-    references: [paymentMethods.id]
-  })
+    references: [paymentMethods.id],
+  }),
 }));
 
 export const paymentMethodsRelations = relations(paymentMethods, ({ one }) => ({
   user: one(users, {
     fields: [paymentMethods.userId],
-    references: [users.id]
-  })
+    references: [users.id],
+  }),
 }));
 
 export const locationsRelations = relations(locations, ({ one }) => ({
   user: one(users, {
     fields: [locations.userId],
-    references: [users.id]
-  })
+    references: [users.id],
+  }),
 }));
 
-export const pushSubscriptionsRelations = relations(pushSubscriptions, ({ one }) => ({
-  user: one(users, {
-    fields: [pushSubscriptions.userId],
-    references: [users.id]
-  })
-}));
+export const pushSubscriptionsRelations = relations(
+  pushSubscriptions,
+  ({ one }) => ({
+    user: one(users, {
+      fields: [pushSubscriptions.userId],
+      references: [users.id],
+    }),
+  }),
+);

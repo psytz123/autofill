@@ -3,13 +3,13 @@ import { Card } from "@/components/ui/card";
 import { MapPin, Loader2 } from "lucide-react";
 import { Location, LocationType } from "@shared/schema";
 import { GoogleMap, useJsApiLoader, Marker } from "@react-google-maps/api";
-import { 
-  MAP_CONTAINER_STYLE, 
-  DEFAULT_MAP_CONFIG, 
+import {
+  MAP_CONTAINER_STYLE,
+  DEFAULT_MAP_CONFIG,
   createLocationFromCoordinates,
   formatCoordinates,
   reverseGeocode,
-  geocodeAddress
+  geocodeAddress,
 } from "@/lib/mapUtils";
 
 interface MapViewProps {
@@ -19,28 +19,31 @@ interface MapViewProps {
   initialAddress?: string;
 }
 
-export default function MapView({ 
-  selectedLocation, 
+export default function MapView({
+  selectedLocation,
   onLocationSelect,
   className = "",
-  initialAddress
+  initialAddress,
 }: MapViewProps) {
-  const [markerPosition, setMarkerPosition] = useState<google.maps.LatLngLiteral | null>(
-    selectedLocation?.coordinates || null
-  );
+  const [markerPosition, setMarkerPosition] =
+    useState<google.maps.LatLngLiteral | null>(
+      selectedLocation?.coordinates || null,
+    );
   const [map, setMap] = useState<google.maps.Map | null>(null);
   const [geocoder, setGeocoder] = useState<google.maps.Geocoder | null>(null);
-  const [address, setAddress] = useState<string>(selectedLocation?.address || "");
+  const [address, setAddress] = useState<string>(
+    selectedLocation?.address || "",
+  );
   const [isGettingLocation, setIsGettingLocation] = useState(false);
   const [mapError, setMapError] = useState<string | null>(null);
 
   // Load Google Maps API
   const { isLoaded, loadError } = useJsApiLoader({
-    id: 'google-map-script',
+    id: "google-map-script",
     googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY || "",
-    libraries: ['places', 'geometry'],
+    libraries: ["places", "geometry"],
   });
-  
+
   // Handle load errors
   useEffect(() => {
     if (loadError) {
@@ -69,28 +72,28 @@ export default function MapView({
         async (position) => {
           const currentLocation = {
             lat: position.coords.latitude,
-            lng: position.coords.longitude
+            lng: position.coords.longitude,
           };
           setMarkerPosition(currentLocation);
-          
+
           // Center map on current location
           if (map) {
             map.panTo(currentLocation);
           }
-          
+
           // Reverse geocode to get address
           if (geocoder) {
             const result = await reverseGeocode(geocoder, currentLocation);
             if (result) {
               const newAddress = result.formatted_address;
               setAddress(newAddress);
-              
+
               // Create a location object and notify parent
               const newLocation = createLocationFromCoordinates(
-                currentLocation, 
-                newAddress, 
-                "Current Location", 
-                LocationType.OTHER
+                currentLocation,
+                newAddress,
+                "Current Location",
+                LocationType.OTHER,
               );
               onLocationSelect(newLocation);
             }
@@ -100,7 +103,7 @@ export default function MapView({
         (error) => {
           console.error("Error getting current location:", error);
           setIsGettingLocation(false);
-        }
+        },
       );
     }
   }, [map, geocoder, onLocationSelect]);
@@ -120,24 +123,24 @@ export default function MapView({
         try {
           const result = await geocodeAddress(geocoder, initialAddress);
           if (result) {
-            const position = { 
-              lat: result.geometry.location.lat(), 
-              lng: result.geometry.location.lng() 
+            const position = {
+              lat: result.geometry.location.lat(),
+              lng: result.geometry.location.lng(),
             };
             setMarkerPosition(position);
             setAddress(initialAddress);
-            
+
             // Center map on geocoded location
             if (map) {
               map.panTo(position);
             }
-            
+
             // Create a location object and notify parent
             const newLocation = createLocationFromCoordinates(
               position,
               initialAddress,
               "Selected Location",
-              LocationType.HOME
+              LocationType.HOME,
             );
             onLocationSelect(newLocation);
           }
@@ -146,45 +149,51 @@ export default function MapView({
         }
       }
     };
-    
+
     handleGeocoding();
   }, [geocoder, initialAddress, address, map, onLocationSelect]);
 
   // Handle map click
-  const onMapClick = useCallback(async (e: google.maps.MapMouseEvent) => {
-    if (e.latLng) {
-      const clickedPos = {
-        lat: e.latLng.lat(),
-        lng: e.latLng.lng()
-      };
-      setMarkerPosition(clickedPos);
-      
-      // Reverse geocode to get address
-      if (geocoder) {
-        const result = await reverseGeocode(geocoder, clickedPos);
-        if (result) {
-          const newAddress = result.formatted_address;
-          setAddress(newAddress);
-          
-          // Create a location object and notify parent
-          const newLocation = createLocationFromCoordinates(
-            clickedPos,
-            newAddress,
-            "Selected Location",
-            LocationType.HOME
-          );
-          onLocationSelect(newLocation);
+  const onMapClick = useCallback(
+    async (e: google.maps.MapMouseEvent) => {
+      if (e.latLng) {
+        const clickedPos = {
+          lat: e.latLng.lat(),
+          lng: e.latLng.lng(),
+        };
+        setMarkerPosition(clickedPos);
+
+        // Reverse geocode to get address
+        if (geocoder) {
+          const result = await reverseGeocode(geocoder, clickedPos);
+          if (result) {
+            const newAddress = result.formatted_address;
+            setAddress(newAddress);
+
+            // Create a location object and notify parent
+            const newLocation = createLocationFromCoordinates(
+              clickedPos,
+              newAddress,
+              "Selected Location",
+              LocationType.HOME,
+            );
+            onLocationSelect(newLocation);
+          }
         }
       }
-    }
-  }, [geocoder, onLocationSelect]);
+    },
+    [geocoder, onLocationSelect],
+  );
 
   // Set up map when loaded
-  const onMapLoad = useCallback((map: google.maps.Map) => {
-    setMap(map);
-    // Try to get user's current location when map loads
-    getCurrentLocation();
-  }, [getCurrentLocation]);
+  const onMapLoad = useCallback(
+    (map: google.maps.Map) => {
+      setMap(map);
+      // Try to get user's current location when map loads
+      getCurrentLocation();
+    },
+    [getCurrentLocation],
+  );
 
   // Clean up map on unmount
   const onUnmount = useCallback(() => {
@@ -199,21 +208,22 @@ export default function MapView({
             <MapPin className="h-8 w-8 mx-auto mb-2" />
             <p>Error loading map</p>
             <p className="text-xs">
-              {!import.meta.env.VITE_GOOGLE_MAPS_API_KEY 
-                ? "Missing Google Maps API key" 
-                : loadError?.toString() || "Please check your internet connection"}
+              {!import.meta.env.VITE_GOOGLE_MAPS_API_KEY
+                ? "Missing Google Maps API key"
+                : loadError?.toString() ||
+                  "Please check your internet connection"}
             </p>
-            
+
             {/* Fallback location selection */}
-            <button 
-              className="mt-4 px-3 py-1 text-xs bg-primary text-white rounded-full hover:bg-primary/90" 
+            <button
+              className="mt-4 px-3 py-1 text-xs bg-primary text-white rounded-full hover:bg-primary/90"
               onClick={() => {
                 // Create a fallback location with default coordinates
                 const defaultLocation = createLocationFromCoordinates(
                   DEFAULT_MAP_CONFIG.center,
                   "Default Location",
                   "Selected Location",
-                  LocationType.OTHER
+                  LocationType.OTHER,
                 );
                 onLocationSelect(defaultLocation);
               }}
@@ -245,20 +255,20 @@ export default function MapView({
             <MapPin className="h-8 w-8 mx-auto mb-2" />
             <p>Error with map</p>
             <p className="text-xs">{mapError}</p>
-            
+
             {/* Fallback location selection with existing location */}
-            <button 
-              className="mt-4 px-3 py-1 text-xs bg-primary text-white rounded-full hover:bg-primary/90" 
+            <button
+              className="mt-4 px-3 py-1 text-xs bg-primary text-white rounded-full hover:bg-primary/90"
               onClick={() => {
                 const coords = markerPosition || DEFAULT_MAP_CONFIG.center;
                 const addr = address || "Default Location";
-                
+
                 // Create a location even without a map
                 const defaultLocation = createLocationFromCoordinates(
                   coords,
                   addr,
                   "Selected Location",
-                  LocationType.OTHER
+                  LocationType.OTHER,
                 );
                 onLocationSelect(defaultLocation);
               }}
@@ -270,7 +280,7 @@ export default function MapView({
       </Card>
     );
   }
-  
+
   // Create a try-catch wrapper for the map component
   // This will catch and handle any runtime errors during map rendering
   try {
@@ -294,7 +304,7 @@ export default function MapView({
             )}
           </GoogleMap>
         </div>
-        
+
         {address && (
           <div className="absolute bottom-2 left-2 right-2 bg-white bg-opacity-90 p-2 rounded-md shadow-md">
             <p className="text-sm font-medium truncate">{address}</p>
@@ -307,8 +317,10 @@ export default function MapView({
     );
   } catch (error) {
     console.error("Error rendering Google Map:", error);
-    setMapError("Failed to render map: " + ((error as Error)?.message || "Unknown error"));
-    
+    setMapError(
+      "Failed to render map: " + ((error as Error)?.message || "Unknown error"),
+    );
+
     return (
       <Card className={`relative overflow-hidden ${className}`}>
         <div className="absolute inset-0 flex items-center justify-center bg-neutral-100">

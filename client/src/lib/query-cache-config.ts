@@ -24,7 +24,7 @@ export const QUERY_CATEGORIES = {
     refetchOnReconnect: true,
     retry: 2,
   },
-  
+
   // Order data can change more often
   ORDERS: {
     staleTime: MINUTE,
@@ -34,17 +34,17 @@ export const QUERY_CATEGORIES = {
     refetchOnReconnect: true,
     retry: 2,
   },
-  
+
   // Recent orders (for dashboard) need to be up to date
   RECENT_ORDERS: {
     staleTime: 30 * 1000, // 30 seconds
     gcTime: 5 * MINUTE,
-    refetchOnMount: 'always',
+    refetchOnMount: "always",
     refetchOnWindowFocus: true,
     refetchOnReconnect: true,
     retry: 2,
   },
-  
+
   // Vehicle data changes infrequently
   VEHICLES: {
     staleTime: 10 * MINUTE,
@@ -54,7 +54,7 @@ export const QUERY_CATEGORIES = {
     refetchOnReconnect: true,
     retry: 1,
   },
-  
+
   // Locations change rarely
   LOCATIONS: {
     staleTime: 30 * MINUTE,
@@ -64,7 +64,7 @@ export const QUERY_CATEGORIES = {
     refetchOnReconnect: true,
     retry: 1,
   },
-  
+
   // Fuel prices need to update occasionally
   FUEL_PRICES: {
     staleTime: 15 * MINUTE,
@@ -74,7 +74,7 @@ export const QUERY_CATEGORIES = {
     refetchOnReconnect: true,
     retry: 3,
   },
-  
+
   // Home dashboard data
   DASHBOARD: {
     staleTime: MINUTE,
@@ -84,7 +84,7 @@ export const QUERY_CATEGORIES = {
     refetchOnReconnect: true,
     retry: 2,
   },
-  
+
   // Payment methods change rarely
   PAYMENT_METHODS: {
     staleTime: HOUR,
@@ -94,7 +94,7 @@ export const QUERY_CATEGORIES = {
     refetchOnReconnect: true,
     retry: 1,
   },
-  
+
   // Subscription plans change rarely
   SUBSCRIPTION_PLANS: {
     staleTime: DAY,
@@ -104,17 +104,17 @@ export const QUERY_CATEGORIES = {
     refetchOnReconnect: false,
     retry: 1,
   },
-  
+
   // Admin data needs to be fresh
   ADMIN: {
     staleTime: 30 * 1000, // 30 seconds
     gcTime: 5 * MINUTE,
-    refetchOnMount: 'always',
+    refetchOnMount: "always",
     refetchOnWindowFocus: true,
     refetchOnReconnect: true,
     retry: 2,
   },
-  
+
   // Default settings for other data
   DEFAULT: {
     staleTime: 2 * MINUTE,
@@ -123,36 +123,39 @@ export const QUERY_CATEGORIES = {
     refetchOnWindowFocus: true,
     refetchOnReconnect: true,
     retry: 1,
-  }
+  },
 };
 
 /**
  * Map API endpoints to their appropriate query category for automatic configuration
  */
-export const ENDPOINT_CATEGORY_MAP: Record<string, keyof typeof QUERY_CATEGORIES> = {
-  '/api/user': 'USER',
-  '/api/register': 'USER',
-  '/api/login': 'USER',
-  
-  '/api/orders': 'ORDERS',
-  '/api/recent-orders': 'RECENT_ORDERS',
-  
-  '/api/vehicles': 'VEHICLES',
-  
-  '/api/locations': 'LOCATIONS',
-  '/api/service-coverage': 'LOCATIONS',
-  
-  '/api/fuel-prices': 'FUEL_PRICES',
-  
-  '/api/payment-methods': 'PAYMENT_METHODS',
-  '/api/subscription-plans': 'SUBSCRIPTION_PLANS',
-  '/api/subscription': 'SUBSCRIPTION_PLANS',
-  
+export const ENDPOINT_CATEGORY_MAP: Record<
+  string,
+  keyof typeof QUERY_CATEGORIES
+> = {
+  "/api/user": "USER",
+  "/api/register": "USER",
+  "/api/login": "USER",
+
+  "/api/orders": "ORDERS",
+  "/api/recent-orders": "RECENT_ORDERS",
+
+  "/api/vehicles": "VEHICLES",
+
+  "/api/locations": "LOCATIONS",
+  "/api/service-coverage": "LOCATIONS",
+
+  "/api/fuel-prices": "FUEL_PRICES",
+
+  "/api/payment-methods": "PAYMENT_METHODS",
+  "/api/subscription-plans": "SUBSCRIPTION_PLANS",
+  "/api/subscription": "SUBSCRIPTION_PLANS",
+
   // Admin endpoints
-  '/api/admin/dashboard': 'ADMIN',
-  '/api/admin/orders': 'ADMIN',
-  '/api/admin/customers': 'ADMIN',
-  '/api/admin/drivers': 'ADMIN',
+  "/api/admin/dashboard": "ADMIN",
+  "/api/admin/orders": "ADMIN",
+  "/api/admin/customers": "ADMIN",
+  "/api/admin/drivers": "ADMIN",
 };
 
 /**
@@ -167,18 +170,18 @@ export function getQueryOptionsForEndpoint(endpoint: string) {
     if (endpoint in ENDPOINT_CATEGORY_MAP) {
       return ENDPOINT_CATEGORY_MAP[endpoint];
     }
-    
+
     // Then try prefix match (for parameterized endpoints)
     for (const [key, value] of Object.entries(ENDPOINT_CATEGORY_MAP)) {
       if (endpoint.startsWith(key)) {
         return value;
       }
     }
-    
+
     // Default fallback
-    return 'DEFAULT';
+    return "DEFAULT";
   };
-  
+
   const category = getCategory();
   return QUERY_CATEGORIES[category];
 }
@@ -186,23 +189,26 @@ export function getQueryOptionsForEndpoint(endpoint: string) {
 /**
  * Construct a query key with proper structure
  * Makes cache invalidation more reliable by keeping related items together
- * 
+ *
  * @example
  * // Returns ['/api/orders']
  * buildQueryKey('/api/orders')
- * 
+ *
  * @example
  * // Returns ['/api/orders', '123']
  * buildQueryKey('/api/orders', '123')
- * 
+ *
  * @example
  * // Returns ['/api/orders', { status: 'completed' }]
  * buildQueryKey('/api/orders', { status: 'completed' })
  */
-export function buildQueryKey(endpoint: string, params?: string | number | Record<string, any>) {
+export function buildQueryKey(
+  endpoint: string,
+  params?: string | number | Record<string, any>,
+) {
   if (!params) {
     return [endpoint];
   }
-  
+
   return [endpoint, params];
 }

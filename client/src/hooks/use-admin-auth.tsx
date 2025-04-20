@@ -29,11 +29,13 @@ type LoginData = {
   password: string;
 };
 
-export const AdminAuthContext = createContext<AdminAuthContextType | null>(null);
+export const AdminAuthContext = createContext<AdminAuthContextType | null>(
+  null,
+);
 
 export function AdminAuthProvider({ children }: { children: ReactNode }) {
   const { toast } = useToast();
-  
+
   const {
     data: adminUser,
     error,

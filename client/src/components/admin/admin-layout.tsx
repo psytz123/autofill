@@ -2,16 +2,16 @@ import { ReactNode, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useAdminAuth } from "@/hooks/use-admin-auth";
 import { useAdminPreload } from "@/hooks/use-admin-preload";
-import { 
-  LayoutDashboard, 
-  Truck, 
-  Users, 
-  Package, 
+import {
+  LayoutDashboard,
+  Truck,
+  Users,
+  Package,
   LogOut,
   Menu,
   X,
   UserCircle,
-  BarChart3
+  BarChart3,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -27,40 +27,40 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
   const [location, setLocation] = useLocation();
   const { adminUser, logoutMutation } = useAdminAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  
+
   // Use the admin preload hook to preload admin pages
   useAdminPreload();
-  
+
   // Preload components on navigation
   useEffect(() => {
     const preloadComponentBasedOnLocation = () => {
-      switch(location) {
-        case '/admin/dashboard':
-          preloadComponent(() => import('@/pages/admin/admin-orders'));
-          preloadComponent(() => import('@/pages/admin/admin-customers'));
+      switch (location) {
+        case "/admin/dashboard":
+          preloadComponent(() => import("@/pages/admin/admin-orders"));
+          preloadComponent(() => import("@/pages/admin/admin-customers"));
           break;
-        case '/admin/orders':
-          preloadComponent(() => import('@/pages/admin/admin-drivers'));
-          preloadComponent(() => import('@/pages/admin/admin-customers'));
+        case "/admin/orders":
+          preloadComponent(() => import("@/pages/admin/admin-drivers"));
+          preloadComponent(() => import("@/pages/admin/admin-customers"));
           break;
-        case '/admin/drivers':
-          preloadComponent(() => import('@/pages/admin/admin-profile'));
-          preloadComponent(() => import('@/pages/admin/admin-customers'));
+        case "/admin/drivers":
+          preloadComponent(() => import("@/pages/admin/admin-profile"));
+          preloadComponent(() => import("@/pages/admin/admin-customers"));
           break;
-        case '/admin/customers':
-          preloadComponent(() => import('@/pages/admin/admin-analytics'));
+        case "/admin/customers":
+          preloadComponent(() => import("@/pages/admin/admin-analytics"));
           break;
-        case '/admin/analytics':
-          preloadComponent(() => import('@/pages/admin/admin-profile'));
+        case "/admin/analytics":
+          preloadComponent(() => import("@/pages/admin/admin-profile"));
           break;
         default:
-          // No specific preloading needed
+        // No specific preloading needed
       }
     };
-    
+
     preloadComponentBasedOnLocation();
   }, [location]);
-  
+
   const handleLogout = () => {
     logoutMutation.mutate(undefined, {
       onSuccess: () => {
@@ -68,7 +68,7 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
       },
     });
   };
-  
+
   const navItems = [
     {
       label: "Dashboard",
@@ -101,36 +101,36 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
       href: "/admin/profile",
     },
   ];
-  
-  const NavItem = ({ item }: { item: typeof navItems[0] }) => {
+
+  const NavItem = ({ item }: { item: (typeof navItems)[0] }) => {
     const isActive = location === item.href;
-    
+
     // Preload the appropriate component when hovering over a nav item
     const handleMouseEnter = () => {
-      switch(item.href) {
-        case '/admin/dashboard':
-          preloadComponent(() => import('@/pages/admin/admin-dashboard'));
+      switch (item.href) {
+        case "/admin/dashboard":
+          preloadComponent(() => import("@/pages/admin/admin-dashboard"));
           break;
-        case '/admin/orders':
-          preloadComponent(() => import('@/pages/admin/admin-orders'));
+        case "/admin/orders":
+          preloadComponent(() => import("@/pages/admin/admin-orders"));
           break;
-        case '/admin/drivers':
-          preloadComponent(() => import('@/pages/admin/admin-drivers'));
+        case "/admin/drivers":
+          preloadComponent(() => import("@/pages/admin/admin-drivers"));
           break;
-        case '/admin/customers':
-          preloadComponent(() => import('@/pages/admin/admin-customers'));
+        case "/admin/customers":
+          preloadComponent(() => import("@/pages/admin/admin-customers"));
           break;
-        case '/admin/analytics':
-          preloadComponent(() => import('@/pages/admin/admin-analytics'));
+        case "/admin/analytics":
+          preloadComponent(() => import("@/pages/admin/admin-analytics"));
           break;
-        case '/admin/profile':
-          preloadComponent(() => import('@/pages/admin/admin-profile'));
+        case "/admin/profile":
+          preloadComponent(() => import("@/pages/admin/admin-profile"));
           break;
         default:
-          // No specific preloading needed
+        // No specific preloading needed
       }
     };
-    
+
     return (
       <Button
         variant={isActive ? "default" : "ghost"}
@@ -146,21 +146,23 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
       </Button>
     );
   };
-  
+
   return (
     <div className="flex h-screen bg-gray-100">
       {/* Desktop Sidebar */}
       <div className="hidden md:flex flex-col w-64 bg-white border-r">
         <div className="p-4 border-b">
-          <h1 className="text-xl font-bold text-autofill-navy">AutoFill Admin</h1>
+          <h1 className="text-xl font-bold text-autofill-navy">
+            AutoFill Admin
+          </h1>
         </div>
-        
+
         <div className="flex flex-col flex-1 p-4 space-y-2">
           {navItems.map((item) => (
             <NavItem key={item.href} item={item} />
           ))}
         </div>
-        
+
         <div className="p-4 border-t">
           <div className="flex items-center mb-4">
             <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center">
@@ -170,12 +172,14 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
             </div>
             <div className="ml-3">
               <p className="font-medium">{adminUser?.name || "Admin"}</p>
-              <p className="text-sm text-gray-500">{adminUser?.role || "Admin"}</p>
+              <p className="text-sm text-gray-500">
+                {adminUser?.role || "Admin"}
+              </p>
             </div>
           </div>
-          
-          <Button 
-            variant="outline" 
+
+          <Button
+            variant="outline"
             className="w-full justify-start text-red-600"
             onClick={handleLogout}
             disabled={logoutMutation.isPending}
@@ -185,7 +189,7 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
           </Button>
         </div>
       </div>
-      
+
       {/* Mobile Header & Menu */}
       <div className="flex flex-col flex-1">
         <header className="flex items-center justify-between bg-white border-b p-4 md:py-2">
@@ -198,22 +202,24 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
               </SheetTrigger>
               <SheetContent side="left" className="p-0 w-64">
                 <div className="p-4 border-b flex items-center justify-between">
-                  <h1 className="text-xl font-bold text-autofill-navy">AutoFill Admin</h1>
-                  <Button 
-                    variant="ghost" 
+                  <h1 className="text-xl font-bold text-autofill-navy">
+                    AutoFill Admin
+                  </h1>
+                  <Button
+                    variant="ghost"
                     size="icon"
                     onClick={() => setIsMobileMenuOpen(false)}
                   >
                     <X className="h-5 w-5" />
                   </Button>
                 </div>
-                
+
                 <div className="flex flex-col flex-1 p-4 space-y-2">
                   {navItems.map((item) => (
                     <NavItem key={item.href} item={item} />
                   ))}
                 </div>
-                
+
                 <div className="p-4 border-t">
                   <div className="flex items-center mb-4">
                     <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center">
@@ -222,13 +228,17 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
                       </span>
                     </div>
                     <div className="ml-3">
-                      <p className="font-medium">{adminUser?.name || "Admin"}</p>
-                      <p className="text-sm text-gray-500">{adminUser?.role || "Admin"}</p>
+                      <p className="font-medium">
+                        {adminUser?.name || "Admin"}
+                      </p>
+                      <p className="text-sm text-gray-500">
+                        {adminUser?.role || "Admin"}
+                      </p>
                     </div>
                   </div>
-                  
-                  <Button 
-                    variant="outline" 
+
+                  <Button
+                    variant="outline"
                     className="w-full justify-start text-red-600"
                     onClick={handleLogout}
                     disabled={logoutMutation.isPending}
@@ -240,9 +250,9 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
               </SheetContent>
             </Sheet>
           </div>
-          
+
           <h1 className="text-xl font-bold md:ml-6">{title}</h1>
-          
+
           <div className="md:hidden">
             <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center">
               <span className="text-gray-600 font-semibold">
@@ -251,7 +261,7 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
             </div>
           </div>
         </header>
-        
+
         <main className="flex-1 overflow-y-auto p-4 md:p-6">{children}</main>
       </div>
     </div>

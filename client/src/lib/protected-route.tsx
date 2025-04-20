@@ -3,7 +3,9 @@ import { Loader2 } from "lucide-react";
 import { Redirect, Route, useLocation } from "wouter";
 import { ComponentType, LazyExoticComponent, Suspense, useEffect } from "react";
 
-type ComponentProp = LazyExoticComponent<() => JSX.Element> | ComponentType<any>;
+type ComponentProp =
+  | LazyExoticComponent<() => JSX.Element>
+  | ComponentType<any>;
 
 // Loading component for Suspense fallback
 const PageLoader = () => (
@@ -21,13 +23,13 @@ export function ProtectedRoute({
 }) {
   const { user, isLoading, error } = useAuth();
   const [location, navigate] = useLocation();
-  
+
   // Add debugging for authentication state
   useEffect(() => {
-    console.log(`Protected route (${path}) auth state:`, { 
-      user: user ? `User ${user.id} (${user.name})` : 'No user', 
-      isLoading, 
-      error: error?.message 
+    console.log(`Protected route (${path}) auth state:`, {
+      user: user ? `User ${user.id} (${user.name})` : "No user",
+      isLoading,
+      error: error?.message,
     });
   }, [user, isLoading, error, path]);
 

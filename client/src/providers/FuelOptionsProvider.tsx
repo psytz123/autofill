@@ -1,8 +1,17 @@
-
-import { createContext, ReactNode, useContext, useState, useEffect } from "react";
+import {
+  createContext,
+  ReactNode,
+  useContext,
+  useState,
+  useEffect,
+} from "react";
 import { FuelType } from "@shared/schema";
 import { Droplet, Droplets, Truck } from "lucide-react";
-import { DEFAULT_FUEL_PRICES, fetchCurrentFuelPrices, type FuelOption } from "@/lib/fuelUtils";
+import {
+  DEFAULT_FUEL_PRICES,
+  fetchCurrentFuelPrices,
+  type FuelOption,
+} from "@/lib/fuelUtils";
 import { useQuery } from "@tanstack/react-query";
 import { QUERY_CATEGORIES } from "@/lib/query-cache-config";
 
@@ -31,15 +40,15 @@ function createFuelOptions(prices: Record<FuelType, number>): FuelOption[] {
       description: "87 Octane",
       icon: <RegularFuelIcon />,
       color: "bg-blue-100",
-      pricePerGallon: prices[FuelType.REGULAR_UNLEADED]
+      pricePerGallon: prices[FuelType.REGULAR_UNLEADED],
     },
     {
       value: FuelType.PREMIUM_UNLEADED,
       label: "Premium",
-      description: "93 Octane", 
+      description: "93 Octane",
       icon: <PremiumFuelIcon />,
       color: "bg-purple-100",
-      pricePerGallon: prices[FuelType.PREMIUM_UNLEADED]
+      pricePerGallon: prices[FuelType.PREMIUM_UNLEADED],
     },
     {
       value: FuelType.DIESEL,
@@ -47,31 +56,34 @@ function createFuelOptions(prices: Record<FuelType, number>): FuelOption[] {
       description: "Ultra Low Sulfur",
       icon: <DieselFuelIcon />,
       color: "bg-yellow-100",
-      pricePerGallon: prices[FuelType.DIESEL]
-    }
+      pricePerGallon: prices[FuelType.DIESEL],
+    },
   ];
 }
 
 export function FuelOptionsProvider({ children }: { children: ReactNode }) {
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
-  const [fuelOptions, setFuelOptions] = useState<FuelOption[]>(() => 
-    createFuelOptions({ ...DEFAULT_FUEL_PRICES })
+  const [fuelOptions, setFuelOptions] = useState<FuelOption[]>(() =>
+    createFuelOptions({ ...DEFAULT_FUEL_PRICES }),
   );
 
   const { isLoading, refetch } = useQuery({
-    queryKey: ['fuelPrices'],
+    queryKey: ["fuelPrices"],
     queryFn: async () => {
       try {
         const prices = await fetchCurrentFuelPrices();
         setFuelOptions(createFuelOptions(prices));
         setLastUpdated(new Date());
-        
+
         // Save to localStorage with timestamp for faster initial loads on subsequent visits
-        localStorage.setItem('fuelPrices', JSON.stringify({
-          prices,
-          timestamp: Date.now()
-        }));
-        
+        localStorage.setItem(
+          "fuelPrices",
+          JSON.stringify({
+            prices,
+            timestamp: Date.now(),
+          }),
+        );
+
         return prices;
       } catch (error) {
         console.error("Failed to fetch fuel prices:", error);
@@ -98,7 +110,7 @@ export function FuelOptionsProvider({ children }: { children: ReactNode }) {
   };
 
   const getFuelOption = (fuelType: FuelType): FuelOption | undefined => {
-    return fuelOptions.find(option => option.value === fuelType);
+    return fuelOptions.find((option) => option.value === fuelType);
   };
 
   const value = {
@@ -106,7 +118,7 @@ export function FuelOptionsProvider({ children }: { children: ReactNode }) {
     getFuelOption,
     isLoading,
     refreshPrices,
-    lastUpdated
+    lastUpdated,
   };
 
   return (

@@ -1,4 +1,4 @@
-declare module 'web-push' {
+declare module "web-push" {
   export interface PushSubscription {
     endpoint: string;
     keys: {
@@ -33,18 +33,18 @@ declare module 'web-push' {
   }
 
   export function generateVAPIDKeys(): VapidKeys;
-  
+
   export function setGCMAPIKey(apiKey: string): void;
-  
+
   export function setVapidDetails(
     subject: string,
     publicKey: string,
-    privateKey: string
+    privateKey: string,
   ): void;
-  
+
   export function sendNotification(
     subscription: PushSubscription | string,
     payload?: string | Buffer,
-    options?: RequestOptions
+    options?: RequestOptions,
   ): Promise<SendResult>;
 }
