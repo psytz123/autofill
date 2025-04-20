@@ -1,22 +1,45 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { X, Check } from "lucide-react";
+import { X, Check, Info } from "lucide-react";
+import { DEFAULT_TANK_CAPACITY } from "@/lib/fuelUtils";
+import { FuelType } from "@shared/schema";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface FuelLevelSelectorProps {
   vehicleName: string;
+  vehicleFuelType?: FuelType;
+  vehicleTankSize?: number;
   initialLevel?: number;
-  onSave: (level: number) => void;
+  onSave: (level: number, calculatedAmount?: number) => void;
   onClose: () => void;
 }
 
 export default function FuelLevelSelector({
   vehicleName,
+  vehicleFuelType = FuelType.REGULAR_UNLEADED,
+  vehicleTankSize,
   initialLevel = 50,
   onSave,
   onClose,
 }: FuelLevelSelectorProps) {
   const [selectedLevel, setSelectedLevel] = useState<number>(initialLevel);
+  const [calculatedAmount, setCalculatedAmount] = useState<number | undefined>(undefined);
+
+  // Use the vehicle's tank size if available, otherwise use default
+  const tankSize = vehicleTankSize || DEFAULT_TANK_CAPACITY[vehicleFuelType];
+
+  // Calculate the amount of fuel needed when the selected level changes
+  useEffect(() => {
+    if (selectedLevel >= 0) { // Only calculate for valid levels (not "UNKNOWN")
+      // Formula: (1 - currentFillPercentage) * tankSize
+      const currentFillPercentage = selectedLevel / 100;
+      const amountNeeded = Math.round((1 - currentFillPercentage) * tankSize * 10) / 10; // Round to 1 decimal
+      setCalculatedAmount(amountNeeded);
+    } else {
+      setCalculatedAmount(undefined);
+    }
+  }, [selectedLevel, tankSize]);
 
   const fuelLevels = [
     { value: 75, label: "75%", color: "bg-green-400" },
@@ -76,7 +99,23 @@ export default function FuelLevelSelector({
         </Button>
       </CardHeader>
       <CardContent className="p-4 pt-1">
-        <div className="mb-4 text-neutral-700">{vehicleName}</div>
+        <div className="mb-2 text-neutral-700">{vehicleName}</div>
+        
+        {/* Tank Size Information */}
+        <div className="mb-4 text-sm text-neutral-500 flex items-center">
+          <span>Tank Size: {tankSize} gallons</span>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger>
+                <Info className="h-4 w-4 ml-1 text-neutral-400" />
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Tank size is used to calculate the suggested fuel amount</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </div>
+        
         <div className="space-y-3">
           {fuelLevels.map((level) => (
             <div
@@ -98,9 +137,30 @@ export default function FuelLevelSelector({
             </div>
           ))}
         </div>
+        
+        {/* Calculated Amount Information */}
+        {calculatedAmount !== undefined && (
+          <div className="mt-5 p-3 bg-blue-50 rounded-md">
+            <h3 className="font-medium text-blue-700">Suggested Fuel Amount</h3>
+            <div className="flex justify-between items-center mt-1">
+              <span className="text-blue-900">{calculatedAmount} gallons</span>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger>
+                    <Info className="h-4 w-4 text-blue-500" />
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Calculated as: (1 - {selectedLevel/100}) × {tankSize} gallons</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
+          </div>
+        )}
+        
         <Button
           className="w-full mt-6 bg-orange-500 hover:bg-orange-600 text-white font-medium py-6"
-          onClick={() => onSave(selectedLevel)}
+          onClick={() => onSave(selectedLevel, calculatedAmount)}
         >
           SAVE
         </Button>

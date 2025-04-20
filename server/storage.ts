@@ -177,12 +177,52 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getVehiclesByUserId(userId: number): Promise<Vehicle[]> {
-    const results = await db
-      .select()
-      .from(vehicles)
-      .where(eq(vehicles.userId, userId))
-      .orderBy(desc(vehicles.id));
-    return results as Vehicle[];
+    try {
+      // Use a minimal select that doesn't include the tank_size column
+      // in case it hasn't been created yet
+      const results = await db
+        .select({
+          id: vehicles.id,
+          userId: vehicles.userId,
+          make: vehicles.make,
+          model: vehicles.model,
+          year: vehicles.year,
+          licensePlate: vehicles.licensePlate,
+          fuelType: vehicles.fuelType,
+          createdAt: vehicles.createdAt,
+          updatedAt: vehicles.updatedAt,
+          // Only include tankSize if it exists
+          ...(vehicles.tankSize ? { tankSize: vehicles.tankSize } : {})
+        })
+        .from(vehicles)
+        .where(eq(vehicles.userId, userId))
+        .orderBy(desc(vehicles.id));
+      
+      return results as Vehicle[];
+    } catch (error) {
+      console.error("[DB] Error fetching vehicles:", error);
+      // Fallback to a simpler query without tank_size
+      const results = await db
+        .execute(sql`
+          SELECT id, user_id, make, model, year, license_plate, fuel_type, created_at, updated_at
+          FROM vehicles
+          WHERE user_id = ${userId}
+          ORDER BY id DESC
+        `);
+      
+      // Transform the raw results to match Vehicle type
+      return results.rows.map((row: any) => ({
+        id: row.id,
+        userId: row.user_id,
+        make: row.make,
+        model: row.model, 
+        year: row.year,
+        licensePlate: row.license_plate,
+        fuelType: row.fuel_type,
+        createdAt: row.created_at,
+        updatedAt: row.updated_at
+      })) as Vehicle[];
+    }
   }
 
   async createVehicle(insertVehicle: InsertVehicle): Promise<Vehicle> {
