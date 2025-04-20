@@ -14,7 +14,13 @@ import { Loader2 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
 
-export default function OrdersPage() {
+/**
+ * Order History Page
+ * 
+ * This page shows all past and current orders with filtering options
+ * It is different from OrderPage (singular) which is for placing new orders
+ */
+export default function OrderHistoryPage() {
   const queryClient = useQueryClient();
   const [filter, setFilter] = useState<OrderStatus | "ALL">("ALL");
 
@@ -101,6 +107,25 @@ export default function OrdersPage() {
       ),
     },
     {
+      id: "confirmed",
+      label: "Confirmed",
+      content: (
+        <PullToRefresh onRefresh={handleRefresh} className="min-h-[300px]">
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.3 }}
+          >
+            {renderOrdersList(
+              getFilteredOrders(OrderStatus.CONFIRMED),
+              isLoading,
+            )}
+          </motion.div>
+        </PullToRefresh>
+      ),
+    },
+    {
       id: "completed",
       label: "Completed",
       content: (
@@ -144,13 +169,15 @@ export default function OrdersPage() {
   const filterToTabIndex: Record<OrderStatus | "ALL", number> = {
     ALL: 0,
     [OrderStatus.IN_PROGRESS]: 1,
-    [OrderStatus.COMPLETED]: 2,
-    [OrderStatus.CANCELLED]: 3,
+    [OrderStatus.CONFIRMED]: 2,
+    [OrderStatus.COMPLETED]: 3,
+    [OrderStatus.CANCELLED]: 4,
   };
 
   const tabIndexToFilter = [
     "ALL",
     OrderStatus.IN_PROGRESS,
+    OrderStatus.CONFIRMED,
     OrderStatus.COMPLETED,
     OrderStatus.CANCELLED,
   ] as const;
@@ -161,9 +188,9 @@ export default function OrdersPage() {
         <div className="px-4 py-5 flex items-center">
           <Logo size="sm" className="mr-3" />
           <div>
-            <h1 className="text-2xl font-bold autofill-navy">My Orders</h1>
+            <h1 className="text-2xl font-bold autofill-navy">Order History</h1>
             <p className="text-sm text-neutral-500">
-              Track your fuel deliveries
+              View and track your past fuel deliveries
             </p>
           </div>
         </div>

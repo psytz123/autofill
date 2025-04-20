@@ -40,7 +40,7 @@ const HomePage = lazy(() => import("@/pages/home-page"));
 
 // Order feature bundle (loaded when needed)
 const OrderPage = lazy(() => import("@/pages/order-page"));
-const OrdersPage = lazy(() => import("@/pages/orders-page"));
+const OrderHistoryPage = lazy(() => import("@/pages/orders-page"));
 
 // Vehicle management bundle (lower priority)
 const VehiclesPage = lazy(() => import("@/pages/vehicles-page"));
@@ -142,7 +142,7 @@ function CustomerRouter() {
         <SuspenseRoute path="/auth" component={AuthPage} />
         <ProtectedRoute path="/" component={HomePage} />
         <ProtectedRoute path="/order" component={OrderPage} />
-        <ProtectedRoute path="/orders" component={OrdersPage} />
+        <ProtectedRoute path="/orders" component={OrderHistoryPage} />
         <ProtectedRoute path="/vehicles" component={VehiclesPage} />
         <ProtectedRoute path="/account" component={AccountPage} />
         <ProtectedRoute
