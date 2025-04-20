@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
-import { useQuery, UseQueryOptions } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { getQueryFn } from "@/lib/queryClient";
 import AdminLayout from "@/components/admin/admin-layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import {
   BarChart,
@@ -18,11 +19,16 @@ import {
   Cell,
   Legend,
 } from "recharts";
-import { Package, Truck, DollarSign, Users } from "lucide-react";
+import { Package, Truck, DollarSign, Users, ArrowRight } from "lucide-react";
 import { AdminDashboardStats, AdminOrder } from "@/types/admin";
+import OrderLocationMap from "@/components/admin/order-location-map";
+import FuelCalculator from "@/components/admin/fuel-calculator";
+import AdvancedAnalytics from "@/components/admin/advanced-analytics";
+import { useLocation } from "wouter";
 
 export default function AdminDashboardPage() {
   const { toast } = useToast();
+  const [, setLocation] = useLocation();
 
   // Fetch statistics
   const { data: stats, isLoading: isLoadingStats } =
@@ -37,6 +43,15 @@ export default function AdminDashboardPage() {
     isLoading: isLoadingUnassigned,
   } = useQuery<AdminOrder[]>({
     queryKey: ["/admin/api/orders/unassigned"],
+    queryFn: getQueryFn({ on401: "throw" }),
+  });
+
+  // Fetch all orders for mapping
+  const {
+    data: allOrders = [] as AdminOrder[],
+    isLoading: isLoadingAllOrders,
+  } = useQuery<AdminOrder[]>({
+    queryKey: ["/admin/api/orders/all"],
     queryFn: getQueryFn({ on401: "throw" }),
   });
 
@@ -63,6 +78,19 @@ export default function AdminDashboardPage() {
     ],
   });
 
+  // Enhanced orders with location data (for demo purposes)
+  const enhancedOrders = unassignedOrders.map(order => ({
+    ...order,
+    coordinates: order.coordinates || {
+      lat: 40.7128 + (Math.random() * 0.1 - 0.05),
+      lng: -74.0060 + (Math.random() * 0.1 - 0.05)
+    },
+    customerName: order.customerName || `Customer ${order.userId}`,
+    address: order.address || "123 Main St, New York, NY",
+    estimatedDeliveryAmount: order.estimatedDeliveryAmount || Math.round(order.amount * 1.1),
+    priority: order.priority || (Math.random() > 0.8 ? 'HIGH' : Math.random() > 0.6 ? 'MEDIUM' : 'LOW')
+  }));
+
   useEffect(() => {
     if (stats) {
       setDashboardData({
@@ -83,6 +111,7 @@ export default function AdminDashboardPage() {
 
   return (
     <AdminLayout title="Dashboard">
+      {/* Top Stats Cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -143,6 +172,15 @@ export default function AdminDashboardPage() {
         </Card>
       </div>
 
+      {/* Order Map */}
+      <div className="mt-4">
+        <OrderLocationMap 
+          orders={enhancedOrders} 
+          isLoading={isLoadingUnassigned || isLoadingAllOrders} 
+        />
+      </div>
+
+      {/* Charts Row */}
       <div className="grid gap-4 md:grid-cols-2 mt-4">
         <Card className="col-span-1">
           <CardHeader>
@@ -178,36 +216,21 @@ export default function AdminDashboardPage() {
           </CardContent>
         </Card>
 
-        <Card className="col-span-1">
-          <CardHeader>
-            <CardTitle>Deliveries by Day</CardTitle>
-          </CardHeader>
-          <CardContent className="h-[300px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart
-                data={dashboardData.deliveriesByDay}
-                margin={{
-                  top: 5,
-                  right: 30,
-                  left: 20,
-                  bottom: 5,
-                }}
-              >
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="day" />
-                <YAxis />
-                <RechartsTooltip />
-                <Bar dataKey="deliveries" fill="#002B5B" />
-              </BarChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
+        <FuelCalculator />
       </div>
 
+      {/* Recent Orders Section */}
       <div className="mt-4">
         <Card>
-          <CardHeader>
+          <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle>Recent Orders</CardTitle>
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => setLocation("/admin/orders")}
+            >
+              View All <ArrowRight className="ml-1 h-4 w-4" />
+            </Button>
           </CardHeader>
           <CardContent>
             <Tabs defaultValue="unassigned">
@@ -226,24 +249,28 @@ export default function AdminDashboardPage() {
                   </div>
                 ) : (
                   <div className="rounded-md border">
-                    <div className="grid grid-cols-6 gap-4 p-4 font-medium border-b">
+                    <div className="grid grid-cols-7 gap-2 p-4 font-medium border-b">
                       <div>Order ID</div>
                       <div>Customer</div>
                       <div>Location</div>
                       <div>Fuel Type</div>
                       <div>Amount</div>
+                      <div>Est. Amount</div>
                       <div className="text-right">Actions</div>
                     </div>
-                    {unassignedOrders.map((order) => (
+                    {enhancedOrders.map((order) => (
                       <div
                         key={order.id}
-                        className="grid grid-cols-6 gap-4 p-4 border-b last:border-b-0"
+                        className="grid grid-cols-7 gap-2 p-4 border-b last:border-b-0"
                       >
                         <div>#{order.id}</div>
-                        <div>{order.userId}</div>
-                        <div>{order.locationId || "N/A"}</div>
+                        <div>{order.customerName}</div>
+                        <div className="truncate">{order.address || order.locationId || "N/A"}</div>
                         <div>{order.fuelType}</div>
                         <div>{order.amount} gal</div>
+                        <div className="text-green-600">
+                          {order.estimatedDeliveryAmount || order.amount} gal
+                        </div>
                         <div className="text-right">
                           <button className="text-sm text-blue-600 hover:underline">
                             Assign
@@ -262,6 +289,11 @@ export default function AdminDashboardPage() {
             </Tabs>
           </CardContent>
         </Card>
+      </div>
+
+      {/* Advanced Analytics Section */}
+      <div className="mt-4">
+        <AdvancedAnalytics />
       </div>
     </AdminLayout>
   );

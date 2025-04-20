@@ -31,6 +31,21 @@ export interface AdminOrder {
   status: string;
   createdAt: string;
   updatedAt: string;
+  // Enhanced fields for improved dashboard
+  coordinates?: { lat: number; lng: number };
+  address?: string;
+  customerName?: string;
+  vehicleInfo?: {
+    make: string;
+    model: string;
+    year: number;
+    tankSize: number;
+    currentFuelLevel?: number;
+  };
+  estimatedDeliveryAmount?: number;
+  estimatedFuelRequired?: number;
+  estimatedArrivalTime?: string;
+  priority?: 'LOW' | 'MEDIUM' | 'HIGH' | 'EMERGENCY';
 }
 
 // Order assignment types
