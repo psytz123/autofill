@@ -469,7 +469,11 @@ export default function OrderPage() {
             {orderData.location ? (
               <Card 
                 className="mt-4 mb-4 cursor-pointer hover:bg-accent/50 transition-colors"
-                onClick={() => setShowAddLocation(true)}
+                onClick={() => {
+                  setCurrentStep(0); // Set to location step
+                  // This will show the location selection options (map and saved locations list)
+                  setOrderData(prev => ({ ...prev, location: null }));
+                }}
               >
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between">
