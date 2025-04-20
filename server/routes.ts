@@ -177,10 +177,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Create a temporary location for this emergency request
       const locationData = {
         userId: req.user!.id,
-        name: "Emergency Location",
+        name: location.name || "Emergency Location",
         address: location.address,
         coordinates: location.coordinates,
-        type: LocationType.OTHER, // Use the enum value
+        type: location.type || LocationType.OTHER, // Use the enum value
       };
 
       console.log("Creating temporary location:", locationData);

@@ -340,20 +340,24 @@ export class DatabaseStorage implements IStorage {
       
       console.log("Creating order with totalPrice:", totalPrice, "from amount:", insertOrder.amount, "and price:", fuelPrice);
       
-      // Make sure payment method ID is properly set for emergency orders
-      const paymentMethodId = insertOrder.paymentMethodId || null;
-      
+      // Handle payment method correctly (null for emergency orders)
       // Create the order data with proper typing
-      const orderData = {
+      const orderData: any = {
         userId: insertOrder.userId,
         vehicleId: insertOrder.vehicleId,
         locationId: insertOrder.locationId,
-        paymentMethodId: paymentMethodId as any, // Cast to any to bypass TypeScript error
         status: insertOrder.status,
         fuelType: insertOrder.fuelType,
         amount: insertOrder.amount,
         totalPrice
       };
+      
+      // Only include paymentMethodId if it exists
+      if (insertOrder.paymentMethodId) {
+        orderData.paymentMethodId = insertOrder.paymentMethodId;
+      }
+      
+      console.log("Payment method ID in order:", insertOrder.paymentMethodId);
       
       console.log("Final order data for database:", orderData);
       

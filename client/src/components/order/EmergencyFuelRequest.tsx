@@ -220,17 +220,14 @@ export function EmergencyFuelRequest({ className = "" }: EmergencyFuelRequestPro
       const emergencyOrder = {
         location: {
           name: "Emergency Location",
-          address: currentAddress,
+          address: currentAddress || "Current Location",
           type: LocationType.OTHER,
           coordinates: coords,
         },
         vehicleId: selectedVehicleId, // Send just the ID, not the whole vehicle object
         fuelType: FuelType.REGULAR_UNLEADED,
-        amount: 10, // Default amount
-        deliveryDate: new Date().toISOString(), // Convert to ISO string for API
-        deliveryTimeSlot: "ASAP",
-        instructions: "EMERGENCY FUEL REQUEST - Please deliver as soon as possible",
-        isEmergency: true,
+        amount: 10, // Default amount for emergency (in gallons)
+        // Do not include payment method ID for emergency requests
       };
       
       console.log("Submitting emergency order:", emergencyOrder);
