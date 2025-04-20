@@ -55,6 +55,9 @@ const SubscriptionSuccessPage = lazy(
   () => import("@/pages/subscription-success"),
 );
 
+// Rewards feature bundle
+const RewardsPage = lazy(() => import("@/pages/rewards-page"));
+
 // Testing pages (lowest priority)
 const FuelSelectorTest = lazy(() => import("@/pages/fuel-selector-test"));
 const EnhancedFuelSelectorTest = lazy(
