@@ -230,8 +230,10 @@ export default function DriverTrackingMap({ onAssignDriver }: DriverTrackingMapP
     let retryCount = 0;
     const maxRetries = 3;
     const retryDelay = 2000;
+    let mounted = true;
 
     const calculateWithRetry = () => {
+      if (!mounted) return;
       const directionsService = new google.maps.DirectionsService();
 
     try {
@@ -274,11 +276,18 @@ export default function DriverTrackingMap({ onAssignDriver }: DriverTrackingMapP
         variant: "destructive",
       });
     }
-  }, [isLoaded, toast]);
+  }, [isLoaded, toast, map]);
 
   // Handle directions calculation and cleanup
   useEffect(() => {
     let mounted = true;
+    let timeoutId: NodeJS.Timeout;
+
+    const cleanup = () => {
+      mounted = false;
+      if (timeoutId) clearTimeout(timeoutId);
+      setDirections(null);
+    };
 
     if (selectedDriver && selectedOrder) {
       calculateDirections(selectedDriver, selectedOrder);
@@ -286,10 +295,7 @@ export default function DriverTrackingMap({ onAssignDriver }: DriverTrackingMapP
       setDirections(null);
     }
 
-    return () => {
-      mounted = false;
-      setDirections(null);
-    };
+    return cleanup;
   }, [selectedDriver, selectedOrder, calculateDirections]);
 
   // Update map center when driver or order is selected
