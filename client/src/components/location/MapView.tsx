@@ -7,7 +7,7 @@ import {
   useJsApiLoader, 
   Marker
 } from "@react-google-maps/api";
-import { GOOGLE_MAPS_LIBRARIES } from "@/lib/googleMapsConfig";
+import { GOOGLE_MAPS_OPTIONS } from "@/lib/googleMapsConfig";
 import {
   MAP_CONTAINER_STYLE,
   DEFAULT_MAP_CONFIG,
@@ -58,19 +58,11 @@ export default function MapView({
     mapContainerVisible: false
   });
   
-  // Create a properly typed libraries array
-  // The explicit types here prevent "passing libraries as new array" warning
-  const libraries = React.useMemo<("places" | "geometry")[]>(
-    () => [...GOOGLE_MAPS_LIBRARIES], 
-    []
-  );
-
-  // Load Google Maps API with static libraries reference from configuration file
-  // This fixes the warning: "LoadScript has been reloaded unintentionally!"
+  // Use the static configuration object to prevent reloading
+  // This fixes the "LoadScript has been reloaded unintentionally!" warning
   const { isLoaded, loadError } = useJsApiLoader({
     id: "google-map-script",
-    googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY || "",
-    libraries: libraries,
+    ...GOOGLE_MAPS_OPTIONS,
   });
 
   // Update debug info whenever relevant state changes

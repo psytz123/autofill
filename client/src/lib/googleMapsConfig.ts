@@ -5,7 +5,14 @@
 
 // IMPORTANT: This array MUST be defined statically outside the component
 // to prevent "LoadScript has been reloaded unintentionally" warnings
-export const GOOGLE_MAPS_LIBRARIES = ["places", "geometry"] as const;
+// Define this as a mutable array to avoid type issues with spreading
+export const GOOGLE_MAPS_LIBRARIES = ["places", "geometry"];
+
+// Create a constant single object for the libraries to guarantee reference equality
+export const GOOGLE_MAPS_OPTIONS = {
+  libraries: GOOGLE_MAPS_LIBRARIES,
+  googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY || ""
+};
 
 // Default Map Configuration
 export const DEFAULT_MAP_CONFIG = {
