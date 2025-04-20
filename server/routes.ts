@@ -438,13 +438,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const userBefore = await storage.getUser(req.user!.id);
         const pointsBefore = userBefore?.points || 0;
         
-        // Calculate what should happen
-        let pointsMultiplier = 5; // Default for BASIC
-        if (subscriptionType === 'PREMIUM') {
-          pointsMultiplier = 10;
-        } else if (subscriptionType === 'UNLIMITED') {
-          pointsMultiplier = 20;
-        }
+        // Fixed award value of 100 points per gallon as per requirements
+        const pointsMultiplier = 100;
         
         const expectedAward = Math.round(amount * pointsMultiplier);
         
@@ -452,14 +447,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // rather than looking it up from the database
         const testAwardPointsForOrder = async (order: any, overrideSubscriptionType: string) => {
           try {
-            // Use the specified subscription type instead of looking it up
-            let pointsMultiplier = 5; // Default for BASIC
-            
-            if (overrideSubscriptionType === 'PREMIUM') {
-              pointsMultiplier = 10;
-            } else if (overrideSubscriptionType === 'UNLIMITED') {
-              pointsMultiplier = 20;
-            }
+            // Use a standard formula of 100 points per gallon, regardless of subscription level
+            // This matches the client's requirement of 1 gallon = 100 points for awards
+            const pointsMultiplier = 100;
             
             // Calculate points to award (rounded to nearest integer)
             const pointsToAward = Math.round(order.amount * pointsMultiplier);
