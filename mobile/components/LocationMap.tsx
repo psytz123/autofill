@@ -1,21 +1,25 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { 
-  StyleSheet, 
-  View, 
-  Text, 
-  TouchableOpacity, 
+import {
+  StyleSheet,
+  View,
+  Text,
+  TouchableOpacity,
   ActivityIndicator,
-  Dimensions,
   Alert
 } from 'react-native';
 import MapView, { Marker, PROVIDER_GOOGLE, Region } from 'react-native-maps';
 import * as Location from 'expo-location';
-import { Location as LocationType } from '../utils/types';
 
-const { width, height } = Dimensions.get('window');
-const ASPECT_RATIO = width / height;
-const LATITUDE_DELTA = 0.0922;
-const LONGITUDE_DELTA = LATITUDE_DELTA * ASPECT_RATIO;
+type Coordinates = {
+  lat: number;
+  lng: number;
+};
+
+type LocationType = {
+  name: string;
+  address: string;
+  coordinates: Coordinates;
+};
 
 interface LocationMapProps {
   initialLocation?: LocationType;
@@ -32,207 +36,186 @@ const LocationMap: React.FC<LocationMapProps> = ({
   onLocationSelect,
   readOnly = false
 }) => {
-  // Map references for controlling the map programmatically
-  const mapRef = useRef<MapView | null>(null);
-  
-  // State for controlling the map
-  const [region, setRegion] = useState<Region>({
-    latitude: initialLocation?.coordinates?.lat ?? 25.7617,  // Default to Miami if no location
-    longitude: initialLocation?.coordinates?.lng ?? -80.1918,
-    latitudeDelta: LATITUDE_DELTA,
-    longitudeDelta: LONGITUDE_DELTA,
+  const mapRef = useRef<MapView>(null);
+  const [loading, setLoading] = useState(true);
+  const [currentRegion, setCurrentRegion] = useState<Region>({
+    latitude: initialLocation?.coordinates.lat || 25.761681, // Default to Miami, FL
+    longitude: initialLocation?.coordinates.lng || -80.191788,
+    latitudeDelta: 0.0922,
+    longitudeDelta: 0.0421,
   });
-  const [selectedLocation, setSelectedLocation] = useState<{
+  const [markerPosition, setMarkerPosition] = useState<{
     latitude: number;
     longitude: number;
-    address: string;
   } | null>(
-    initialLocation ? {
-      latitude: initialLocation.coordinates.lat,
-      longitude: initialLocation.coordinates.lng,
-      address: initialLocation.address
-    } : null
+    initialLocation
+      ? {
+          latitude: initialLocation.coordinates.lat,
+          longitude: initialLocation.coordinates.lng,
+        }
+      : null
   );
-  const [loading, setLoading] = useState(false);
-  const [userLocationLoading, setUserLocationLoading] = useState(true);
-  
-  // Get user's current location on component mount
+
+  // Get current user location on mount
   useEffect(() => {
-    if (!initialLocation && !readOnly) {
-      getUserLocation();
-    } else {
-      setUserLocationLoading(false);
+    if (initialLocation) {
+      setLoading(false);
+      return;
     }
-  }, [initialLocation, readOnly]);
-  
-  // Function to get user's current location
-  const getUserLocation = async () => {
-    setUserLocationLoading(true);
-    try {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      
-      if (status !== 'granted') {
-        Alert.alert(
-          'Permission Denied',
-          'Please grant location permissions to use this feature'
-        );
-        setUserLocationLoading(false);
-        return;
-      }
-      
-      const currentLocation = await Location.getCurrentPositionAsync({
-        accuracy: Location.Accuracy.High
-      });
-      
-      const newRegion = {
-        latitude: currentLocation.coords.latitude,
-        longitude: currentLocation.coords.longitude,
-        latitudeDelta: LATITUDE_DELTA,
-        longitudeDelta: LONGITUDE_DELTA,
-      };
-      
-      setRegion(newRegion);
-      
-      // Animate map to user's location
-      mapRef.current?.animateToRegion(newRegion, 1000);
-      
-      // Get address from coordinates
-      await reverseGeocode(
-        currentLocation.coords.latitude, 
-        currentLocation.coords.longitude
-      );
-      
-    } catch (error) {
-      console.error('Failed to get location:', error);
-      Alert.alert(
-        'Location Error',
-        'Unable to get your current location. Please check your device settings.'
-      );
-    } finally {
-      setUserLocationLoading(false);
-    }
-  };
-  
-  // Function to reverse geocode coordinates to address
-  const reverseGeocode = async (latitude: number, longitude: number) => {
-    try {
-      setLoading(true);
-      
-      const result = await Location.reverseGeocodeAsync({
-        latitude,
-        longitude,
-      });
-      
-      if (result.length > 0) {
-        const address = result[0];
-        const addressString = [
-          address.name,
-          address.street,
-          address.city,
-          address.region,
-          address.postalCode,
-          address.country
-        ]
-          .filter(Boolean)
-          .join(', ');
+
+    (async () => {
+      try {
+        const { status } = await Location.requestForegroundPermissionsAsync();
         
-        setSelectedLocation({
-          latitude,
-          longitude,
-          address: addressString,
+        if (status !== 'granted') {
+          Alert.alert(
+            'Permission Denied',
+            'We need location permissions to show your current location on the map.',
+            [{ text: 'OK' }]
+          );
+          setLoading(false);
+          return;
+        }
+
+        const location = await Location.getCurrentPositionAsync({
+          accuracy: Location.Accuracy.Balanced,
+        });
+
+        const newRegion = {
+          latitude: location.coords.latitude,
+          longitude: location.coords.longitude,
+          latitudeDelta: 0.01, // Zoom in closer when using current location
+          longitudeDelta: 0.01,
+        };
+
+        setCurrentRegion(newRegion);
+        
+        if (!initialLocation && !markerPosition) {
+          setMarkerPosition({
+            latitude: location.coords.latitude,
+            longitude: location.coords.longitude,
+          });
+        }
+
+        mapRef.current?.animateToRegion(newRegion, 1000);
+      } catch (error) {
+        console.error('Error getting location:', error);
+        Alert.alert(
+          'Location Error',
+          'Could not determine your current location. Please select a location manually.',
+          [{ text: 'OK' }]
+        );
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, [initialLocation]);
+
+  // When a user taps on the map to select a location
+  const handleMapPress = async (e: any) => {
+    if (readOnly) return;
+
+    const { coordinate } = e.nativeEvent;
+    setMarkerPosition(coordinate);
+
+    try {
+      const location = await reverseGeocode(coordinate.latitude, coordinate.longitude);
+      
+      if (onLocationSelect) {
+        onLocationSelect({
+          name: location.name,
+          address: location.address,
+          coordinates: {
+            lat: coordinate.latitude,
+            lng: coordinate.longitude,
+          },
         });
       }
     } catch (error) {
-      console.error('Reverse geocoding error:', error);
-    } finally {
-      setLoading(false);
+      console.error('Error geocoding location:', error);
+      Alert.alert(
+        'Location Error',
+        'Could not determine the address for this location. Please try another spot.',
+        [{ text: 'OK' }]
+      );
     }
   };
-  
-  // Handle map press to select location
-  const handleMapPress = async (event: any) => {
-    if (readOnly) return;
-    
-    const { coordinate } = event.nativeEvent;
-    await reverseGeocode(coordinate.latitude, coordinate.longitude);
+
+  // Get address from coordinates
+  const reverseGeocode = async (latitude: number, longitude: number) => {
+    try {
+      const results = await Location.reverseGeocodeAsync({
+        latitude,
+        longitude,
+      });
+
+      if (results && results.length > 0) {
+        const result = results[0];
+        const addressComponents = [
+          result.name,
+          result.street,
+          result.district,
+          result.city,
+          result.region,
+          result.postalCode,
+        ].filter(Boolean);
+
+        const name = result.name || 'Selected Location';
+        const address = addressComponents.join(', ');
+
+        return { name, address };
+      }
+
+      // Fallback if no results
+      return {
+        name: 'Selected Location',
+        address: `Lat: ${latitude.toFixed(6)}, Lng: ${longitude.toFixed(6)}`,
+      };
+    } catch (error) {
+      console.error('Reverse geocode error:', error);
+      throw error;
+    }
   };
-  
-  // Handle confirmation of selected location
-  const handleConfirmLocation = () => {
-    if (!selectedLocation || !onLocationSelect) return;
-    
-    onLocationSelect({
-      name: 'Selected Location', // User can rename this later
-      address: selectedLocation.address,
-      coordinates: {
-        lat: selectedLocation.latitude,
-        lng: selectedLocation.longitude,
-      },
-    });
-  };
-  
-  // Render loading indicator while getting user location
-  if (userLocationLoading) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#f97316" />
-        <Text style={styles.loadingText}>Getting your location...</Text>
-      </View>
-    );
-  }
-  
+
   return (
     <View style={styles.container}>
-      <MapView
-        ref={mapRef}
-        style={styles.map}
-        provider={PROVIDER_GOOGLE}
-        initialRegion={region}
-        onRegionChangeComplete={setRegion}
-        onPress={handleMapPress}
-        showsUserLocation={!readOnly}
-        showsMyLocationButton={!readOnly}
-      >
-        {selectedLocation && (
-          <Marker
-            coordinate={{
-              latitude: selectedLocation.latitude,
-              longitude: selectedLocation.longitude,
-            }}
-            pinColor="#f97316"
-          />
-        )}
-      </MapView>
-      
-      {selectedLocation && (
-        <View style={styles.addressContainer}>
-          <Text style={styles.addressTitle}>Selected Location:</Text>
-          <Text style={styles.addressText}>{selectedLocation.address}</Text>
-          
-          {!readOnly && onLocationSelect && (
-            <TouchableOpacity
-              style={styles.confirmButton}
-              onPress={handleConfirmLocation}
-              disabled={loading}
-            >
-              {loading ? (
-                <ActivityIndicator size="small" color="#fff" />
-              ) : (
-                <Text style={styles.confirmButtonText}>Confirm Location</Text>
-              )}
-            </TouchableOpacity>
-          )}
+      {loading ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#f97316" />
+          <Text style={styles.loadingText}>Loading map...</Text>
         </View>
-      )}
-      
-      {!readOnly && (
-        <TouchableOpacity 
-          style={styles.currentLocationButton}
-          onPress={getUserLocation}
-          disabled={userLocationLoading}
-        >
-          <Text style={styles.currentLocationText}>📍 Current Location</Text>
-        </TouchableOpacity>
+      ) : (
+        <>
+          <MapView
+            ref={mapRef}
+            style={styles.map}
+            provider={PROVIDER_GOOGLE}
+            initialRegion={currentRegion}
+            onRegionChangeComplete={setCurrentRegion}
+            onPress={handleMapPress}
+            showsUserLocation={!readOnly}
+            showsMyLocationButton={true}
+            showsCompass={true}
+            rotateEnabled={true}
+          >
+            {markerPosition && (
+              <Marker
+                coordinate={markerPosition}
+                pinColor="#f97316"
+                draggable={!readOnly}
+                onDragEnd={(e) => handleMapPress(e)}
+              />
+            )}
+          </MapView>
+
+          {!readOnly && (
+            <View style={styles.instructionContainer}>
+              <Text style={styles.instructionText}>
+                Tap on the map to select a delivery location
+              </Text>
+            </View>
+          )}
+        </>
       )}
     </View>
   );
@@ -242,83 +225,39 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     overflow: 'hidden',
-    borderRadius: 12,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f5f7fa',
-    height: 300,
-    borderRadius: 12,
   },
   loadingText: {
-    marginTop: 12,
+    marginTop: 10,
     fontSize: 16,
     color: '#64748b',
   },
   map: {
-    width: '100%',
-    height: 300,
-    borderRadius: 12,
+    flex: 1,
   },
-  addressContainer: {
-    backgroundColor: '#fff',
-    padding: 16,
-    margin: 12,
-    borderRadius: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
+  instructionContainer: {
     position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-  },
-  addressTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1e293b',
-    marginBottom: 4,
-  },
-  addressText: {
-    fontSize: 14,
-    color: '#64748b',
-    marginBottom: 12,
-  },
-  confirmButton: {
-    backgroundColor: '#f97316',
-    padding: 12,
+    bottom: 16,
+    left: 16,
+    right: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
     borderRadius: 8,
+    padding: 12,
     alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 8,
-  },
-  confirmButtonText: {
-    color: '#fff',
-    fontWeight: '600',
-    fontSize: 16,
-  },
-  currentLocationButton: {
-    position: 'absolute',
-    top: 12,
-    right: 12,
-    backgroundColor: '#fff',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 30,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
-    elevation: 2,
+    elevation: 3,
   },
-  currentLocationText: {
+  instructionText: {
     fontSize: 14,
-    fontWeight: '500',
     color: '#1e293b',
+    textAlign: 'center',
   },
 });
 

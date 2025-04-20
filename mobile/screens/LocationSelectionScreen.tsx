@@ -1,14 +1,17 @@
-import React from 'react';
+import React, { useState } from 'react'; // React import
 import { 
   StyleSheet, 
   View, 
   Text, 
   SafeAreaView, 
-  TouchableOpacity
+  TouchableOpacity,
+  Alert,
+  ActivityIndicator,
+  Modal
 } from 'react-native';
 import { LocationScreenProps } from '../types/navigation';
 import LocationMap from '../components/LocationMap';
-import { Location } from '../utils/types';
+import { Location, LocationType } from '../utils/types';
 import { locations } from '../utils/api';
 
 const LocationSelectionScreen: React.FC<Partial<LocationScreenProps>> = ({ navigation, route }) => {
@@ -16,19 +19,39 @@ const LocationSelectionScreen: React.FC<Partial<LocationScreenProps>> = ({ navig
   const returnTo = route?.params?.returnTo || 'Order';
   const onSaveCallback = route?.params?.onSaveCallback;
   
-  // Handle location selection
-  const handleLocationSelect = async (locationData: {
+  // State for managing selected location and UI states
+  const [selectedLocation, setSelectedLocation] = useState<{
+    name: string;
+    address: string;
+    coordinates: { lat: number; lng: number };
+  } | null>(null);
+  const [isConfirmModalVisible, setIsConfirmModalVisible] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  
+  // Handle initial location selection from map
+  const handleLocationSelect = (locationData: {
     name: string;
     address: string;
     coordinates: { lat: number; lng: number };
   }) => {
+    setSelectedLocation(locationData);
+    setIsConfirmModalVisible(true);
+  };
+  
+  // Handle location confirmation and saving
+  const handleConfirmLocation = async () => {
+    if (!selectedLocation) return;
+    
+    setIsSaving(true);
+    setIsConfirmModalVisible(false);
+    
     try {
       // Save the location to the backend
       const savedLocation = await locations.create({
-        name: locationData.name,
-        address: locationData.address,
-        type: 'OTHER', // Default to OTHER, user can change later
-        coordinates: locationData.coordinates
+        name: selectedLocation.name,
+        address: selectedLocation.address,
+        type: LocationType.OTHER, // Default to OTHER, user can change later
+        coordinates: selectedLocation.coordinates
       });
       
       // If there's a callback, call it with the saved location
@@ -36,12 +59,30 @@ const LocationSelectionScreen: React.FC<Partial<LocationScreenProps>> = ({ navig
         onSaveCallback(savedLocation);
       }
       
-      // Navigate back to the screen that launched this screen
-      navigation?.navigate(returnTo, { selectedLocation: savedLocation });
+      // Show success alert before navigating
+      Alert.alert(
+        "Location Saved",
+        "Your delivery location has been saved successfully.",
+        [
+          { 
+            text: "OK", 
+            onPress: () => navigation?.navigate(returnTo, { selectedLocation: savedLocation }) 
+          }
+        ]
+      );
     } catch (error) {
       console.error('Failed to save location:', error);
-      // Still navigate back, but without a location
-      navigation?.navigate(returnTo);
+      
+      Alert.alert(
+        "Error Saving Location",
+        "There was a problem saving your location. Please try again.",
+        [
+          { 
+            text: "OK", 
+            onPress: () => setIsSaving(false)
+          }
+        ]
+      );
     }
   };
   

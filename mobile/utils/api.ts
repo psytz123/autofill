@@ -1,127 +1,264 @@
+import {
+  FuelType,
+  Location,
+  LocationType,
+  Order,
+  OrderStatus,
+  Vehicle,
+  PaymentMethod,
+  PaymentMethodType,
+  User
+} from './types';
+
+// Base URL for API calls
+const API_BASE_URL = 'https://autofill-app.replit.app/api';
+// For local development, use:
+// const API_BASE_URL = 'http://localhost:5000/api';
+
+// Global fetch options
+const DEFAULT_OPTIONS: RequestInit = {
+  headers: {
+    'Content-Type': 'application/json',
+    'Accept': 'application/json',
+  },
+  credentials: 'include', // Include cookies for session authentication
+};
+
 /**
- * API utility for connecting the mobile app to the backend server
+ * Generic API request function
  */
-
-// Base URL for development - this would change in production
-const API_BASE_URL = "http://localhost:5000/api";
-
-// Types for API requests
-type RequestMethod = "GET" | "POST" | "PUT" | "DELETE";
-
-interface RequestOptions {
-  method: RequestMethod;
-  headers: Record<string, string>;
-  body?: string;
-}
-
-// Generic API request function
-export async function apiRequest<T>(
+async function apiRequest<T>(
   endpoint: string,
-  method: RequestMethod = "GET",
+  method: string = 'GET',
   data?: any,
+  customOptions: RequestInit = {}
 ): Promise<T> {
   const url = `${API_BASE_URL}${endpoint}`;
-
-  const options: RequestOptions = {
+  const options: RequestInit = {
+    ...DEFAULT_OPTIONS,
+    ...customOptions,
     method,
-    headers: {
-      "Content-Type": "application/json",
-      "X-Requested-With": "XMLHttpRequest", // For CSRF protection
-    },
   };
 
-  // Add body for non-GET requests
-  if (method !== "GET" && data) {
+  if (data) {
     options.body = JSON.stringify(data);
   }
 
   try {
-    console.log(`API Request: ${method} ${url}`);
     const response = await fetch(url, options);
 
-    // Handle non-200 responses
+    // If the response is not ok, throw an error
     if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`API error (${response.status}): ${errorText}`);
+      let errorMessage = `API error: ${response.status}`;
+      try {
+        const errorData = await response.json();
+        errorMessage = errorData.message || errorMessage;
+      } catch {
+        // If parsing the error response fails, use the default error message
+      }
+      throw new Error(errorMessage);
     }
 
-    // Parse JSON response
-    const result = await response.json();
-    return result as T;
+    // Check if response has content
+    const contentType = response.headers.get('content-type');
+    if (contentType && contentType.includes('application/json')) {
+      return await response.json();
+    }
+
+    return null as T;
   } catch (error) {
-    console.error("API request failed:", error);
+    console.error(`Error in API request to ${endpoint}:`, error);
     throw error;
   }
 }
 
-// Authentication related functions
+/**
+ * Authentication API calls
+ */
 export const auth = {
-  login: async (username: string, password: string) => {
-    return apiRequest<{ id: number; username: string }>("/login", "POST", {
-      username,
-      password,
-    });
+  login: async (username: string, password: string): Promise<User> => {
+    return apiRequest<User>('/login', 'POST', { username, password });
   },
 
-  logout: async () => {
-    return apiRequest<void>("/logout", "POST");
+  register: async (userData: {
+    username: string;
+    password: string;
+    email: string;
+    firstName?: string;
+    lastName?: string;
+    phone?: string;
+  }): Promise<User> => {
+    return apiRequest<User>('/register', 'POST', userData);
   },
 
-  getCurrentUser: async () => {
-    return apiRequest<{ id: number; username: string } | null>("/user").catch(
-      () => null,
-    ); // Return null if not authenticated
+  logout: async (): Promise<void> => {
+    return apiRequest<void>('/logout', 'POST');
+  },
+
+  getCurrentUser: async (): Promise<User> => {
+    return apiRequest<User>('/user');
+  },
+
+  updateProfile: async (userData: Partial<User>): Promise<User> => {
+    return apiRequest<User>('/user', 'PATCH', userData);
   },
 };
 
-// Vehicles related functions
+/**
+ * Vehicle API calls
+ */
 export const vehicles = {
-  getAll: async () => {
-    return apiRequest<any[]>("/vehicles");
+  getAll: async (): Promise<Vehicle[]> => {
+    return apiRequest<Vehicle[]>('/vehicles');
   },
 
-  getById: async (id: number) => {
-    return apiRequest<any>(`/vehicles/${id}`);
+  get: async (id: number): Promise<Vehicle> => {
+    return apiRequest<Vehicle>(`/vehicles/${id}`);
+  },
+
+  create: async (vehicleData: {
+    make: string;
+    model: string;
+    year: number;
+    licensePlate: string;
+    color?: string;
+    fuelType: FuelType;
+    fuelCapacity?: number;
+  }): Promise<Vehicle> => {
+    return apiRequest<Vehicle>('/vehicles', 'POST', vehicleData);
+  },
+
+  update: async (id: number, vehicleData: Partial<Vehicle>): Promise<Vehicle> => {
+    return apiRequest<Vehicle>(`/vehicles/${id}`, 'PATCH', vehicleData);
+  },
+
+  delete: async (id: number): Promise<void> => {
+    return apiRequest<void>(`/vehicles/${id}`, 'DELETE');
   },
 };
 
-// Locations related functions
+/**
+ * Location API calls
+ */
 export const locations = {
-  getAll: async () => {
-    return apiRequest<any[]>("/locations");
+  getAll: async (): Promise<Location[]> => {
+    return apiRequest<Location[]>('/locations');
   },
 
-  getById: async (id: number) => {
-    return apiRequest<any>(`/locations/${id}`);
+  get: async (id: number): Promise<Location> => {
+    return apiRequest<Location>(`/locations/${id}`);
   },
 
-  create: async (data: any) => {
-    return apiRequest<any>("/locations", "POST", data);
+  create: async (locationData: {
+    name: string;
+    address: string;
+    type: LocationType;
+    coordinates: { lat: number; lng: number };
+  }): Promise<Location> => {
+    return apiRequest<Location>('/locations', 'POST', locationData);
+  },
+
+  update: async (id: number, locationData: Partial<Location>): Promise<Location> => {
+    return apiRequest<Location>(`/locations/${id}`, 'PATCH', locationData);
+  },
+
+  delete: async (id: number): Promise<void> => {
+    return apiRequest<void>(`/locations/${id}`, 'DELETE');
   },
 };
 
-// Fuel prices related functions
-export const fuel = {
-  getPrices: async (state: string = "FL") => {
-    return apiRequest<{
-      REGULAR_UNLEADED: number;
-      PREMIUM_UNLEADED: number;
-      DIESEL: number;
-    }>(`/fuel-prices?state=${state}`);
-  },
-};
-
-// Orders related functions
+/**
+ * Order API calls
+ */
 export const orders = {
-  getAll: async () => {
-    return apiRequest<any[]>("/orders");
+  getAll: async (): Promise<Order[]> => {
+    return apiRequest<Order[]>('/orders');
   },
 
-  getRecent: async () => {
-    return apiRequest<any[]>("/orders/recent");
+  get: async (id: number): Promise<Order> => {
+    return apiRequest<Order>(`/orders/${id}`);
   },
 
-  create: async (orderData: any) => {
-    return apiRequest<any>("/orders", "POST", orderData);
+  getRecent: async (limit: number = 5): Promise<Order[]> => {
+    return apiRequest<Order[]>(`/orders/recent?limit=${limit}`);
+  },
+
+  create: async (orderData: {
+    vehicleId: number;
+    locationId: number;
+    fuelType: FuelType;
+    amount: number;
+    price: number;
+    total: number;
+    scheduledFor?: string;
+  }): Promise<Order> => {
+    return apiRequest<Order>('/orders', 'POST', orderData);
+  },
+
+  updateStatus: async (id: number, status: OrderStatus): Promise<Order> => {
+    return apiRequest<Order>(`/orders/${id}/status`, 'PATCH', { status });
+  },
+
+  cancel: async (id: number): Promise<Order> => {
+    return apiRequest<Order>(`/orders/${id}/cancel`, 'POST');
   },
 };
+
+/**
+ * Payment method API calls
+ */
+export const paymentMethods = {
+  getAll: async (): Promise<PaymentMethod[]> => {
+    return apiRequest<PaymentMethod[]>('/payment-methods');
+  },
+
+  get: async (id: number): Promise<PaymentMethod> => {
+    return apiRequest<PaymentMethod>(`/payment-methods/${id}`);
+  },
+
+  create: async (paymentData: {
+    type: PaymentMethodType;
+    stripePaymentMethodId: string;
+  }): Promise<PaymentMethod> => {
+    return apiRequest<PaymentMethod>('/payment-methods', 'POST', paymentData);
+  },
+
+  setDefault: async (id: number): Promise<PaymentMethod> => {
+    return apiRequest<PaymentMethod>(`/payment-methods/${id}/default`, 'POST');
+  },
+
+  delete: async (id: number): Promise<void> => {
+    return apiRequest<void>(`/payment-methods/${id}`, 'DELETE');
+  },
+};
+
+/**
+ * Fuel price API calls
+ */
+export const fuel = {
+  getPrices: async (stateCode: string): Promise<Record<FuelType, number>> => {
+    return apiRequest<Record<FuelType, number>>(`/fuel/prices?state=${stateCode}`);
+  },
+};
+
+/**
+ * Push notification API calls
+ */
+export const notifications = {
+  subscribe: async (subscription: PushSubscriptionJSON): Promise<void> => {
+    return apiRequest<void>('/push/subscribe', 'POST', { subscription });
+  },
+
+  unsubscribe: async (endpoint: string): Promise<void> => {
+    return apiRequest<void>('/push/unsubscribe', 'POST', { endpoint });
+  },
+};
+
+// Helper type for Push Notification subscription
+interface PushSubscriptionJSON {
+  endpoint: string;
+  keys: {
+    p256dh: string;
+    auth: string;
+  };
+}
