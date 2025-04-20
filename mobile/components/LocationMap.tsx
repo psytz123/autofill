@@ -1,12 +1,16 @@
 import React, { useState, useEffect, useRef } from 'react';
+import type { ViewStyle, TextStyle } from 'react-native';
 import {
   StyleSheet,
-  View,
+  View as RNView,
   Text,
   TouchableOpacity,
   ActivityIndicator,
-  Alert
+  Alert,
 } from 'react-native';
+
+// Alias View to ensure proper typing
+const View = RNView;
 
 import type { ViewStyle, TextStyle } from 'react-native';
 import { MapView as MapViewType, Marker as MarkerType, PROVIDER_GOOGLE, Region } from 'react-native-maps';
