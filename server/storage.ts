@@ -96,7 +96,7 @@ export class DatabaseStorage implements IStorage {
   // Helper method to safely fetch vehicle by ID
   private async safeGetVehicleById(vehicleId: number): Promise<Vehicle | undefined> {
     try {
-      // Try with tank_size column first
+      // Always include tank_size column in the query
       const [vehicle] = await db
         .select({
           id: vehicles.id,
@@ -106,42 +106,50 @@ export class DatabaseStorage implements IStorage {
           year: vehicles.year,
           licensePlate: vehicles.licensePlate,
           fuelType: vehicles.fuelType,
+          tankSize: vehicles.tankSize,
           createdAt: vehicles.createdAt,
           updatedAt: vehicles.updatedAt,
-          // Only include tankSize if it exists
-          ...(vehicles.tankSize ? { tankSize: vehicles.tankSize } : {})
         })
         .from(vehicles)
         .where(eq(vehicles.id, vehicleId));
       
-      return vehicle ? { 
+      if (!vehicle) return undefined;
+      
+      return { 
         ...vehicle, 
         fuelType: vehicle.fuelType as FuelType 
-      } as Vehicle : undefined;
+      } as Vehicle;
     } catch (error) {
       console.error("[DB] Error fetching vehicle:", error);
-      // Fallback to a simpler query without tank_size
-      const results = await db
-        .execute(sql`
-          SELECT id, user_id, make, model, year, license_plate, fuel_type, created_at, updated_at
-          FROM vehicles
-          WHERE id = ${vehicleId}
-        `);
       
-      if (results.rows.length === 0) return undefined;
-      
-      const row = results.rows[0];
-      return {
-        id: row.id,
-        userId: row.user_id,
-        make: row.make,
-        model: row.model, 
-        year: row.year,
-        licensePlate: row.license_plate,
-        fuelType: row.fuel_type as FuelType,
-        createdAt: row.created_at,
-        updatedAt: row.updated_at
-      } as Vehicle;
+      try {
+        // Fallback to a raw SQL query that explicitly includes tank_size
+        const results = await db
+          .execute(sql`
+            SELECT id, user_id, make, model, year, license_plate, fuel_type, tank_size, created_at, updated_at
+            FROM vehicles
+            WHERE id = ${vehicleId}
+          `);
+        
+        if (results.rows.length === 0) return undefined;
+        
+        const row = results.rows[0];
+        return {
+          id: row.id,
+          userId: row.user_id,
+          make: row.make,
+          model: row.model, 
+          year: row.year,
+          licensePlate: row.license_plate,
+          fuelType: row.fuel_type as FuelType,
+          tankSize: row.tank_size,
+          createdAt: row.created_at,
+          updatedAt: row.updated_at
+        } as Vehicle;
+      } catch (secondError) {
+        console.error("[DB] Fallback error fetching vehicle:", secondError);
+        return undefined;
+      }
     }
   }
 
@@ -227,8 +235,7 @@ export class DatabaseStorage implements IStorage {
 
   async getVehiclesByUserId(userId: number): Promise<Vehicle[]> {
     try {
-      // Use a minimal select that doesn't include the tank_size column
-      // in case it hasn't been created yet
+      // Always include tank_size column in the query
       const results = await db
         .select({
           id: vehicles.id,
@@ -238,39 +245,47 @@ export class DatabaseStorage implements IStorage {
           year: vehicles.year,
           licensePlate: vehicles.licensePlate,
           fuelType: vehicles.fuelType,
+          tankSize: vehicles.tankSize,
           createdAt: vehicles.createdAt,
           updatedAt: vehicles.updatedAt,
-          // Only include tankSize if it exists
-          ...(vehicles.tankSize ? { tankSize: vehicles.tankSize } : {})
         })
         .from(vehicles)
         .where(eq(vehicles.userId, userId))
         .orderBy(desc(vehicles.id));
       
-      return results as Vehicle[];
+      return results.map(vehicle => ({
+        ...vehicle,
+        fuelType: vehicle.fuelType as FuelType
+      })) as Vehicle[];
     } catch (error) {
       console.error("[DB] Error fetching vehicles:", error);
-      // Fallback to a simpler query without tank_size
-      const results = await db
-        .execute(sql`
-          SELECT id, user_id, make, model, year, license_plate, fuel_type, created_at, updated_at
-          FROM vehicles
-          WHERE user_id = ${userId}
-          ORDER BY id DESC
-        `);
-      
-      // Transform the raw results to match Vehicle type
-      return results.rows.map((row: any) => ({
-        id: row.id,
-        userId: row.user_id,
-        make: row.make,
-        model: row.model, 
-        year: row.year,
-        licensePlate: row.license_plate,
-        fuelType: row.fuel_type,
-        createdAt: row.created_at,
-        updatedAt: row.updated_at
-      })) as Vehicle[];
+      try {
+        // Fallback to a raw SQL query that explicitly includes tank_size
+        const results = await db
+          .execute(sql`
+            SELECT id, user_id, make, model, year, license_plate, fuel_type, tank_size, created_at, updated_at
+            FROM vehicles
+            WHERE user_id = ${userId}
+            ORDER BY id DESC
+          `);
+        
+        // Transform the raw results to match Vehicle type
+        return results.rows.map((row: any) => ({
+          id: row.id,
+          userId: row.user_id,
+          make: row.make,
+          model: row.model, 
+          year: row.year,
+          licensePlate: row.license_plate,
+          fuelType: row.fuel_type as FuelType,
+          tankSize: row.tank_size,
+          createdAt: row.created_at,
+          updatedAt: row.updated_at
+        })) as Vehicle[];
+      } catch (secondError) {
+        console.error("[DB] Fallback error fetching vehicles:", secondError);
+        return [];
+      }
     }
   }
 
