@@ -45,9 +45,19 @@ export default function OrderHistoryPage() {
 
   // Filter orders based on current tab
   const getFilteredOrders = (filterType: OrderStatus | "ALL") => {
-    return filterType === "ALL"
-      ? orders
-      : orders.filter((order) => order.status === filterType);
+    if (filterType === "ALL") {
+      return orders;
+    } else if (filterType === OrderStatus.IN_PROGRESS) {
+      // For In Progress tab, show both IN_PROGRESS and CONFIRMED orders
+      // This ensures emergency orders (which are created with CONFIRMED status) appear here
+      return orders.filter(
+        (order) => 
+          order.status === OrderStatus.IN_PROGRESS || 
+          order.status === OrderStatus.CONFIRMED
+      );
+    } else {
+      return orders.filter((order) => order.status === filterType);
+    }
   };
 
   // Handle refresh
