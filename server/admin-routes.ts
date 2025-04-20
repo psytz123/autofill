@@ -336,6 +336,131 @@ export function registerAdminRoutes(app: Express) {
       }
     }
   );
+  
+  // Auto-assign orders to drivers using AI-powered route optimization
+  app.post(
+    "/admin/api/orders/auto-assign",
+    isAdminAuthenticated,
+    async (req, res) => {
+      try {
+        // Import the route optimizer
+        const { routeOptimizer } = await import("./utils/route-optimizer");
+        
+        // Import OrderStatus enum
+        const { OrderStatus } = await import("../shared/schema");
+        
+        // Get available drivers
+        const availableDrivers = await adminStorage.getAvailableDrivers();
+        if (availableDrivers.length === 0) {
+          return res.status(400).json({ 
+            message: "No available drivers to assign orders to",
+            success: false 
+          });
+        }
+        
+        // Format drivers for the optimizer
+        const formattedDrivers = availableDrivers.map(driver => ({
+          id: driver.id,
+          name: driver.name,
+          location: driver.currentLocation,
+          status: "AVAILABLE",
+        }));
+        
+        // Get unassigned orders
+        const unassignedOrders = await adminStorage.getUnassignedOrders();
+        if (unassignedOrders.length === 0) {
+          return res.status(400).json({ 
+            message: "No unassigned orders to process",
+            success: false 
+          });
+        }
+        
+        // Format orders for the optimizer - filter out orders without location data
+        const formattedOrders = unassignedOrders
+          .filter(order => order.location && order.location.lat && order.location.lng)
+          .map(order => ({
+            id: order.id,
+            location: order.location,
+            fuelType: order.fuelType,
+            quantity: order.quantity,
+          }));
+          
+        if (formattedOrders.length === 0) {
+          return res.status(400).json({ 
+            message: "No unassigned orders with valid location data",
+            success: false 
+          });
+        }
+        
+        // Use the route optimizer to get optimal assignments
+        const optimizationResult = await routeOptimizer.optimizeRoutes(
+          formattedDrivers, 
+          formattedOrders
+        );
+        
+        // Process the assignments
+        const assignmentResults = [];
+        
+        for (const assignment of optimizationResult.assignments) {
+          try {
+            // Create order assignment
+            const now = new Date();
+            const pickupTime = new Date(now.getTime() + assignment.estimatedTimeMinutes * 60 * 1000);
+            const deliveryTime = new Date(pickupTime.getTime() + 60 * 60 * 1000); // Add 1 hour for delivery
+            
+            const orderAssignment = await adminStorage.assignOrder({
+              orderId: assignment.orderId,
+              driverId: assignment.driverId,
+              adminId: req.adminUser!.id,
+              assignedAt: now,
+              status: "ASSIGNED",
+              estimatedPickupTime: pickupTime,
+              estimatedDeliveryTime: deliveryTime,
+              notes: `Auto-assigned by AI. Estimated distance: ${assignment.distanceKm}km. Reason: ${assignment.reason}`,
+            });
+            
+            // Update order status to IN_PROGRESS
+            await storage.updateOrderStatus(assignment.orderId, OrderStatus.IN_PROGRESS);
+            
+            assignmentResults.push({
+              orderId: assignment.orderId,
+              driverId: assignment.driverId,
+              driverName: assignment.driverName,
+              distanceKm: assignment.distanceKm,
+              estimatedTimeMinutes: assignment.estimatedTimeMinutes,
+              success: true
+            });
+          } catch (assignError) {
+            console.error(`Error assigning order ${assignment.orderId} to driver ${assignment.driverId}:`, assignError);
+            assignmentResults.push({
+              orderId: assignment.orderId,
+              driverId: assignment.driverId,
+              driverName: assignment.driverName,
+              success: false,
+              error: "Failed to create assignment"
+            });
+          }
+        }
+        
+        res.json({
+          success: true,
+          totalAssigned: optimizationResult.assignments.length,
+          totalUnassigned: optimizationResult.unassignedOrders.length,
+          assignments: assignmentResults,
+          unassignedOrders: optimizationResult.unassignedOrders,
+          explanation: optimizationResult.explanation
+        });
+        
+      } catch (error) {
+        console.error("Error in auto-assignment:", error);
+        res.status(500).json({ 
+          message: "Failed to auto-assign orders", 
+          error: error.message,
+          success: false 
+        });
+      }
+    }
+  );
 
   app.delete(
     "/admin/api/drivers/:id",
