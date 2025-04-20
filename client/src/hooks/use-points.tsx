@@ -49,7 +49,7 @@ export function usePoints() {
     isPending: isRedeeming
   } = useMutation({
     mutationFn: async (rewardId: number) => {
-      const res = await apiRequest("POST", `/api/points/redeem/${rewardId}`);
+      const res = await apiRequest("POST", `/api/rewards/redeem/${rewardId}`);
       return res.json();
     },
     onSuccess: () => {
