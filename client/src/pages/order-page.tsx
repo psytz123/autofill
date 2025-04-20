@@ -439,6 +439,7 @@ export default function OrderPage() {
 
   // State for dialogs
   const [showAddLocation, setShowAddLocation] = useState(false);
+  const [showSavedLocations, setShowSavedLocations] = useState(false);
   const [showFuelLevel, setShowFuelLevel] = useState(false);
   const [showDeliveryTime, setShowDeliveryTime] = useState(false);
 
@@ -470,9 +471,8 @@ export default function OrderPage() {
               <Card 
                 className="mt-4 mb-4 cursor-pointer hover:bg-accent/50 transition-colors"
                 onClick={() => {
-                  setCurrentStep(0); // Set to location step
-                  // This will show the location selection options (map and saved locations list)
-                  setOrderData(prev => ({ ...prev, location: null }));
+                  // Toggle a new state to show saved locations without erasing the current selection
+                  setShowSavedLocations(true);
                 }}
               >
                 <CardContent className="p-4">
@@ -549,6 +549,72 @@ export default function OrderPage() {
                     });
                   }}
                 />
+              </DialogContent>
+            </Dialog>
+
+            {/* Dialog for selecting from saved locations */}
+            <Dialog open={showSavedLocations} onOpenChange={setShowSavedLocations}>
+              <DialogContent className="sm:max-w-[425px]">
+                <DialogHeader>
+                  <DialogTitle>Select Delivery Location</DialogTitle>
+                  <DialogDescription>
+                    Choose from your saved locations.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="mt-4 space-y-3">
+                  {locationsLoading ? (
+                    <div className="py-4 text-center">
+                      <div className="h-12 bg-gray-100 animate-pulse rounded-lg mb-2"></div>
+                      <div className="h-12 bg-gray-100 animate-pulse rounded-lg mb-2"></div>
+                    </div>
+                  ) : savedLocations.length === 0 ? (
+                    <div className="py-4 text-center">
+                      <p className="text-neutral-500 mb-3">You don't have any saved locations</p>
+                      <Button onClick={() => {
+                        setShowSavedLocations(false);
+                        setShowAddLocation(true);
+                      }}>
+                        Add Location
+                      </Button>
+                    </div>
+                  ) : (
+                    <>
+                      {savedLocations.map((location) => (
+                        <Card 
+                          key={location.id} 
+                          className={`cursor-pointer hover:bg-accent/50 transition-colors ${orderData.location?.id === location.id ? 'border-orange-500 bg-orange-50/50' : ''}`}
+                          onClick={() => {
+                            selectLocation(location);
+                            setShowSavedLocations(false);
+                          }}
+                        >
+                          <CardContent className="p-3">
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <h3 className="font-semibold">{location.name}</h3>
+                                <p className="text-sm text-neutral-600">{location.address}</p>
+                              </div>
+                              {orderData.location?.id === location.id && (
+                                <div className="h-3 w-3 rounded-full bg-orange-500"></div>
+                              )}
+                            </div>
+                          </CardContent>
+                        </Card>
+                      ))}
+                      <Button 
+                        className="w-full mt-2" 
+                        variant="outline"
+                        onClick={() => {
+                          setShowSavedLocations(false);
+                          setShowAddLocation(true);
+                        }}
+                      >
+                        <Plus className="h-4 w-4 mr-2" />
+                        Add New Location
+                      </Button>
+                    </>
+                  )}
+                </div>
               </DialogContent>
             </Dialog>
           </div>
