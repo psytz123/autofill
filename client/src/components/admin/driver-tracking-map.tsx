@@ -98,47 +98,78 @@ export default function DriverTrackingMap({ onAssignDriver }: DriverTrackingMapP
   const [directions, setDirections] = useState<google.maps.DirectionsResult | null>(null);
   const [activeTab, setActiveTab] = useState("orders");
   const [assignLoading, setAssignLoading] = useState(false);
-  const [mapCenter, setMapCenter] = useState(defaultCenter);
   const [locationRefreshing, setLocationRefreshing] = useState(false);
   const [showResultsDialog, setShowResultsDialog] = useState(false);
   const [assignmentResults, setAssignmentResults] = useState<AutoAssignmentResponse | null>(null);
 
-  const { isLoaded, loadError } = useJsApiLoader({
+  const { isLoaded } = useJsApiLoader({
     id: "google-map-script",
     googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY || "",
     libraries,
   });
 
-  // Fetch tracking data (combines drivers, assigned orders, and unassigned orders)
   const {
     data: trackingData,
     isLoading: trackingDataLoading,
     error: trackingDataError,
     refetch: refetchTrackingData,
-  } = useQuery<TrackingData>({
-    queryKey: ["/admin/api/tracking-data"],
-    enabled: isLoaded,
+  } = useQuery({
+    queryKey: ["/api/admin/tracking-data"],
+    staleTime: 1000 * 60, // 1 minute
   });
-
-  // Extract data from tracking response
-  const unassignedOrders = trackingData?.unassignedOrders || [];
-  const assignedOrders = trackingData?.assignedOrders || [];
-  const availableDrivers = trackingData?.drivers.filter(d => d.status === "AVAILABLE") || [];
-  const allDrivers = trackingData?.drivers || [];
-
-  // Function to refresh location data
+  
+  const autoAssignMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("POST", "/api/admin/auto-assign-orders");
+      if (!res.ok) {
+        const errorText = await res.text();
+        throw new Error(`Failed to auto-assign orders: ${errorText}`);
+      }
+      return res.json();
+    },
+    onSuccess: (data: AutoAssignmentResponse) => {
+      setAssignmentResults(data);
+      setShowResultsDialog(true);
+      
+      if (data.success && data.totalAssigned > 0) {
+        toast({
+          title: "Auto-assignment complete",
+          description: `Successfully assigned ${data.totalAssigned} orders to drivers.`,
+        });
+        
+        // Refresh the tracking data after a short delay to give the server time to update
+        setTimeout(() => {
+          refetchTrackingData();
+        }, 1500);
+      } else {
+        toast({
+          title: "Auto-assignment issues",
+          description: data.message || "Could not assign all orders. See details for more information.",
+          variant: "destructive",
+        });
+      }
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Auto-assignment failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  });
+  
   const refreshLocations = async () => {
     setLocationRefreshing(true);
     try {
       await refetchTrackingData();
       toast({
-        title: "Locations refreshed",
-        description: "All driver locations and orders have been updated.",
+        title: "Tracking data refreshed",
+        description: "Latest driver and order locations loaded.",
       });
     } catch (error) {
       toast({
-        title: "Error refreshing data",
-        description: "Failed to refresh locations. Please try again.",
+        title: "Refresh failed",
+        description: "Could not refresh tracking data. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -146,222 +177,137 @@ export default function DriverTrackingMap({ onAssignDriver }: DriverTrackingMapP
     }
   };
 
-  // Add mutation for auto-assignment
-  const autoAssignMutation = useMutation({
-    mutationFn: async () => {
-      const response = await apiRequest("POST", "/admin/api/orders/auto-assign");
-      return await response.json();
-    },
-    onSuccess: (data: AutoAssignmentResponse) => {
-      setAssignmentResults(data);
-      setShowResultsDialog(true);
-
-      if (data.success) {
-        toast({
-          title: "Auto-assignment complete",
-          description: `Successfully assigned ${data.totalAssigned} orders to drivers.`,
-        });
-        // Refresh tracking data to show new assignments
-        refetchTrackingData();
-      } else {
-        toast({
-          title: "Auto-assignment failed",
-          description: data.message || "Failed to auto-assign orders to drivers.",
-          variant: "destructive",
-        });
-      }
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Auto-assignment error",
-        description: `Error: ${error.message}`,
-        variant: "destructive",
-      });
-    }
-  });
-
-  // Handle auto-assignment
   const handleAutoAssign = () => {
-    if (filteredUnassignedOrders.length === 0) {
-      toast({
-        title: "No orders to assign",
-        description: "There are no unassigned orders with location data.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (driversWithLocation.length === 0) {
-      toast({
-        title: "No available drivers",
-        description: "There are no available drivers with location data.",
-        variant: "destructive",
-      });
-      return;
-    }
-
     autoAssignMutation.mutate();
   };
 
-  // Refresh data periodically (every 30 seconds)
-  useEffect(() => {
-    if (!isLoaded) return;
-
-    const intervalId = setInterval(() => {
-      refreshLocations();
-    }, 30000);
-
-    // Clean up when component unmounts
-    let mounted = true;
-    
-    return () => {
-      mounted = false;
-      if (directions) {
-        setDirections(null);
-      }
-      clearInterval(intervalId);
-    };
-  }, [isLoaded, directions]);
-
-  // Calculate directions between driver and order
   const calculateDirections = useCallback((driver: AdminDriver, order: AdminOrder) => {
     if (!isLoaded || !driver.location || !order.location) return;
-
-    let retryCount = 0;
-    const maxRetries = 3;
-    const retryDelay = 2000;
-    let mounted = true;
-
-    const calculateWithRetry = () => {
-      if (!mounted) return;
-      const directionsService = new google.maps.DirectionsService();
-
-      try {
-        directionsService.route(
-          {
-            origin: new google.maps.LatLng(driver.location.lat, driver.location.lng),
-            destination: new google.maps.LatLng(order.location.lat, order.location.lng),
-            travelMode: google.maps.TravelMode.DRIVING,
-          },
-          (result, status) => {
-            if (status === google.maps.DirectionsStatus.OK) {
-              setDirections(result);
-            } else if (status === google.maps.DirectionsStatus.OVER_QUERY_LIMIT) {
-              toast({
-                title: "Rate limit exceeded",
-                description: "Please try again in a few moments",
-                variant: "destructive",
-              });
-            } else if (status === google.maps.DirectionsStatus.OVER_QUERY_LIMIT && retryCount < maxRetries) {
-              retryCount++;
-              setTimeout(calculateWithRetry, retryDelay * retryCount);
-            } else {
-              toast({
-                title: "Directions error",
-                description: `Could not calculate directions: ${status}`,
-                variant: "destructive",
-              });
-              console.error("[MapError] Direction calculation failed:", status);
-            }
-          }
-        );
-      } catch (error) {
-        console.error("[MapError] Direction service error:", error);
-        toast({
-          title: "Map service error",
-          description: "Failed to calculate route",
-          variant: "destructive",
-        });
+    
+    const directionsService = new google.maps.DirectionsService();
+    
+    directionsService.route(
+      {
+        origin: new google.maps.LatLng(driver.location.lat, driver.location.lng),
+        destination: new google.maps.LatLng(order.location.lat, order.location.lng),
+        travelMode: google.maps.TravelMode.DRIVING,
+      },
+      (result, status) => {
+        if (status === google.maps.DirectionsStatus.OK) {
+          setDirections(result);
+        } else if (status === google.maps.DirectionsStatus.OVER_QUERY_LIMIT) {
+          toast({
+            title: "Direction lookup limited",
+            description: "Too many direction requests. Please try again later.",
+            variant: "destructive",
+          });
+        } else {
+          toast({
+            title: "Direction lookup failed",
+            description: `Could not find directions: ${status}`,
+            variant: "destructive",
+          });
+        }
       }
-    };
-
-    calculateWithRetry();
+    );
   }, [isLoaded, toast]);
-
-  // Handle directions calculation and cleanup
+  
   useEffect(() => {
-    let mounted = true;
-    let timeoutId: NodeJS.Timeout;
-
-    const cleanup = () => {
-      mounted = false;
-      if (timeoutId) clearTimeout(timeoutId);
-      setDirections(null);
-    };
-
-    if (selectedDriver && selectedOrder) {
+    if (selectedDriver && selectedOrder && !selectedOrder.assigned) {
       calculateDirections(selectedDriver, selectedOrder);
     } else {
       setDirections(null);
     }
-
-    return cleanup;
   }, [selectedDriver, selectedOrder, calculateDirections]);
 
-  // Update map center when driver or order is selected
-  useEffect(() => {
-    if (selectedOrder?.location) {
-      setMapCenter(selectedOrder.location);
-    } else if (selectedDriver?.location) {
-      setMapCenter(selectedDriver.location);
-    }
-  }, [selectedOrder, selectedDriver]);
-
-  // Handle assigning a driver to an order
-  const handleAssignDriver = useCallback(() => {
-    if (!selectedOrder || !selectedDriver || !onAssignDriver) return;
-
+  const handleAssignDriver = async () => {
+    if (!selectedOrder || !selectedDriver || selectedOrder.assigned) return;
+    
     setAssignLoading(true);
-    onAssignDriver(selectedOrder.id, selectedDriver.id);
-    setTimeout(() => {
-      // Clear state after assignment
-      setAssignLoading(false);
+    
+    try {
+      const res = await apiRequest("POST", `/api/admin/assign-driver`, {
+        orderId: selectedOrder.id,
+        driverId: selectedDriver.id,
+      });
+      
+      if (!res.ok) {
+        const errorText = await res.text();
+        throw new Error(`Failed to assign driver: ${errorText}`);
+      }
+      
+      toast({
+        title: "Driver assigned",
+        description: `${selectedDriver.name} has been assigned to order #${selectedOrder.id}`,
+      });
+      
+      // Call the onAssignDriver prop if provided
+      onAssignDriver && onAssignDriver(selectedOrder.id, selectedDriver.id);
+      
+      // Refresh tracking data
+      await refetchTrackingData();
+      
+      // Reset selection
       setSelectedOrder(null);
       setSelectedDriver(null);
       setDirections(null);
-    }, 1000);
-  }, [selectedOrder, selectedDriver, onAssignDriver]);
+      
+    } catch (error) {
+      toast({
+        title: "Assignment failed",
+        description: error instanceof Error ? error.message : "Could not assign driver to order",
+        variant: "destructive",
+      });
+    } finally {
+      setAssignLoading(false);
+    }
+  };
 
-  // Memoize filtered unassigned orders with location data
+  // Derived values from tracking data
+  const allDrivers = trackingData?.drivers || [];
+  const unassignedOrders = trackingData?.unassignedOrders || [];
+  const assignedOrders = trackingData?.assignedOrders || [];
+  
+  const driversWithLocation = useMemo(() => {
+    return allDrivers.filter(driver => 
+      driver.location && driver.status === "AVAILABLE"
+    );
+  }, [allDrivers]);
+  
+  const mapCenter = useMemo(() => {
+    const defaultLoc = defaultCenter;
+    
+    // Try to center on the first driver with location
+    const firstDriverWithLocation = allDrivers.find(d => d.location);
+    if (firstDriverWithLocation?.location) {
+      return firstDriverWithLocation.location;
+    }
+    
+    // Or center on the first order location
+    const firstOrder = [...unassignedOrders, ...assignedOrders][0];
+    if (firstOrder?.location) {
+      return {
+        lat: firstOrder.location.lat,
+        lng: firstOrder.location.lng,
+      };
+    }
+    
+    return defaultLoc;
+  }, [allDrivers, unassignedOrders, assignedOrders]);
+  
+  // Filter orders that have valid location data
   const filteredUnassignedOrders = useMemo(() => {
-    if (!unassignedOrders) return [];
     return unassignedOrders.filter((order: AdminOrder) => order.location);
   }, [unassignedOrders]);
-
-  // Memoize filtered assigned orders with location data
+  
   const filteredAssignedOrders = useMemo(() => {
-    if (!assignedOrders) return [];
     return assignedOrders.filter((order: AdminOrder) => order.location);
   }, [assignedOrders]);
-
-  // Memoize available drivers with location data
-  const driversWithLocation = useMemo(() => {
-    if (!availableDrivers) return [];
-    return availableDrivers.filter((driver: AdminDriver) => driver.location);
-  }, [availableDrivers]);
-
-  // Memoize all drivers with location data
+  
+  // Filter drivers with valid location data (includes all statuses)
   const allDriversWithLocation = useMemo(() => {
-    if (!allDrivers) return [];
     return allDrivers.filter((driver: AdminDriver) => driver.location);
   }, [allDrivers]);
-
-  if (loadError) {
-    return (
-      <div className="bg-white rounded-lg p-6 shadow-sm">
-        <p className="text-red-500">Error loading Google Maps API: {loadError.message}</p>
-      </div>
-    );
-  }
-
-  if (!isLoaded) {
-    return (
-      <div className="bg-white rounded-lg p-6 shadow-sm flex items-center justify-center h-96">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <span className="ml-2">Loading Google Maps...</span>
-      </div>
-    );
-  }
 
   const isLoading = trackingDataLoading;
   const hasError = trackingDataError;
@@ -436,84 +382,86 @@ export default function DriverTrackingMap({ onAssignDriver }: DriverTrackingMapP
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <GoogleMap
-                  mapContainerStyle={mapContainerStyle}
-                  center={mapCenter}
-                  zoom={12}
-                  options={{
-                    streetViewControl: false,
-                    mapTypeControl: false,
-                    fullscreenControl: true,
-                  }}
-                >
-                  {/* Render unassigned order markers */}
-                  {filteredUnassignedOrders.map((order: AdminOrder) => (
-                    <Marker
-                      key={`order-${order.id}`}
-                      position={order.location}
-                      onClick={() => {
-                        setSelectedOrder(order);
-                        setActiveTab("orders");
-                      }}
-                      icon={{
-                        path: google.maps.SymbolPath.CIRCLE,
-                        scale: 8,
-                        fillColor: "#ef4444",
-                        fillOpacity: 1,
-                        strokeColor: "#ffffff",
-                        strokeWeight: 2,
-                      }}
-                    />
-                  ))}
+                {isLoaded && (
+                  <GoogleMap
+                    mapContainerStyle={mapContainerStyle}
+                    center={mapCenter}
+                    zoom={12}
+                    options={{
+                      streetViewControl: false,
+                      mapTypeControl: false,
+                      fullscreenControl: true,
+                    }}
+                  >
+                    {/* Render unassigned order markers */}
+                    {filteredUnassignedOrders.map((order: AdminOrder) => (
+                      <Marker
+                        key={`order-${order.id}`}
+                        position={order.location}
+                        onClick={() => {
+                          setSelectedOrder(order);
+                          setActiveTab("orders");
+                        }}
+                        icon={{
+                          path: google.maps.SymbolPath.CIRCLE,
+                          scale: 8,
+                          fillColor: "#ef4444",
+                          fillOpacity: 1,
+                          strokeColor: "#ffffff",
+                          strokeWeight: 2,
+                        }}
+                      />
+                    ))}
 
-                  {/* Render assigned order markers */}
-                  {filteredAssignedOrders.map((order: AdminOrder) => (
-                    <Marker
-                      key={`assigned-order-${order.id}`}
-                      position={order.location}
-                      onClick={() => {
-                        setSelectedOrder(order);
-                        setActiveTab("orders");
-                      }}
-                      icon={{
-                        path: google.maps.SymbolPath.CIRCLE,
-                        scale: 8,
-                        fillColor: "#3b82f6",
-                        fillOpacity: 1,
-                        strokeColor: "#ffffff",
-                        strokeWeight: 2,
-                      }}
-                    />
-                  ))}
+                    {/* Render assigned order markers */}
+                    {filteredAssignedOrders.map((order: AdminOrder) => (
+                      <Marker
+                        key={`assigned-order-${order.id}`}
+                        position={order.location}
+                        onClick={() => {
+                          setSelectedOrder(order);
+                          setActiveTab("orders");
+                        }}
+                        icon={{
+                          path: google.maps.SymbolPath.CIRCLE,
+                          scale: 8,
+                          fillColor: "#3b82f6",
+                          fillOpacity: 1,
+                          strokeColor: "#ffffff",
+                          strokeWeight: 2,
+                        }}
+                      />
+                    ))}
 
-                  {/* Render driver markers */}
-                  {allDriversWithLocation.map((driver: AdminDriver) => (
-                    <Marker
-                      key={`driver-${driver.id}`}
-                      position={driver.location!}
-                      onClick={() => {
-                        setSelectedDriver(driver);
-                        setActiveTab("drivers");
-                      }}
-                      icon={{
-                        url: "https://maps.google.com/mapfiles/ms/icons/truck.png",
-                      }}
-                    />
-                  ))}
+                    {/* Render driver markers */}
+                    {allDriversWithLocation.map((driver: AdminDriver) => (
+                      <Marker
+                        key={`driver-${driver.id}`}
+                        position={driver.location!}
+                        onClick={() => {
+                          setSelectedDriver(driver);
+                          setActiveTab("drivers");
+                        }}
+                        icon={{
+                          url: "https://maps.google.com/mapfiles/ms/icons/truck.png",
+                        }}
+                      />
+                    ))}
 
-                  {/* Render directions if available */}
-                  {directions && (
-                    <DirectionsRenderer
-                      directions={directions}
-                      options={{
-                        polylineOptions: {
-                          strokeColor: "#22c55e",
-                          strokeWeight: 5,
-                        },
-                      }}
-                    />
-                  )}
-                </GoogleMap>
+                    {/* Render directions if available */}
+                    {directions && (
+                      <DirectionsRenderer
+                        directions={directions}
+                        options={{
+                          polylineOptions: {
+                            strokeColor: "#22c55e",
+                            strokeWeight: 5,
+                          },
+                        }}
+                      />
+                    )}
+                  </GoogleMap>
+                )}
               </CardContent>
               <CardFooter className="pt-0 flex justify-between text-sm text-gray-500">
                 <div className="flex items-center">
@@ -884,92 +832,94 @@ export default function DriverTrackingMap({ onAssignDriver }: DriverTrackingMapP
         </div>
       </div>
 
+      {/* Auto-assignment results dialog */}
       <Dialog open={showResultsDialog} onOpenChange={setShowResultsDialog}>
-      <DialogContent className="max-w-3xl">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Brain className="h-5 w-5 text-primary" />
-            AI-Powered Order Assignment Results
-          </DialogTitle>
-          <DialogDescription>
-            {assignmentResults?.success 
-              ? `Successfully assigned ${assignmentResults?.totalAssigned} orders to drivers.`
-              : "The auto-assignment process encountered some issues."}
-          </DialogDescription>
-        </DialogHeader>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Brain className="h-5 w-5 text-primary" />
+              AI-Powered Order Assignment Results
+            </DialogTitle>
+            <DialogDescription>
+              {assignmentResults?.success 
+                ? `Successfully assigned ${assignmentResults?.totalAssigned} orders to drivers.`
+                : "The auto-assignment process encountered some issues."}
+            </DialogDescription>
+          </DialogHeader>
 
-        {assignmentResults && (
-          <div className="space-y-4">
-            {/* Explanation */}
-            <div>
-              <h4 className="font-medium mb-2">Assignment Strategy:</h4>
-              <p className="text-gray-700 text-sm whitespace-pre-line">{assignmentResults.explanation}</p>
-            </div>
-
-            <Separator />
-
-            {/* Assignments */}
-            {assignmentResults.assignments.length > 0 && (
+          {assignmentResults && (
+            <div className="space-y-4">
+              {/* Explanation */}
               <div>
-                <h4 className="font-medium mb-2">Successful Assignments:</h4>
-                <ScrollArea className="h-[200px]">
-                  <div className="space-y-3">
-                    {assignmentResults.assignments.map((assignment) => (
-                      <div 
-                        key={`assign-${assignment.orderId}-${assignment.driverId}`}
-                        className="p-3 border rounded-md bg-green-50"
-                      >
-                        <div className="flex justify-between">
-                          <div>
-                            <p className="font-medium">Order #{assignment.orderId}</p>
-                            <div className="flex items-center text-sm text-gray-600">
-                              <Truck className="h-3.5 w-3.5 mr-1 text-gray-500" />
-                              <span>Assigned to: {assignment.driverName}</span>
+                <h4 className="font-medium mb-2">Assignment Strategy:</h4>
+                <p className="text-gray-700 text-sm whitespace-pre-line">{assignmentResults.explanation}</p>
+              </div>
+
+              <Separator />
+
+              {/* Assignments */}
+              {assignmentResults.assignments.length > 0 && (
+                <div>
+                  <h4 className="font-medium mb-2">Successful Assignments:</h4>
+                  <ScrollArea className="h-[200px]">
+                    <div className="space-y-3">
+                      {assignmentResults.assignments.map((assignment) => (
+                        <div 
+                          key={`assign-${assignment.orderId}-${assignment.driverId}`}
+                          className="p-3 border rounded-md bg-green-50"
+                        >
+                          <div className="flex justify-between">
+                            <div>
+                              <p className="font-medium">Order #{assignment.orderId}</p>
+                              <div className="flex items-center text-sm text-gray-600">
+                                <Truck className="h-3.5 w-3.5 mr-1 text-gray-500" />
+                                <span>Assigned to: {assignment.driverName}</span>
+                              </div>
+                            </div>
+                            <div className="text-sm text-gray-600">
+                              <div className="text-right">{assignment.distanceKm.toFixed(1)} km away</div>
+                              <div className="text-right">ETA: {assignment.estimatedTimeMinutes} mins</div>
                             </div>
                           </div>
-                          <div className="text-sm text-gray-600">
-                            <div className="text-right">{assignment.distanceKm.toFixed(1)} km away</div>
-                            <div className="text-right">ETA: {assignment.estimatedTimeMinutes} mins</div>
-                          </div>
                         </div>
-                      </div>
+                      ))}
+                    </div>
+                  </ScrollArea>
+                </div>
+              )}
+
+              {/* Unassigned orders */}
+              {assignmentResults.unassignedOrders.length > 0 && (
+                <div>
+                  <h4 className="font-medium mb-2">Unassigned Orders:</h4>
+                  <div className="flex flex-wrap gap-2">
+                    {assignmentResults.unassignedOrders.map((orderId) => (
+                      <Badge 
+                        key={`unassigned-${orderId}`} 
+                        variant="outline"
+                        className="bg-red-50"
+                      >
+                        Order #{orderId}
+                      </Badge>
                     ))}
                   </div>
-                </ScrollArea>
-              </div>
-            )}
-
-            {/* Unassigned orders */}
-            {assignmentResults.unassignedOrders.length > 0 && (
-              <div>
-                <h4 className="font-medium mb-2">Unassigned Orders:</h4>
-                <div className="flex flex-wrap gap-2">
-                  {assignmentResults.unassignedOrders.map((orderId) => (
-                    <Badge 
-                      key={`unassigned-${orderId}`} 
-                      variant="outline"
-                      className="bg-red-50"
-                    >
-                      Order #{orderId}
-                    </Badge>
-                  ))}
                 </div>
-              </div>
-            )}
-          </div>
-        )}
+              )}
+            </div>
+          )}
 
-        <DialogFooter className="flex items-center justify-between">
-          <div>
-            {assignmentResults?.success && (
-              <span className="text-sm text-gray-500">
-                Refreshing tracking data automatically...
-              </span>
-            )}
-          </div>
-          <Button onClick={() => setShowResultsDialog(false)}>Close</Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+          <DialogFooter className="flex items-center justify-between">
+            <div>
+              {assignmentResults?.success && (
+                <span className="text-sm text-gray-500">
+                  Refreshing tracking data automatically...
+                </span>
+              )}
+            </div>
+            <Button onClick={() => setShowResultsDialog(false)}>Close</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
