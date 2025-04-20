@@ -1,8 +1,12 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Card } from "@/components/ui/card";
-import { MapPin, Loader2 } from "lucide-react";
+import { MapPin, Loader2, AlertCircle } from "lucide-react";
 import { Location, LocationType } from "@shared/schema";
-import { GoogleMap, useJsApiLoader, Marker } from "@react-google-maps/api";
+import { 
+  GoogleMap, 
+  useJsApiLoader, 
+  Marker
+} from "@react-google-maps/api";
 import { GOOGLE_MAPS_LIBRARIES } from "@/lib/googleMapsConfig";
 import {
   MAP_CONTAINER_STYLE,
@@ -38,18 +42,65 @@ export default function MapView({
   const [isGettingLocation, setIsGettingLocation] = useState(false);
   const [mapError, setMapError] = useState<string | null>(null);
 
+  // For debugging purposes
+  const mapContainerRef = useRef<HTMLDivElement>(null);
+  const [debugInfo, setDebugInfo] = useState<{
+    apiKeyPresent: boolean;
+    apiLoaded: boolean;
+    googleObject: boolean;
+    googleMapsObject: boolean;
+    mapContainerVisible: boolean;
+  }>({
+    apiKeyPresent: !!import.meta.env.VITE_GOOGLE_MAPS_API_KEY,
+    apiLoaded: false,
+    googleObject: false,
+    googleMapsObject: false,
+    mapContainerVisible: false
+  });
+  
   // Load Google Maps API with static libraries reference from configuration file
   // This fixes the warning: "LoadScript has been reloaded unintentionally!"
   const { isLoaded, loadError } = useJsApiLoader({
     id: "google-map-script",
     googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY || "",
-    libraries: GOOGLE_MAPS_LIBRARIES as any, // Cast to any to avoid TypeScript error
+    libraries: GOOGLE_MAPS_LIBRARIES as any, // Cast to any to prevent type errors
   });
+
+  // Update debug info whenever relevant state changes
+  useEffect(() => {
+    const newDebugInfo = {
+      apiKeyPresent: !!import.meta.env.VITE_GOOGLE_MAPS_API_KEY,
+      apiLoaded: isLoaded,
+      googleObject: typeof window !== 'undefined' && !!window.google,
+      googleMapsObject: typeof window !== 'undefined' && !!window.google?.maps,
+      mapContainerVisible: !!mapContainerRef.current && 
+                          mapContainerRef.current.offsetWidth > 0 &&
+                          mapContainerRef.current.offsetHeight > 0
+    };
+    
+    setDebugInfo(newDebugInfo);
+    console.log("[MapDebug] Status:", newDebugInfo);
+    
+    if (isLoaded) {
+      console.log("[Map] Google Maps API loaded successfully");
+      
+      // Additional debugging for map container
+      if (mapContainerRef.current) {
+        console.log("[MapDebug] Container dimensions:", {
+          width: mapContainerRef.current.offsetWidth,
+          height: mapContainerRef.current.offsetHeight,
+          visible: mapContainerRef.current.offsetWidth > 0 && mapContainerRef.current.offsetHeight > 0
+        });
+      } else {
+        console.log("[MapDebug] Map container ref not available");
+      }
+    }
+  }, [isLoaded, mapContainerRef.current]);
 
   // Handle load errors
   useEffect(() => {
     if (loadError) {
-      console.error("Google Maps API loading error:", loadError);
+      console.error("[Map] Google Maps API loading error:", loadError);
       setMapError("Failed to load Google Maps API: " + loadError.toString());
     }
   }, [loadError]);
@@ -286,17 +337,38 @@ export default function MapView({
   // Create a try-catch wrapper for the map component
   // This will catch and handle any runtime errors during map rendering
   try {
+    console.log("[MapDebug] Rendering map with API key:", import.meta.env.VITE_GOOGLE_MAPS_API_KEY ? "API key present" : "No API key");
+    
     return (
       <Card className={`relative overflow-hidden ${className}`}>
-        <div className="absolute inset-0">
+        <div 
+          className="absolute inset-0 z-0" 
+          ref={mapContainerRef}
+          id="google-map-container"
+        >
           <GoogleMap
-            mapContainerStyle={MAP_CONTAINER_STYLE}
+            mapContainerStyle={{
+              ...MAP_CONTAINER_STYLE,
+              // Force explicit dimensions to ensure the map renders
+              width: '100%',
+              height: '100%',
+              minHeight: '150px'
+            }}
             center={markerPosition || DEFAULT_MAP_CONFIG.center}
             zoom={DEFAULT_MAP_CONFIG.zoom}
             onClick={onMapClick}
-            onLoad={onMapLoad}
+            onLoad={(map) => {
+              console.log("[MapDebug] Map loaded successfully");
+              onMapLoad(map);
+            }}
             onUnmount={onUnmount}
-            options={DEFAULT_MAP_CONFIG.options}
+            options={{
+              ...DEFAULT_MAP_CONFIG.options,
+              // Add these options to ensure the map is fully interactive
+              clickableIcons: true,
+              disableDefaultUI: false,
+              zoomControl: true,
+            }}
           >
             {markerPosition && (
               <Marker
@@ -308,8 +380,17 @@ export default function MapView({
           </GoogleMap>
         </div>
 
+        {/* Display debug info in development */}
+        {process.env.NODE_ENV !== 'production' && (
+          <div className="absolute top-2 right-2 bg-white bg-opacity-90 p-1 rounded text-xs z-10">
+            <span className={debugInfo.apiLoaded ? "text-green-600" : "text-red-600"}>
+              API: {debugInfo.apiLoaded ? "✓" : "✗"}
+            </span>
+          </div>
+        )}
+
         {address && (
-          <div className="absolute bottom-2 left-2 right-2 bg-white bg-opacity-90 p-2 rounded-md shadow-md">
+          <div className="absolute bottom-2 left-2 right-2 bg-white bg-opacity-90 p-2 rounded-md shadow-md z-10">
             <p className="text-sm font-medium truncate">{address}</p>
             <p className="text-xs text-gray-500">
               {markerPosition && formatCoordinates(markerPosition)}
