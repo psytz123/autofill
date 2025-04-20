@@ -2,7 +2,7 @@
 /// <reference types="expo" />
 
 // Fix React types for JSX compatibility
-import 'react';
+import "react";
 declare global {
   namespace React {
     interface ReactNode {}
@@ -37,32 +37,40 @@ declare module "react-native" {
   export interface ViewStyle {
     [key: string]: any;
   }
-  
+
   export interface TextStyle {
     [key: string]: any;
   }
-  
+
   export interface ImageStyle {
     [key: string]: any;
   }
-  
+
   export type StyleProp<T> = T | T[] | null;
-  
+
   export class StyleSheet {
-    static create<T extends StyleSheet.NamedStyles<T> | StyleSheet.NamedStyles<any>>(styles: T | StyleSheet.NamedStyles<T>): T;
+    static create<
+      T extends StyleSheet.NamedStyles<T> | StyleSheet.NamedStyles<any>,
+    >(styles: T | StyleSheet.NamedStyles<T>): T;
     static flatten<T>(style?: StyleProp<T>): T;
-    static compose<T, U>(style1: StyleProp<T>, style2: StyleProp<U>): StyleProp<T & U>;
-    
+    static compose<T, U>(
+      style1: StyleProp<T>,
+      style2: StyleProp<U>,
+    ): StyleProp<T & U>;
+
     static hairlineWidth: number;
     static absoluteFill: StyleProp<ViewStyle>;
     static absoluteFillObject: ViewStyle;
-    
-    static setStyleAttributePreprocessor(property: string, process: (nextProp: any) => any): void;
-    
+
+    static setStyleAttributePreprocessor(
+      property: string,
+      process: (nextProp: any) => any,
+    ): void;
+
     // Additional namespace
     static NamedStyles: any;
   }
-  
+
   export class View extends React.Component<any, any> {}
   export class Text extends React.Component<any, any> {}
   export class Image extends React.Component<any, any> {}
@@ -75,7 +83,16 @@ declare module "react-native" {
   export class SectionList<T = any> extends React.Component<any, any> {}
   export class Modal extends React.Component<any, any> {}
   export class Alert {
-    static alert(title: string, message?: string, buttons?: Array<{ text?: string, onPress?: () => void, style?: 'default' | 'cancel' | 'destructive' }>, options?: { cancelable?: boolean, onDismiss?: () => void }): void;
+    static alert(
+      title: string,
+      message?: string,
+      buttons?: Array<{
+        text?: string;
+        onPress?: () => void;
+        style?: "default" | "cancel" | "destructive";
+      }>,
+      options?: { cancelable?: boolean; onDismiss?: () => void },
+    ): void;
   }
 }
 
@@ -123,7 +140,13 @@ declare module "react-native-maps" {
     showsTraffic?: boolean;
     showsIndoors?: boolean;
     showsIndoorLevelPicker?: boolean;
-    mapType?: "standard" | "satellite" | "hybrid" | "terrain" | "none" | "mutedStandard";
+    mapType?:
+      | "standard"
+      | "satellite"
+      | "hybrid"
+      | "terrain"
+      | "none"
+      | "mutedStandard";
     region?: Region;
     initialRegion?: Region;
     liteMode?: boolean;
@@ -143,9 +166,15 @@ declare module "react-native-maps" {
     };
     onRegionChange?: (region: Region) => void;
     onRegionChangeComplete?: (region: Region) => void;
-    onPress?: (event: { nativeEvent: { coordinate: LatLng; position: { x: number; y: number } } }) => void;
-    onLongPress?: (event: { nativeEvent: { coordinate: LatLng; position: { x: number; y: number } } }) => void;
-    onPanDrag?: (event: { nativeEvent: { coordinate: LatLng; position: { x: number; y: number } } }) => void;
+    onPress?: (event: {
+      nativeEvent: { coordinate: LatLng; position: { x: number; y: number } };
+    }) => void;
+    onLongPress?: (event: {
+      nativeEvent: { coordinate: LatLng; position: { x: number; y: number } };
+    }) => void;
+    onPanDrag?: (event: {
+      nativeEvent: { coordinate: LatLng; position: { x: number; y: number } };
+    }) => void;
     onMarkerPress?: (event: any) => void;
     onMarkerSelect?: (event: any) => void;
     onMarkerDeselect?: (event: any) => void;
@@ -153,10 +182,14 @@ declare module "react-native-maps" {
     onMarkerDragStart?: (event: any) => void;
     onMarkerDrag?: (event: any) => void;
     onMarkerDragEnd?: (event: any) => void;
-    onPoiClick?: (event: { nativeEvent: { placeId: string; name: string; coordinate: LatLng } }) => void;
+    onPoiClick?: (event: {
+      nativeEvent: { placeId: string; name: string; coordinate: LatLng };
+    }) => void;
     onIndoorBuildingFocused?: (event: any) => void;
     onIndoorLevelActivated?: (event: any) => void;
-    onUserLocationChange?: (event: { nativeEvent: { coordinate: LatLng; position: { x: number; y: number } } }) => void;
+    onUserLocationChange?: (event: {
+      nativeEvent: { coordinate: LatLng; position: { x: number; y: number } };
+    }) => void;
     minZoomLevel?: number;
     maxZoomLevel?: number;
     kmlSrc?: string;
@@ -210,7 +243,7 @@ declare module "react-native-maps" {
         altitude?: number;
         zoom?: number;
       },
-      duration?: number
+      duration?: number,
     ): void;
     fitToElements(animated?: boolean): void;
     fitToSuppliedMarkers(markers: string[], animated?: boolean): void;
@@ -224,7 +257,7 @@ declare module "react-native-maps" {
           left: number;
         };
         animated?: boolean;
-      }
+      },
     ): void;
     pointForCoordinate(coordinate: LatLng): Promise<{ x: number; y: number }>;
     coordinateForPoint(point: { x: number; y: number }): Promise<LatLng>;
@@ -316,7 +349,9 @@ declare module "expo-location" {
     BestForNavigation: 6;
   };
 
-  export function getCurrentPositionAsync(options?: LocationOptions): Promise<LocationObject>;
+  export function getCurrentPositionAsync(
+    options?: LocationOptions,
+  ): Promise<LocationObject>;
   export function requestForegroundPermissionsAsync(): Promise<LocationPermissionResponse>;
   export function getForegroundPermissionsAsync(): Promise<LocationPermissionResponse>;
   export function reverseGeocodeAsync(
@@ -347,5 +382,5 @@ declare interface Location {
 declare enum FuelType {
   REGULAR_UNLEADED = "REGULAR_UNLEADED",
   PREMIUM_UNLEADED = "PREMIUM_UNLEADED",
-  DIESEL = "DIESEL"
+  DIESEL = "DIESEL",
 }

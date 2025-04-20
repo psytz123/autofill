@@ -9,12 +9,12 @@ import {
   TextStyle,
   StyleProp,
 } from "react-native";
-import { 
-  SafeTouchableOpacity, 
-  SafeText, 
+import {
+  SafeTouchableOpacity,
+  SafeText,
   SafeActivityIndicator,
   mergeStyles,
-  composeStyles
+  composeStyles,
 } from "../utils/component-types";
 
 // Use our safe component types

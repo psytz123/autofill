@@ -7,10 +7,10 @@ import {
   TouchableOpacityProps,
   StyleProp,
 } from "react-native";
-import { 
-  SafeView, 
-  SafeTouchableOpacity, 
-  composeStyles 
+import {
+  SafeView,
+  SafeTouchableOpacity,
+  composeStyles,
 } from "../utils/component-types";
 
 // Use our safe component types
@@ -34,7 +34,7 @@ const CardHeader: React.FC<CardHeaderProps> = ({ children, style }) => {
   // Use our safe style composition helper
   const headerStyles = composeStyles<ViewStyle>(
     styles.cardHeader,
-    style as ViewStyle
+    style as ViewStyle,
   );
 
   return <View style={headerStyles}>{children}</View>;
@@ -50,7 +50,7 @@ const CardContent: React.FC<CardContentProps> = ({ children, style }) => {
   // Use our safe style composition helper
   const contentStyles = composeStyles<ViewStyle>(
     styles.cardContent,
-    style as ViewStyle
+    style as ViewStyle,
   );
 
   return <View style={contentStyles}>{children}</View>;
@@ -66,7 +66,7 @@ const CardFooter: React.FC<CardFooterProps> = ({ children, style }) => {
   // Use our safe style composition helper
   const footerStyles = composeStyles<ViewStyle>(
     styles.cardFooter,
-    style as ViewStyle
+    style as ViewStyle,
   );
 
   return <View style={footerStyles}>{children}</View>;
@@ -82,10 +82,7 @@ interface CardComponent extends React.FC<CardProps> {
 // Main Card component
 const Card: CardComponent = ({ children, style, onPress, touchableProps }) => {
   // Use our safe style composition helper
-  const cardStyles = composeStyles<ViewStyle>(
-    styles.card,
-    style as ViewStyle
-  );
+  const cardStyles = composeStyles<ViewStyle>(styles.card, style as ViewStyle);
 
   if (onPress) {
     return (

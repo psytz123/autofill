@@ -54,6 +54,7 @@ export interface Order {
   scheduledFor?: string;
   completedAt?: string;
   createdAt: string;
+  isEmergency?: boolean;
   vehicle?: Vehicle;
   location?: Location;
 }
@@ -148,59 +149,59 @@ export interface PushSubscription {
 
 // Enums
 export enum FuelType {
-  REGULAR_UNLEADED = 'REGULAR_UNLEADED',
-  PREMIUM_UNLEADED = 'PREMIUM_UNLEADED',
-  DIESEL = 'DIESEL',
+  REGULAR_UNLEADED = "REGULAR_UNLEADED",
+  PREMIUM_UNLEADED = "PREMIUM_UNLEADED",
+  DIESEL = "DIESEL",
 }
 
 export enum LocationType {
-  HOME = 'HOME',
-  WORK = 'WORK',
-  OTHER = 'OTHER',
+  HOME = "HOME",
+  WORK = "WORK",
+  OTHER = "OTHER",
 }
 
 export enum OrderStatus {
-  PENDING = 'PENDING',
-  CONFIRMED = 'CONFIRMED',
-  ASSIGNED = 'ASSIGNED',
-  EN_ROUTE = 'EN_ROUTE',
-  ARRIVED = 'ARRIVED',
-  IN_PROGRESS = 'IN_PROGRESS',
-  COMPLETED = 'COMPLETED',
-  CANCELLED = 'CANCELLED',
+  PENDING = "PENDING",
+  CONFIRMED = "CONFIRMED",
+  ASSIGNED = "ASSIGNED",
+  EN_ROUTE = "EN_ROUTE",
+  ARRIVED = "ARRIVED",
+  IN_PROGRESS = "IN_PROGRESS",
+  COMPLETED = "COMPLETED",
+  CANCELLED = "CANCELLED",
 }
 
 export enum PaymentMethodType {
-  CREDIT_CARD = 'CREDIT_CARD',
-  DEBIT_CARD = 'DEBIT_CARD',
-  PAYPAL = 'PAYPAL',
+  CREDIT_CARD = "CREDIT_CARD",
+  DEBIT_CARD = "DEBIT_CARD",
+  PAYPAL = "PAYPAL",
 }
 
 export enum BillingInterval {
-  MONTHLY = 'MONTHLY',
-  QUARTERLY = 'QUARTERLY',
-  ANNUAL = 'ANNUAL',
+  MONTHLY = "MONTHLY",
+  QUARTERLY = "QUARTERLY",
+  ANNUAL = "ANNUAL",
 }
 
 export enum SupportRequestType {
-  BILLING = 'BILLING',
-  DELIVERY = 'DELIVERY',
-  TECHNICAL = 'TECHNICAL',
-  ACCOUNT = 'ACCOUNT',
-  OTHER = 'OTHER',
+  BILLING = "BILLING",
+  DELIVERY = "DELIVERY",
+  TECHNICAL = "TECHNICAL",
+  ACCOUNT = "ACCOUNT",
+  OTHER = "OTHER",
 }
 
 export enum SupportRequestStatus {
-  OPEN = 'OPEN',
-  IN_PROGRESS = 'IN_PROGRESS',
-  RESOLVED = 'RESOLVED',
-  CLOSED = 'CLOSED',
+  OPEN = "OPEN",
+  IN_PROGRESS = "IN_PROGRESS",
+  RESOLVED = "RESOLVED",
+  CLOSED = "CLOSED",
 }
 
 export enum OrderAssignmentStatus {
-  PENDING = 'PENDING',
-  ACCEPTED = 'ACCEPTED',
-  REJECTED = 'REJECTED',
-  COMPLETED = 'COMPLETED',
-  CANCELLED = 'CANCELLED',
+  PENDING = "PENDING",
+  ACCEPTED = "ACCEPTED",
+  REJECTED = "REJECTED",
+  COMPLETED = "COMPLETED",
+  CANCELLED = "CANCELLED",
 }

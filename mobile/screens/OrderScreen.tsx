@@ -187,13 +187,15 @@ const OrderScreen: React.FC<Partial<OrderScreenProps>> = ({ navigation }) => {
                   variant="outline"
                   size="small"
                   style={styles.emptyCardButton}
-                  onPress={() => navigation.navigate('LocationSelection', { 
-                    returnTo: 'Order',
-                    onSaveCallback: (location: Location) => {
-                      setUserLocations([...userLocations, location]);
-                      setSelectedLocationId(location.id);
-                    }
-                  })}
+                  onPress={() =>
+                    navigation.navigate("LocationSelection", {
+                      returnTo: "Order",
+                      onSaveCallback: (location: Location) => {
+                        setUserLocations([...userLocations, location]);
+                        setSelectedLocationId(location.id);
+                      },
+                    })
+                  }
                 />
               </Card.Content>
             </Card>

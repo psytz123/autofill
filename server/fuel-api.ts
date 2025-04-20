@@ -61,7 +61,7 @@ let priceCache: PriceCache = {
   rateLimitExpiry: 0,
   requestCount: 0,
   lastRequestTime: 0,
-  consecutiveFailures: 0
+  consecutiveFailures: 0,
 };
 
 /**
@@ -72,7 +72,9 @@ let priceCache: PriceCache = {
  */
 function getDelayWithJitter(baseDelayMs: number, jitterFactor = 0.3): number {
   const jitterAmount = baseDelayMs * jitterFactor;
-  return baseDelayMs + randomInt(-Math.floor(jitterAmount), Math.floor(jitterAmount));
+  return (
+    baseDelayMs + randomInt(-Math.floor(jitterAmount), Math.floor(jitterAmount))
+  );
 }
 
 /**
@@ -106,8 +108,11 @@ async function retry<T>(
 
       // Add jitter to avoid thundering herd problem when multiple instances retry at once
       const delayWithJitter = getDelayWithJitter(currentDelay);
-      log(`Waiting ${Math.round(delayWithJitter / 1000)} seconds before next attempt`, "fuel-api");
-      
+      log(
+        `Waiting ${Math.round(delayWithJitter / 1000)} seconds before next attempt`,
+        "fuel-api",
+      );
+
       // Wait for the delay before retrying
       await new Promise((resolve) => setTimeout(resolve, delayWithJitter));
 
@@ -128,7 +133,7 @@ function shouldThrottleRequest(): boolean {
   // If we've had consecutive failures, be more conservative
   const dynamicMaxRequests = Math.max(
     1, // Minimum 1 request allowed
-    MAX_REQUESTS_PER_MINUTE - Math.min(2, priceCache.consecutiveFailures) // Reduce by up to 2 based on failures
+    MAX_REQUESTS_PER_MINUTE - Math.min(2, priceCache.consecutiveFailures), // Reduce by up to 2 based on failures
   );
 
   // If this is the first request or it's been more than our throttle window, reset the counter
@@ -164,14 +169,14 @@ function calculateBackoffTime(): number {
   // Base backoff increases with consecutive failures
   const backoffMultiplier = Math.min(
     Math.pow(RATE_LIMIT_EXTENDED_FACTOR, priceCache.consecutiveFailures),
-    RATE_LIMIT_BACKOFF_MAX / RATE_LIMIT_BACKOFF_MIN // Cap the multiplier
+    RATE_LIMIT_BACKOFF_MAX / RATE_LIMIT_BACKOFF_MIN, // Cap the multiplier
   );
-  
+
   // Calculate backoff time with some randomness
   const baseBackoff = RATE_LIMIT_BACKOFF_MIN * backoffMultiplier;
   const maxBackoff = Math.min(baseBackoff, RATE_LIMIT_BACKOFF_MAX);
   const backoffWithJitter = getDelayWithJitter(maxBackoff, 0.2); // 20% jitter
-  
+
   return backoffWithJitter;
 }
 
@@ -196,7 +201,9 @@ export async function getFuelPrices(
 
   // Check if we're currently rate limited
   if (priceCache.rateLimited && now < priceCache.rateLimitExpiry) {
-    const minutesRemaining = Math.ceil((priceCache.rateLimitExpiry - now) / (60 * 1000));
+    const minutesRemaining = Math.ceil(
+      (priceCache.rateLimitExpiry - now) / (60 * 1000),
+    );
     log(
       `API currently rate limited, using cached prices. Rate limit expires in ${minutesRemaining} minutes`,
       "fuel-api",
@@ -214,16 +221,10 @@ export async function getFuelPrices(
     // Log different message if cache is getting stale
     if (now - priceCache.lastUpdated > CACHE_STALE_WARNING) {
       const hoursOld = Math.round((now - priceCache.lastUpdated) / 3600000);
-      log(
-        `Using stale cached fuel prices (${hoursOld} hours old)`,
-        "fuel-api",
-      );
+      log(`Using stale cached fuel prices (${hoursOld} hours old)`, "fuel-api");
     } else {
       const minutesOld = Math.round((now - priceCache.lastUpdated) / 60000);
-      log(
-        `Using cached fuel prices (${minutesOld} minutes old)`,
-        "fuel-api",
-      );
+      log(`Using cached fuel prices (${minutesOld} minutes old)`, "fuel-api");
     }
     return priceCache.prices;
   }
@@ -260,7 +261,7 @@ export async function getFuelPrices(
                 Authorization: `apikey ${process.env.COLLECTAPI_KEY}`,
                 // Add cache control headers to prevent caching issues
                 "Cache-Control": "no-cache",
-                "Pragma": "no-cache"
+                Pragma: "no-cache",
               },
               signal: controller.signal,
             },
@@ -359,15 +360,21 @@ export async function getFuelPrices(
 
     // Increment consecutive failures counter
     priceCache.consecutiveFailures += 1;
-    
+
     // Log consecutive failure count
-    log(`Consecutive API failures: ${priceCache.consecutiveFailures}`, "fuel-api");
+    log(
+      `Consecutive API failures: ${priceCache.consecutiveFailures}`,
+      "fuel-api",
+    );
 
     // Determine if this is a rate limiting error (status 429)
     const isRateLimitError = error.message && error.message.includes("429");
 
     if (isRateLimitError) {
-      log("Rate limit detected, implementing smart backoff strategy", "fuel-api");
+      log(
+        "Rate limit detected, implementing smart backoff strategy",
+        "fuel-api",
+      );
 
       // Calculate appropriate backoff based on failure history
       const backoffTime = calculateBackoffTime();
@@ -391,8 +398,13 @@ export async function getFuelPrices(
 
     // If we have cached data, return it even if expired
     if (priceCache.lastUpdated > 0) {
-      const cacheAgeMinutes = Math.round((now - priceCache.lastUpdated) / (60 * 1000));
-      log(`Using existing cached prices (${cacheAgeMinutes} minutes old)`, "fuel-api");
+      const cacheAgeMinutes = Math.round(
+        (now - priceCache.lastUpdated) / (60 * 1000),
+      );
+      log(
+        `Using existing cached prices (${cacheAgeMinutes} minutes old)`,
+        "fuel-api",
+      );
       return priceCache.prices;
     }
 

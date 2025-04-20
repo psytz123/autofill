@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
-import type { ViewStyle, TextStyle } from 'react-native';
+import React, { useState, useEffect, useRef } from "react";
+import type { ViewStyle, TextStyle } from "react-native";
 import {
   StyleSheet,
   View as RNView,
@@ -7,14 +7,19 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Alert,
-} from 'react-native';
+} from "react-native";
 
 // Alias View to ensure proper typing
 const View = RNView;
 
-import type { ViewStyle, TextStyle } from 'react-native';
-import { MapView as MapViewType, Marker as MarkerType, PROVIDER_GOOGLE, Region } from 'react-native-maps';
-import * as Location from 'expo-location';
+import type { ViewStyle, TextStyle } from "react-native";
+import {
+  MapView as MapViewType,
+  Marker as MarkerType,
+  PROVIDER_GOOGLE,
+  Region,
+} from "react-native-maps";
+import * as Location from "expo-location";
 
 // Import with different names to avoid namespace conflicts
 const MapView = MapViewType as any;
@@ -44,7 +49,7 @@ interface LocationMapProps {
 const LocationMap: React.FC<LocationMapProps> = ({
   initialLocation,
   onLocationSelect,
-  readOnly = false
+  readOnly = false,
 }) => {
   const mapRef = useRef<any>(null);
   const [loading, setLoading] = useState(true);
@@ -63,7 +68,7 @@ const LocationMap: React.FC<LocationMapProps> = ({
           latitude: initialLocation.coordinates.lat,
           longitude: initialLocation.coordinates.lng,
         }
-      : null
+      : null,
   );
 
   // Get current user location on mount
@@ -76,12 +81,12 @@ const LocationMap: React.FC<LocationMapProps> = ({
     (async () => {
       try {
         const { status } = await Location.requestForegroundPermissionsAsync();
-        
-        if (status !== 'granted') {
+
+        if (status !== "granted") {
           Alert.alert(
-            'Permission Denied',
-            'We need location permissions to show your current location on the map.',
-            [{ text: 'OK' }]
+            "Permission Denied",
+            "We need location permissions to show your current location on the map.",
+            [{ text: "OK" }],
           );
           setLoading(false);
           return;
@@ -99,7 +104,7 @@ const LocationMap: React.FC<LocationMapProps> = ({
         };
 
         setCurrentRegion(newRegion);
-        
+
         if (!initialLocation && !markerPosition) {
           setMarkerPosition({
             latitude: location.coords.latitude,
@@ -109,11 +114,11 @@ const LocationMap: React.FC<LocationMapProps> = ({
 
         mapRef.current?.animateToRegion(newRegion, 1000);
       } catch (error) {
-        console.error('Error getting location:', error);
+        console.error("Error getting location:", error);
         Alert.alert(
-          'Location Error',
-          'Could not determine your current location. Please select a location manually.',
-          [{ text: 'OK' }]
+          "Location Error",
+          "Could not determine your current location. Please select a location manually.",
+          [{ text: "OK" }],
         );
       } finally {
         setLoading(false);
@@ -122,15 +127,20 @@ const LocationMap: React.FC<LocationMapProps> = ({
   }, [initialLocation]);
 
   // When a user taps on the map to select a location
-  const handleMapPress = async (e: { nativeEvent: { coordinate: { latitude: number; longitude: number } } }) => {
+  const handleMapPress = async (e: {
+    nativeEvent: { coordinate: { latitude: number; longitude: number } };
+  }) => {
     if (readOnly) return;
 
     const { coordinate } = e.nativeEvent;
     setMarkerPosition(coordinate);
 
     try {
-      const location = await reverseGeocode(coordinate.latitude, coordinate.longitude);
-      
+      const location = await reverseGeocode(
+        coordinate.latitude,
+        coordinate.longitude,
+      );
+
       if (onLocationSelect) {
         onLocationSelect({
           name: location.name,
@@ -142,11 +152,11 @@ const LocationMap: React.FC<LocationMapProps> = ({
         });
       }
     } catch (error) {
-      console.error('Error geocoding location:', error);
+      console.error("Error geocoding location:", error);
       Alert.alert(
-        'Location Error',
-        'Could not determine the address for this location. Please try another spot.',
-        [{ text: 'OK' }]
+        "Location Error",
+        "Could not determine the address for this location. Please try another spot.",
+        [{ text: "OK" }],
       );
     }
   };
@@ -170,26 +180,25 @@ const LocationMap: React.FC<LocationMapProps> = ({
           result.postalCode,
         ].filter(Boolean);
 
-        const name = result.name || 'Selected Location';
-        const address = addressComponents.join(', ');
+        const name = result.name || "Selected Location";
+        const address = addressComponents.join(", ");
 
         return { name, address };
       }
 
       // Fallback if no results
       return {
-        name: 'Selected Location',
+        name: "Selected Location",
         address: `Lat: ${latitude.toFixed(6)}, Lng: ${longitude.toFixed(6)}`,
       };
     } catch (error) {
-      console.error('Reverse geocode error:', error);
+      console.error("Reverse geocode error:", error);
       throw error;
     }
   };
 
   return (
     <View style={styles.container}>
-
       {loading ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#f97316" />
@@ -214,7 +223,11 @@ const LocationMap: React.FC<LocationMapProps> = ({
                 coordinate={markerPosition}
                 pinColor="#f97316"
                 draggable={!readOnly}
-                onDragEnd={(e: { nativeEvent: { coordinate: { latitude: number; longitude: number } } }) => handleMapPress(e)}
+                onDragEnd={(e: {
+                  nativeEvent: {
+                    coordinate: { latitude: number; longitude: number };
+                  };
+                }) => handleMapPress(e)}
               />
             )}
           </MapView>
@@ -235,31 +248,31 @@ const LocationMap: React.FC<LocationMapProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    overflow: 'hidden',
+    overflow: "hidden",
   },
   loadingContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   loadingText: {
     marginTop: 10,
     fontSize: 16,
-    color: '#64748b',
+    color: "#64748b",
   },
   map: {
     flex: 1,
   },
   instructionContainer: {
-    position: 'absolute',
+    position: "absolute",
     bottom: 16,
     left: 16,
     right: 16,
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    backgroundColor: "rgba(255, 255, 255, 0.9)",
     borderRadius: 8,
     padding: 12,
-    alignItems: 'center',
-    shadowColor: '#000',
+    alignItems: "center",
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -267,8 +280,8 @@ const styles = StyleSheet.create({
   },
   instructionText: {
     fontSize: 14,
-    color: '#1e293b',
-    textAlign: 'center',
+    color: "#1e293b",
+    textAlign: "center",
   },
 });
 

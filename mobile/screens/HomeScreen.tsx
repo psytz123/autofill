@@ -28,8 +28,8 @@ const HomeScreen: React.FC<Partial<HomeScreenProps>> = ({ navigation }) => {
   const [refreshing, setRefreshing] = useState(false);
   const [processingEmergency, setProcessingEmergency] = useState(false);
   const [locationPermissionStatus, setLocationPermissionStatus] = useState<
-    'granted' | 'denied' | 'undetermined'
-  >('undetermined');
+    "granted" | "denied" | "undetermined"
+  >("undetermined");
 
   // Fetch data when component mounts and check location permissions
   useEffect(() => {
@@ -41,10 +41,12 @@ const HomeScreen: React.FC<Partial<HomeScreenProps>> = ({ navigation }) => {
   const checkLocationPermission = async () => {
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
-      setLocationPermissionStatus(status as 'granted' | 'denied' | 'undetermined');
+      setLocationPermissionStatus(
+        status as "granted" | "denied" | "undetermined",
+      );
     } catch (error) {
       console.error("Error checking location permission:", error);
-      setLocationPermissionStatus('denied');
+      setLocationPermissionStatus("denied");
     }
   };
 
@@ -77,96 +79,99 @@ const HomeScreen: React.FC<Partial<HomeScreenProps>> = ({ navigation }) => {
   const handleNewOrder = () => {
     navigation?.navigate("Order");
   };
-  
+
   // Handle emergency fuel request
   const handleEmergencyFuel = async () => {
     if (userVehicles.length === 0) {
       Alert.alert(
         "No Vehicles Found",
         "Please add a vehicle before requesting emergency fuel.",
-        [{ text: "OK" }]
+        [{ text: "OK" }],
       );
       return;
     }
-    
-    if (locationPermissionStatus !== 'granted') {
+
+    if (locationPermissionStatus !== "granted") {
       Alert.alert(
         "Location Permission Required",
         "AutoFill needs your location to send emergency fuel to you.",
         [
           { text: "Cancel" },
-          { 
-            text: "Grant Permission", 
+          {
+            text: "Grant Permission",
             onPress: async () => {
-              const { status } = await Location.requestForegroundPermissionsAsync();
-              setLocationPermissionStatus(status as 'granted' | 'denied' | 'undetermined');
-              if (status === 'granted') {
+              const { status } =
+                await Location.requestForegroundPermissionsAsync();
+              setLocationPermissionStatus(
+                status as "granted" | "denied" | "undetermined",
+              );
+              if (status === "granted") {
                 handleEmergencyFuel();
               }
-            } 
-          }
-        ]
+            },
+          },
+        ],
       );
       return;
     }
 
     // Select vehicle if multiple vehicles exist
-    const selectedVehicle = userVehicles.length === 1 
-      ? userVehicles[0] 
-      : await selectVehiclePrompt();
-    
+    const selectedVehicle =
+      userVehicles.length === 1 ? userVehicles[0] : await selectVehiclePrompt();
+
     if (!selectedVehicle) return;
 
     setProcessingEmergency(true);
-    
+
     try {
       // Get current location
       const location = await Location.getCurrentPositionAsync({
-        accuracy: Location.Accuracy.High
+        accuracy: Location.Accuracy.High,
       });
-      
+
       // Get address from coordinates
       const [addressData] = await Location.reverseGeocodeAsync({
         latitude: location.coords.latitude,
-        longitude: location.coords.longitude
+        longitude: location.coords.longitude,
       });
-      
+
       const address = formatAddress(addressData);
-      
+
       // Confirm emergency request
       Alert.alert(
         "Confirm Emergency Fuel Request",
         `We'll send fuel to:\n${address}\n\nVehicle: ${selectedVehicle.make} ${selectedVehicle.model}\nFuel: ${formatFuelType(selectedVehicle.fuelType)}`,
         [
-          { 
+          {
             text: "Cancel",
             style: "cancel",
-            onPress: () => setProcessingEmergency(false)
+            onPress: () => setProcessingEmergency(false),
           },
           {
             text: "Send Help Now",
             style: "destructive",
-            onPress: () => processEmergencyOrder(selectedVehicle, {
-              address,
-              coordinates: {
-                lat: location.coords.latitude,
-                lng: location.coords.longitude
-              }
-            })
-          }
-        ]
+            onPress: () =>
+              processEmergencyOrder(selectedVehicle, {
+                address,
+                coordinates: {
+                  lat: location.coords.latitude,
+                  lng: location.coords.longitude,
+                },
+              }),
+          },
+        ],
       );
     } catch (error) {
       console.error("Error processing emergency fuel request:", error);
       Alert.alert(
         "Location Error",
         "Unable to determine your current location. Please try again or use the standard order process.",
-        [{ text: "OK" }]
+        [{ text: "OK" }],
       );
       setProcessingEmergency(false);
     }
   };
-  
+
   // Format address data from geocoding result
   const formatAddress = (address: Location.LocationGeocodedAddress): string => {
     const parts = [
@@ -175,21 +180,21 @@ const HomeScreen: React.FC<Partial<HomeScreenProps>> = ({ navigation }) => {
       address.city,
       address.region,
       address.postalCode,
-      address.country
+      address.country,
     ].filter(Boolean);
-    
+
     return parts.join(", ");
   };
-  
+
   // Prompt user to select a vehicle if they have multiple
   const selectVehiclePrompt = (): Promise<Vehicle | null> => {
     return new Promise((resolve) => {
-      const options = userVehicles.map(vehicle => 
-        `${vehicle.make} ${vehicle.model} (${vehicle.year})`
+      const options = userVehicles.map(
+        (vehicle) => `${vehicle.make} ${vehicle.model} (${vehicle.year})`,
       );
-      
+
       options.push("Cancel");
-      
+
       Alert.alert(
         "Select Vehicle for Emergency Fuel",
         "Which vehicle needs fuel?",
@@ -203,43 +208,43 @@ const HomeScreen: React.FC<Partial<HomeScreenProps>> = ({ navigation }) => {
               resolve(userVehicles[index]);
             }
           },
-          style: index === options.length - 1 ? "cancel" : "default"
-        }))
+          style: index === options.length - 1 ? "cancel" : "default",
+        })),
       );
     });
   };
-  
+
   // Process the emergency order
   const processEmergencyOrder = async (
     vehicle: Vehicle,
-    location: { address: string; coordinates: { lat: number; lng: number } }
+    location: { address: string; coordinates: { lat: number; lng: number } },
   ) => {
     try {
       // Default to 5 gallons for emergency
       const fuelAmount = 5;
-      
+
       // Create emergency order
       const response = await orders.createEmergency({
         vehicleId: vehicle.id,
         location,
         fuelType: vehicle.fuelType,
-        amount: fuelAmount
+        amount: fuelAmount,
       });
-      
+
       // Refresh data and show success message
       await fetchInitialData();
-      
+
       Alert.alert(
         "Emergency Fuel Request Sent!",
         "Your request has been confirmed. A driver will be dispatched to your location shortly.",
-        [{ text: "OK" }]
+        [{ text: "OK" }],
       );
     } catch (error) {
       console.error("Error creating emergency order:", error);
       Alert.alert(
         "Request Failed",
         "There was an error sending your emergency fuel request. Please try again.",
-        [{ text: "OK" }]
+        [{ text: "OK" }],
       );
     } finally {
       setProcessingEmergency(false);
@@ -297,7 +302,7 @@ const HomeScreen: React.FC<Partial<HomeScreenProps>> = ({ navigation }) => {
           <TouchableOpacity
             style={[
               styles.emergencyButton,
-              processingEmergency && styles.emergencyButtonProcessing
+              processingEmergency && styles.emergencyButtonProcessing,
             ]}
             onPress={handleEmergencyFuel}
             disabled={processingEmergency}
@@ -305,7 +310,11 @@ const HomeScreen: React.FC<Partial<HomeScreenProps>> = ({ navigation }) => {
             <View style={styles.emergencyButtonContent}>
               {processingEmergency ? (
                 <>
-                  <ActivityIndicator size="small" color="#ffffff" style={styles.emergencyButtonLoader} />
+                  <ActivityIndicator
+                    size="small"
+                    color="#ffffff"
+                    style={styles.emergencyButtonLoader}
+                  />
                   <Text style={styles.emergencyButtonText}>
                     Processing Emergency Request...
                   </Text>
@@ -345,7 +354,14 @@ const HomeScreen: React.FC<Partial<HomeScreenProps>> = ({ navigation }) => {
               <Card key={order.id} style={styles.orderHistoryCard}>
                 <Card.Content>
                   <View style={styles.orderHistoryHeader}>
-                    <Text style={styles.orderHistoryId}>Order #{order.id}</Text>
+                    <View style={styles.orderHistoryIdContainer}>
+                      <Text style={styles.orderHistoryId}>Order #{order.id}</Text>
+                      {order.isEmergency && (
+                        <View style={styles.emergencyBadge}>
+                          <Text style={styles.emergencyBadgeText}>EMERGENCY</Text>
+                        </View>
+                      )}
+                    </View>
                     <View
                       style={[
                         styles.statusPill,
@@ -574,10 +590,25 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 12,
   },
+  orderHistoryIdContainer: {
+    flexDirection: "column",
+  },
   orderHistoryId: {
     fontSize: 16,
     fontWeight: "600",
     color: "#0f172a",
+  },
+  emergencyBadge: {
+    backgroundColor: "#ef4444",
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    marginTop: 4,
+  },
+  emergencyBadgeText: {
+    color: "#ffffff",
+    fontSize: 10,
+    fontWeight: "700",
   },
   statusPill: {
     paddingHorizontal: 8,

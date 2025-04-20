@@ -7,21 +7,21 @@ import {
   Vehicle,
   PaymentMethod,
   PaymentMethodType,
-  User
-} from './types';
+  User,
+} from "./types";
 
 // Base URL for API calls
-const API_BASE_URL = 'https://autofill-app.replit.app/api';
+const API_BASE_URL = "https://autofill-app.replit.app/api";
 // For local development, use:
 // const API_BASE_URL = 'http://localhost:5000/api';
 
 // Global fetch options
 const DEFAULT_OPTIONS: RequestInit = {
   headers: {
-    'Content-Type': 'application/json',
-    'Accept': 'application/json',
+    "Content-Type": "application/json",
+    Accept: "application/json",
   },
-  credentials: 'include', // Include cookies for session authentication
+  credentials: "include", // Include cookies for session authentication
 };
 
 /**
@@ -29,9 +29,9 @@ const DEFAULT_OPTIONS: RequestInit = {
  */
 async function apiRequest<T>(
   endpoint: string,
-  method: string = 'GET',
+  method: string = "GET",
   data?: any,
-  customOptions: RequestInit = {}
+  customOptions: RequestInit = {},
 ): Promise<T> {
   const url = `${API_BASE_URL}${endpoint}`;
   const options: RequestInit = {
@@ -60,8 +60,8 @@ async function apiRequest<T>(
     }
 
     // Check if response has content
-    const contentType = response.headers.get('content-type');
-    if (contentType && contentType.includes('application/json')) {
+    const contentType = response.headers.get("content-type");
+    if (contentType && contentType.includes("application/json")) {
       return await response.json();
     }
 
@@ -77,7 +77,7 @@ async function apiRequest<T>(
  */
 export const auth = {
   login: async (username: string, password: string): Promise<User> => {
-    return apiRequest<User>('/login', 'POST', { username, password });
+    return apiRequest<User>("/login", "POST", { username, password });
   },
 
   register: async (userData: {
@@ -88,19 +88,19 @@ export const auth = {
     lastName?: string;
     phone?: string;
   }): Promise<User> => {
-    return apiRequest<User>('/register', 'POST', userData);
+    return apiRequest<User>("/register", "POST", userData);
   },
 
   logout: async (): Promise<void> => {
-    return apiRequest<void>('/logout', 'POST');
+    return apiRequest<void>("/logout", "POST");
   },
 
   getCurrentUser: async (): Promise<User> => {
-    return apiRequest<User>('/user');
+    return apiRequest<User>("/user");
   },
 
   updateProfile: async (userData: Partial<User>): Promise<User> => {
-    return apiRequest<User>('/user', 'PATCH', userData);
+    return apiRequest<User>("/user", "PATCH", userData);
   },
 };
 
@@ -109,7 +109,7 @@ export const auth = {
  */
 export const vehicles = {
   getAll: async (): Promise<Vehicle[]> => {
-    return apiRequest<Vehicle[]>('/vehicles');
+    return apiRequest<Vehicle[]>("/vehicles");
   },
 
   get: async (id: number): Promise<Vehicle> => {
@@ -125,15 +125,18 @@ export const vehicles = {
     fuelType: FuelType;
     fuelCapacity?: number;
   }): Promise<Vehicle> => {
-    return apiRequest<Vehicle>('/vehicles', 'POST', vehicleData);
+    return apiRequest<Vehicle>("/vehicles", "POST", vehicleData);
   },
 
-  update: async (id: number, vehicleData: Partial<Vehicle>): Promise<Vehicle> => {
-    return apiRequest<Vehicle>(`/vehicles/${id}`, 'PATCH', vehicleData);
+  update: async (
+    id: number,
+    vehicleData: Partial<Vehicle>,
+  ): Promise<Vehicle> => {
+    return apiRequest<Vehicle>(`/vehicles/${id}`, "PATCH", vehicleData);
   },
 
   delete: async (id: number): Promise<void> => {
-    return apiRequest<void>(`/vehicles/${id}`, 'DELETE');
+    return apiRequest<void>(`/vehicles/${id}`, "DELETE");
   },
 };
 
@@ -142,7 +145,7 @@ export const vehicles = {
  */
 export const locations = {
   getAll: async (): Promise<Location[]> => {
-    return apiRequest<Location[]>('/locations');
+    return apiRequest<Location[]>("/locations");
   },
 
   get: async (id: number): Promise<Location> => {
@@ -155,15 +158,18 @@ export const locations = {
     type: LocationType;
     coordinates: { lat: number; lng: number };
   }): Promise<Location> => {
-    return apiRequest<Location>('/locations', 'POST', locationData);
+    return apiRequest<Location>("/locations", "POST", locationData);
   },
 
-  update: async (id: number, locationData: Partial<Location>): Promise<Location> => {
-    return apiRequest<Location>(`/locations/${id}`, 'PATCH', locationData);
+  update: async (
+    id: number,
+    locationData: Partial<Location>,
+  ): Promise<Location> => {
+    return apiRequest<Location>(`/locations/${id}`, "PATCH", locationData);
   },
 
   delete: async (id: number): Promise<void> => {
-    return apiRequest<void>(`/locations/${id}`, 'DELETE');
+    return apiRequest<void>(`/locations/${id}`, "DELETE");
   },
 };
 
@@ -172,7 +178,7 @@ export const locations = {
  */
 export const orders = {
   getAll: async (): Promise<Order[]> => {
-    return apiRequest<Order[]>('/orders');
+    return apiRequest<Order[]>("/orders");
   },
 
   get: async (id: number): Promise<Order> => {
@@ -192,7 +198,7 @@ export const orders = {
     total: number;
     scheduledFor?: string;
   }): Promise<Order> => {
-    return apiRequest<Order>('/orders', 'POST', orderData);
+    return apiRequest<Order>("/orders", "POST", orderData);
   },
 
   createEmergency: async (orderData: {
@@ -204,15 +210,15 @@ export const orders = {
     fuelType: FuelType;
     amount: number;
   }): Promise<Order> => {
-    return apiRequest<Order>('/orders/emergency', 'POST', orderData);
+    return apiRequest<Order>("/orders/emergency", "POST", orderData);
   },
 
   updateStatus: async (id: number, status: OrderStatus): Promise<Order> => {
-    return apiRequest<Order>(`/orders/${id}/status`, 'PATCH', { status });
+    return apiRequest<Order>(`/orders/${id}/status`, "PATCH", { status });
   },
 
   cancel: async (id: number): Promise<Order> => {
-    return apiRequest<Order>(`/orders/${id}/cancel`, 'POST');
+    return apiRequest<Order>(`/orders/${id}/cancel`, "POST");
   },
 };
 
@@ -221,7 +227,7 @@ export const orders = {
  */
 export const paymentMethods = {
   getAll: async (): Promise<PaymentMethod[]> => {
-    return apiRequest<PaymentMethod[]>('/payment-methods');
+    return apiRequest<PaymentMethod[]>("/payment-methods");
   },
 
   get: async (id: number): Promise<PaymentMethod> => {
@@ -232,15 +238,15 @@ export const paymentMethods = {
     type: PaymentMethodType;
     stripePaymentMethodId: string;
   }): Promise<PaymentMethod> => {
-    return apiRequest<PaymentMethod>('/payment-methods', 'POST', paymentData);
+    return apiRequest<PaymentMethod>("/payment-methods", "POST", paymentData);
   },
 
   setDefault: async (id: number): Promise<PaymentMethod> => {
-    return apiRequest<PaymentMethod>(`/payment-methods/${id}/default`, 'POST');
+    return apiRequest<PaymentMethod>(`/payment-methods/${id}/default`, "POST");
   },
 
   delete: async (id: number): Promise<void> => {
-    return apiRequest<void>(`/payment-methods/${id}`, 'DELETE');
+    return apiRequest<void>(`/payment-methods/${id}`, "DELETE");
   },
 };
 
@@ -249,7 +255,9 @@ export const paymentMethods = {
  */
 export const fuel = {
   getPrices: async (stateCode: string): Promise<Record<FuelType, number>> => {
-    return apiRequest<Record<FuelType, number>>(`/fuel/prices?state=${stateCode}`);
+    return apiRequest<Record<FuelType, number>>(
+      `/fuel/prices?state=${stateCode}`,
+    );
   },
 };
 
@@ -258,11 +266,11 @@ export const fuel = {
  */
 export const notifications = {
   subscribe: async (subscription: PushSubscriptionJSON): Promise<void> => {
-    return apiRequest<void>('/push/subscribe', 'POST', { subscription });
+    return apiRequest<void>("/push/subscribe", "POST", { subscription });
   },
 
   unsubscribe: async (endpoint: string): Promise<void> => {
-    return apiRequest<void>('/push/unsubscribe', 'POST', { endpoint });
+    return apiRequest<void>("/push/unsubscribe", "POST", { endpoint });
   },
 };
 

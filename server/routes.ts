@@ -153,40 +153,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Failed to create order" });
     }
   });
-  
+
   // Emergency fuel request endpoint - simplified flow with auto-location
   app.post("/api/orders/emergency", isAuthenticated, async (req, res) => {
     try {
       console.log("Emergency order request:", req.body);
-      
+
       const { vehicleId, location, fuelType, amount } = req.body;
-      
+
       if (!vehicleId || !location || !fuelType || !amount) {
-        return res.status(400).json({ 
-          message: "Missing required fields for emergency order" 
+        return res.status(400).json({
+          message: "Missing required fields for emergency order",
         });
       }
-      
+
       // Create a temporary location for this emergency request
       const locationData = {
         userId: req.user!.id,
         name: "Emergency Location",
         address: location.address,
         coordinates: location.coordinates,
-        type: LocationType.OTHER // Use the enum value
+        type: LocationType.OTHER, // Use the enum value
       };
-      
+
       console.log("Creating temporary location:", locationData);
       const savedLocation = await storage.createLocation(locationData);
-      
+
       // Get current fuel prices
       const stateCode = "FL"; // Default to Florida if we can't determine state
       const prices = await getFuelPrices(stateCode);
       const fuelPrice = prices[fuelType as FuelType] || 3.75; // Cast to FuelType and provide default
-      
+
       // Calculate total
       const total = parseFloat((amount * fuelPrice).toFixed(2));
-      
+
       // Create the emergency order with high priority
       const orderData = {
         userId: req.user!.id,
@@ -200,15 +200,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         total,
         isEmergency: true, // Flag this as an emergency request for special handling
       };
-      
+
       console.log("Creating emergency order:", orderData);
       const order = await storage.createOrder(orderData);
-      
+
       // Return the created order
       res.status(201).json(order);
     } catch (error) {
       console.error("Error creating emergency order:", error);
-      res.status(500).json({ message: "Failed to create emergency fuel request" });
+      res
+        .status(500)
+        .json({ message: "Failed to create emergency fuel request" });
     }
   });
 

@@ -1,6 +1,6 @@
 import { StackNavigationProp } from "@react-navigation/stack";
 import { RouteProp } from "@react-navigation/native";
-import { Location } from '../utils/types';
+import { Location } from "../utils/types";
 
 // Root Stack Parameter List
 export type RootStackParamList = {
@@ -37,7 +37,10 @@ export type LocationScreenNavigationProp = StackNavigationProp<
 export type LoginScreenRouteProp = RouteProp<RootStackParamList, "Login">;
 export type HomeScreenRouteProp = RouteProp<RootStackParamList, "Home">;
 export type OrderScreenRouteProp = RouteProp<RootStackParamList, "Order">;
-export type LocationScreenRouteProp = RouteProp<RootStackParamList, "LocationSelection">;
+export type LocationScreenRouteProp = RouteProp<
+  RootStackParamList,
+  "LocationSelection"
+>;
 
 // Combined Props for each screen
 export interface LoginScreenProps {
