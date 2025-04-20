@@ -5,8 +5,8 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 
 export default function AdminLoginTest() {
-  const [username, setUsername] = useState("admin@autofill.com");
-  const [password, setPassword] = useState("password");
+  const [username, setUsername] = useState("admin");
+  const [password, setPassword] = useState("admin123");
   const [loading, setLoading] = useState(false);
   const [, setLocation] = useLocation();
   const { toast } = useToast();
@@ -86,9 +86,8 @@ export default function AdminLoginTest() {
       <div className="mt-4 text-sm text-gray-600">
         <p>Try these credentials:</p>
         <ul className="list-disc pl-5 mt-2">
-          <li>Username: admin@autofill.com</li>
           <li>Username: admin</li>
-          <li>Password: password, admin, or the password you set during setup</li>
+          <li>Password: admin123</li>
         </ul>
       </div>
     </div>

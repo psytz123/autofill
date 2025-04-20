@@ -33,6 +33,9 @@ export default function AdminLoginPage() {
           <CardDescription className="text-center">
             Login to access the AutoFill admin dashboard
           </CardDescription>
+          <div className="mt-2 text-xs text-center text-muted-foreground">
+            <p>Default credentials: admin / admin123</p>
+          </div>
         </CardHeader>
         <form onSubmit={handleSubmit}>
           <CardContent className="space-y-4">
@@ -41,7 +44,7 @@ export default function AdminLoginPage() {
               <Input
                 id="username"
                 type="text"
-                placeholder="admin@autofill.com"
+                placeholder="admin"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 required
