@@ -242,6 +242,100 @@ export function registerAdminRoutes(app: Express) {
       }
     },
   );
+  
+  // Update driver location
+  app.post(
+    "/admin/api/drivers/:id/location",
+    isAdminAuthenticated,
+    async (req, res) => {
+      try {
+        const driverId = parseInt(req.params.id);
+        const driver = await adminStorage.getDriver(driverId);
+
+        if (!driver) {
+          return res.status(404).json({ message: "Driver not found" });
+        }
+
+        const { lat, lng } = req.body;
+        
+        if (typeof lat !== 'number' || typeof lng !== 'number') {
+          return res.status(400).json({ message: "Invalid location coordinates" });
+        }
+
+        const currentLocation = { lat, lng };
+        
+        const updatedDriver = await adminStorage.updateDriver(driverId, {
+          currentLocation,
+          updatedAt: new Date(),
+        });
+
+        res.json(updatedDriver);
+      } catch (error) {
+        console.error("Error updating driver location:", error);
+        res.status(500).json({ message: "Failed to update driver location" });
+      }
+    }
+  );
+  
+  // Get driver tracking data (combines driver locations with assigned orders)
+  app.get(
+    "/admin/api/tracking-data",
+    isAdminAuthenticated,
+    async (req, res) => {
+      try {
+        // Get all drivers with their current locations
+        const drivers = await adminStorage.getAllDrivers();
+        
+        // Get all assigned orders with their locations
+        const assignedOrders = await adminStorage.getAssignedOrders();
+        
+        // Get all unassigned orders with their locations
+        const unassignedOrders = await adminStorage.getUnassignedOrders();
+        
+        // Format the response
+        const trackingData = {
+          drivers: drivers.map(driver => ({
+            id: driver.id,
+            name: driver.name,
+            phone: driver.phone,
+            email: driver.email,
+            status: driver.isAvailable ? "AVAILABLE" : "BUSY",
+            location: driver.currentLocation,
+            lastUpdated: driver.updatedAt,
+          })),
+          assignedOrders: assignedOrders.map(order => ({
+            id: order.id,
+            status: order.status,
+            createdAt: order.createdAt,
+            customerId: order.userId,
+            customerName: order.customerName || "Customer",
+            location: order.location,
+            fuelType: order.fuelType,
+            quantity: order.quantity,
+            assigned: true,
+            assignedDriverId: order.driver_id,
+            assignedDriverName: order.driver_name,
+          })),
+          unassignedOrders: unassignedOrders.map(order => ({
+            id: order.id,
+            status: order.status,
+            createdAt: order.createdAt,
+            customerId: order.userId,
+            customerName: order.customerName || "Customer", 
+            location: order.location,
+            fuelType: order.fuelType,
+            quantity: order.quantity,
+            assigned: false,
+          })),
+        };
+        
+        res.json(trackingData);
+      } catch (error) {
+        console.error("Error fetching tracking data:", error);
+        res.status(500).json({ message: "Failed to fetch tracking data" });
+      }
+    }
+  );
 
   app.delete(
     "/admin/api/drivers/:id",
