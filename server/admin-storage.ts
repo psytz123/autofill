@@ -55,6 +55,8 @@ export class AdminStorage {
       ...order,
       fuelType: order.fuelType as FuelType,
       status: order.status as OrderStatus,
+      // Convert totalPrice from cents (integer) to dollars (float)
+      totalPrice: order.totalPrice / 100,
     }));
   }
 
@@ -71,6 +73,10 @@ export class AdminStorage {
       ...order,
       fuelType: order.fuelType as FuelType,
       status: order.status as OrderStatus,
+      // Convert totalPrice from cents (integer) to dollars (float)
+      totalPrice: order.totalPrice / 100,
+      // Mark as emergency if payment_method_id is NULL
+      isEmergency: order.paymentMethodId === null
     }));
   }
 
@@ -87,7 +93,13 @@ export class AdminStorage {
       ORDER BY oa.assigned_at DESC
     `);
 
-    return result.rows;
+    // Format totalPrice from cents to dollars for each order
+    return result.rows.map(order => ({
+      ...order,
+      totalPrice: order.totalPrice / 100,
+      // Mark as emergency if payment_method_id is NULL
+      isEmergency: order.paymentMethodId === null
+    }));
   }
 
   // Driver operations
