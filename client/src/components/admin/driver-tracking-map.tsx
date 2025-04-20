@@ -212,17 +212,27 @@ export default function DriverTrackingMap({ onAssignDriver }: DriverTrackingMapP
     }, 30000);
 
     // Clean up when component unmounts
+    let mounted = true;
+    
     return () => {
+      mounted = false;
+      if (directions) {
+        setDirections(null);
+      }
       clearInterval(intervalId);
-      setDirections(null);
     };
-  }, [isLoaded]);
+  }, [isLoaded, directions]);
 
   // Calculate directions between driver and order
   const calculateDirections = useCallback((driver: AdminDriver, order: AdminOrder) => {
     if (!isLoaded || !driver.location || !order.location) return;
 
-    const directionsService = new google.maps.DirectionsService();
+    let retryCount = 0;
+    const maxRetries = 3;
+    const retryDelay = 2000;
+
+    const calculateWithRetry = () => {
+      const directionsService = new google.maps.DirectionsService();
 
     try {
       directionsService.route(
@@ -240,6 +250,9 @@ export default function DriverTrackingMap({ onAssignDriver }: DriverTrackingMapP
               description: "Please try again in a few moments",
               variant: "destructive",
             });
+          } else if (status === google.maps.DirectionsStatus.OVER_QUERY_LIMIT && retryCount < maxRetries) {
+            retryCount++;
+            setTimeout(calculateWithRetry, retryDelay * retryCount);
           } else {
             toast({
               title: "Directions error",
@@ -250,6 +263,9 @@ export default function DriverTrackingMap({ onAssignDriver }: DriverTrackingMapP
           }
         }
       );
+    };
+
+    calculateWithRetry();
     } catch (error) {
       console.error("[MapError] Direction service error:", error);
       toast({
