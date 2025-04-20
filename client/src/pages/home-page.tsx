@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { Logo } from "@/components/ui/logo";
 import { FuelPricesDisplay } from "@/components/fuel/FuelPricesDisplay";
+import { EmergencyFuelRequest } from "@/components/order/EmergencyFuelRequest";
 
 export default function HomePage() {
   const { user } = useAuth();
@@ -164,17 +165,23 @@ export default function HomePage() {
         )}
       </section>
 
-      {/* Order Button - Fixed at Bottom */}
+      {/* Order Buttons - Fixed at Bottom */}
       <div className="px-3 sm:px-4 py-4 sm:py-5 bg-white border-t border-gray-100 mt-auto">
-        <div className="flex justify-center">
+        <div className="flex flex-col space-y-3">
           <Link href="/order" className="block w-full">
             <Button
-              className="w-full bg-[#FF7433] text-white hover:bg-orange-500 font-bold py-4 sm:py-6 text-base sm:text-lg shadow-md rounded-md"
+              className="w-full bg-[#FF7433] text-white hover:bg-orange-500 font-bold py-4 sm:py-5 text-base sm:text-lg shadow-md rounded-md"
               disabled={!selectedVehicleId}
             >
               ORDER FUEL NOW
             </Button>
           </Link>
+          
+          {/* Emergency Fuel Request Button */}
+          <div className="w-full">
+            {/* We import the component dynamically to avoid layout shift */}
+            <EmergencyFuelRequest />
+          </div>
         </div>
       </div>
     </div>
