@@ -1,2 +1,2 @@
-// Mock file for CSS modules
+// __mocks__/styleMock.js
 module.exports = {};
