@@ -91,6 +91,58 @@ const PostgresSessionStore = connectPg(session);
 
 export class DatabaseStorage implements IStorage {
   sessionStore: session.Store;
+  
+  // Helper method to safely fetch vehicle by ID
+  private async safeGetVehicleById(vehicleId: number): Promise<Vehicle | undefined> {
+    try {
+      // Try with tank_size column first
+      const [vehicle] = await db
+        .select({
+          id: vehicles.id,
+          userId: vehicles.userId,
+          make: vehicles.make,
+          model: vehicles.model,
+          year: vehicles.year,
+          licensePlate: vehicles.licensePlate,
+          fuelType: vehicles.fuelType,
+          createdAt: vehicles.createdAt,
+          updatedAt: vehicles.updatedAt,
+          // Only include tankSize if it exists
+          ...(vehicles.tankSize ? { tankSize: vehicles.tankSize } : {})
+        })
+        .from(vehicles)
+        .where(eq(vehicles.id, vehicleId));
+      
+      return vehicle ? { 
+        ...vehicle, 
+        fuelType: vehicle.fuelType as FuelType 
+      } as Vehicle : undefined;
+    } catch (error) {
+      console.error("[DB] Error fetching vehicle:", error);
+      // Fallback to a simpler query without tank_size
+      const results = await db
+        .execute(sql`
+          SELECT id, user_id, make, model, year, license_plate, fuel_type, created_at, updated_at
+          FROM vehicles
+          WHERE id = ${vehicleId}
+        `);
+      
+      if (results.rows.length === 0) return undefined;
+      
+      const row = results.rows[0];
+      return {
+        id: row.id,
+        userId: row.user_id,
+        make: row.make,
+        model: row.model, 
+        year: row.year,
+        licensePlate: row.license_plate,
+        fuelType: row.fuel_type as FuelType,
+        createdAt: row.created_at,
+        updatedAt: row.updated_at
+      } as Vehicle;
+    }
+  }
 
   constructor() {
     // We need to create a separate pool for session store using the node-postgres package
@@ -169,11 +221,7 @@ export class DatabaseStorage implements IStorage {
 
   // Vehicle methods
   async getVehicle(id: number): Promise<Vehicle | undefined> {
-    const [vehicle] = await db
-      .select()
-      .from(vehicles)
-      .where(eq(vehicles.id, id));
-    return vehicle as Vehicle;
+    return this.safeGetVehicleById(id);
   }
 
   async getVehiclesByUserId(userId: number): Promise<Vehicle[]> {
@@ -267,15 +315,9 @@ export class DatabaseStorage implements IStorage {
 
       // Load related entities if needed
       if (order.vehicleId) {
-        const [vehicle] = await db
-          .select()
-          .from(vehicles)
-          .where(eq(vehicles.id, order.vehicleId));
+        const vehicle = await this.safeGetVehicleById(order.vehicleId);
         if (vehicle) {
-          result.vehicle = {
-            ...vehicle,
-            fuelType: vehicle.fuelType as FuelType
-          };
+          result.vehicle = vehicle;
         }
       }
 

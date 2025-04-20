@@ -810,24 +810,44 @@ export default function OrderPage() {
               <DialogContent className="sm:max-w-[425px]">
                 <FuelLevelSelector
                   vehicleName={`${orderData.vehicle?.make || ""} ${orderData.vehicle?.model || ""}`}
+                  vehicleFuelType={orderData.vehicle?.fuelType || FuelType.REGULAR_UNLEADED}
+                  vehicleTankSize={orderData.vehicle?.tankSize}
                   initialLevel={orderData.vehicle?.fuelLevel || 50}
-                  onSave={(level) => {
+                  onSave={(level, calculatedAmount) => {
                     // Update vehicle with new fuel level
                     if (orderData.vehicle) {
                       const updatedVehicle = {
                         ...orderData.vehicle,
                         fuelLevel: level,
                       };
-                      setOrderData((prev) => ({
-                        ...prev,
+                      
+                      // Create a new order data object with the updated vehicle 
+                      // and the calculated amount if provided
+                      const updatedOrderData = {
+                        ...orderData,
                         vehicle: updatedVehicle,
-                      }));
+                      };
+                      
+                      // If we have a calculated amount, update the fuel amount too
+                      if (calculatedAmount !== undefined) {
+                        updatedOrderData.amount = calculatedAmount;
+                        
+                        // Also set the fuel type to match the vehicle
+                        updatedOrderData.fuelType = orderData.vehicle.fuelType;
+                        
+                        toast({
+                          title: "Fuel amount calculated",
+                          description: `Based on your fuel level, we suggest ${calculatedAmount} gallons.`,
+                        });
+                      }
+                      
+                      setOrderData(updatedOrderData);
                     }
+                    
                     setShowFuelLevel(false);
                     toast({
                       title: "Fuel level updated",
-                      description:
-                        "Your vehicle's fuel level has been updated.",
+                      description: "Your vehicle's fuel level has been updated.",
                     });
                   }}
                   onClose={() => setShowFuelLevel(false)}
