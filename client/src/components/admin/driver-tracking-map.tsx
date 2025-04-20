@@ -826,8 +826,8 @@ export default function DriverTrackingMap({ onAssignDriver }: DriverTrackingMapP
       </div>
     </div>
     
-      {/* Auto-assignment results dialog */}
-      <Dialog open={showResultsDialog} onOpenChange={setShowResultsDialog}>
+    {/* Auto-assignment results dialog */}
+    <Dialog open={showResultsDialog} onOpenChange={setShowResultsDialog}>
         <DialogContent className="max-w-3xl">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
