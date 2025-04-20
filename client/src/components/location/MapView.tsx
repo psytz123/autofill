@@ -4,10 +4,10 @@ import { MapPin, Loader2, AlertCircle } from "lucide-react";
 import { Location, LocationType } from "@shared/schema";
 import { 
   GoogleMap, 
-  LoadScript,  
+  useLoadScript,  
   Marker
 } from "@react-google-maps/api";
-import { GOOGLE_MAPS_LIBRARIES, GOOGLE_MAPS_OPTIONS } from "@/lib/googleMapsConfig";
+import { GOOGLE_MAPS_LIBRARIES } from "@/lib/googleMapsConfig";
 import {
   MAP_CONTAINER_STYLE,
   DEFAULT_MAP_CONFIG,
@@ -34,6 +34,12 @@ export default function MapView({
   className = "",
   initialAddress,
 }: MapViewProps) {
+  // Use the useLoadScript hook from react-google-maps/api
+  const { isLoaded, loadError } = useLoadScript({
+    googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY || "",
+    libraries, // This is the static libraries array
+  });
+
   const [markerPosition, setMarkerPosition] =
     useState<google.maps.LatLngLiteral | null>(
       selectedLocation?.coordinates || null,
@@ -45,8 +51,6 @@ export default function MapView({
   );
   const [isGettingLocation, setIsGettingLocation] = useState(false);
   const [mapError, setMapError] = useState<string | null>(null);
-  const [isScriptLoaded, setIsScriptLoaded] = useState(false);
-  const [isScriptLoadError, setIsScriptLoadError] = useState(false);
 
   // For debugging purposes
   const mapContainerRef = useRef<HTMLDivElement>(null);
@@ -68,7 +72,7 @@ export default function MapView({
   useEffect(() => {
     const newDebugInfo = {
       apiKeyPresent: !!import.meta.env.VITE_GOOGLE_MAPS_API_KEY,
-      apiLoaded: isScriptLoaded,
+      apiLoaded: isLoaded,
       googleObject: typeof window !== 'undefined' && !!window.google,
       googleMapsObject: typeof window !== 'undefined' && !!window.google?.maps,
       mapContainerVisible: !!mapContainerRef.current && 
@@ -79,7 +83,7 @@ export default function MapView({
     setDebugInfo(newDebugInfo);
     console.log("[MapDebug] Status:", newDebugInfo);
     
-    if (isScriptLoaded) {
+    if (isLoaded) {
       console.log("[Map] Google Maps API loaded successfully");
       
       // Additional debugging for map container
@@ -93,11 +97,11 @@ export default function MapView({
         console.log("[MapDebug] Map container ref not available");
       }
     }
-  }, [isScriptLoaded, mapContainerRef.current]);
+  }, [isLoaded, mapContainerRef.current]);
 
   // Initialize geocoder when script is loaded
   useEffect(() => {
-    if (isScriptLoaded && !geocoder && window.google && window.google.maps) {
+    if (isLoaded && !geocoder && window.google && window.google.maps) {
       try {
         console.log("Initializing Google Maps Geocoder");
         setGeocoder(new window.google.maps.Geocoder());
@@ -105,7 +109,7 @@ export default function MapView({
         console.error("Error initializing geocoder:", error);
       }
     }
-  }, [isScriptLoaded, geocoder]);
+  }, [isLoaded, geocoder]);
 
   // Get user's current location
   const getCurrentLocation = useCallback(() => {
@@ -153,11 +157,11 @@ export default function MapView({
 
   // Set default location if no selected location
   useEffect(() => {
-    if (isScriptLoaded && !markerPosition) {
+    if (isLoaded && !markerPosition) {
       // Default to San Francisco if no location is provided
       setMarkerPosition({ lat: 37.7749, lng: -122.4194 });
     }
-  }, [isScriptLoaded, markerPosition]);
+  }, [isLoaded, markerPosition]);
 
   // Geocode initial address when provided
   useEffect(() => {
@@ -243,19 +247,7 @@ export default function MapView({
     setMap(null);
   }, []);
 
-  // Script load handlers
-  const handleScriptLoad = useCallback(() => {
-    console.log("[MapDebug] Script loaded successfully");
-    setIsScriptLoaded(true);
-  }, []);
-
-  const handleScriptError = useCallback((error: Error) => {
-    console.error("[MapDebug] Script load error:", error);
-    setIsScriptLoadError(true);
-    setMapError("Failed to load Google Maps API: " + error.message);
-  }, []);
-
-  if (isScriptLoadError || !import.meta.env.VITE_GOOGLE_MAPS_API_KEY) {
+  if (loadError || !import.meta.env.VITE_GOOGLE_MAPS_API_KEY) {
     return (
       <Card className={`relative overflow-hidden ${className}`}>
         <div className="absolute inset-0 flex items-center justify-center bg-neutral-100">
@@ -265,7 +257,7 @@ export default function MapView({
             <p className="text-xs">
               {!import.meta.env.VITE_GOOGLE_MAPS_API_KEY
                 ? "Missing Google Maps API key"
-                : mapError ||
+                : loadError?.message ||
                   "Please check your internet connection"}
             </p>
 
@@ -291,11 +283,12 @@ export default function MapView({
     );
   }
 
-  if (isGettingLocation) {
+  if (!isLoaded || isGettingLocation) {
     return (
       <Card className={`relative overflow-hidden ${className}`}>
         <div className="absolute inset-0 flex items-center justify-center bg-neutral-100">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <span className="ml-2 text-sm">Loading map...</span>
         </div>
       </Card>
     );
@@ -343,55 +336,45 @@ export default function MapView({
     
     return (
       <Card className={`relative overflow-hidden ${className}`}>
-        <LoadScript
-          id="google-map-script"
-          googleMapsApiKey={import.meta.env.VITE_GOOGLE_MAPS_API_KEY || ""}
-          libraries={libraries}
-          onLoad={handleScriptLoad}
-          onError={handleScriptError}
+        <div 
+          className="absolute inset-0 z-0" 
+          ref={mapContainerRef}
+          id="google-map-container"
+          style={{ width: '100%', height: '100%', minHeight: '250px' }}
         >
-          <div 
-            className="absolute inset-0 z-0" 
-            ref={mapContainerRef}
-            id="google-map-container"
-            style={{ width: '100%', height: '100%', minHeight: '150px' }}
+          <GoogleMap
+            mapContainerStyle={{
+              ...MAP_CONTAINER_STYLE,
+              // Force explicit dimensions to ensure the map renders
+              width: '100%',
+              height: '100%',
+              minHeight: '250px'
+            }}
+            center={markerPosition || DEFAULT_MAP_CONFIG.center}
+            zoom={DEFAULT_MAP_CONFIG.zoom}
+            onClick={onMapClick}
+            onLoad={(map) => {
+              console.log("[MapDebug] Map loaded successfully");
+              onMapLoad(map);
+            }}
+            onUnmount={onUnmount}
+            options={{
+              ...DEFAULT_MAP_CONFIG.options,
+              // Add these options to ensure the map is fully interactive
+              clickableIcons: true,
+              disableDefaultUI: false,
+              zoomControl: true,
+            }}
           >
-            {isScriptLoaded && (
-              <GoogleMap
-                mapContainerStyle={{
-                  ...MAP_CONTAINER_STYLE,
-                  // Force explicit dimensions to ensure the map renders
-                  width: '100%',
-                  height: '100%',
-                  minHeight: '150px'
-                }}
-                center={markerPosition || DEFAULT_MAP_CONFIG.center}
-                zoom={DEFAULT_MAP_CONFIG.zoom}
-                onClick={onMapClick}
-                onLoad={(map) => {
-                  console.log("[MapDebug] Map loaded successfully");
-                  onMapLoad(map);
-                }}
-                onUnmount={onUnmount}
-                options={{
-                  ...DEFAULT_MAP_CONFIG.options,
-                  // Add these options to ensure the map is fully interactive
-                  clickableIcons: true,
-                  disableDefaultUI: false,
-                  zoomControl: true,
-                }}
-              >
-                {markerPosition && (
-                  <Marker
-                    position={markerPosition}
-                    // Using animation causes TypeScript error, so we'll use a regular marker
-                    // This doesn't affect functionality, just the drop animation
-                  />
-                )}
-              </GoogleMap>
+            {markerPosition && (
+              <Marker
+                position={markerPosition}
+                // Using animation causes TypeScript error, so we'll use a regular marker
+                // This doesn't affect functionality, just the drop animation
+              />
             )}
-          </div>
-        </LoadScript>
+          </GoogleMap>
+        </div>
 
         {/* Display debug info in development */}
         {process.env.NODE_ENV !== 'production' && (
