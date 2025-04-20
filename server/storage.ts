@@ -82,7 +82,7 @@ export interface IStorage {
 }
 
 import connectPg from "connect-pg-simple";
-import { eq, desc, and } from "drizzle-orm";
+import { eq, desc, and, sql } from "drizzle-orm";
 import { pool, db } from "./db";
 import pkg from "pg";
 const { Pool } = pkg;
