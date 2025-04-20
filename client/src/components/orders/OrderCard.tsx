@@ -114,13 +114,16 @@ function OrderCard({
           </div>
         </div>
         
-        {/* Divider with Chevron */}
+        {/* Simple Chevron indicator with slightly larger size for better visibility */}
         <div 
-          className="flex items-center justify-center py-2 border-t border-neutral-100 cursor-pointer hover:bg-neutral-50 transition-colors"
+          className="flex items-center justify-center py-3 border-t border-neutral-100 cursor-pointer hover:bg-neutral-50 transition-colors"
           onClick={toggleExpanded}
+          aria-label={expanded ? "Hide details" : "Show details"}
+          role="button"
+          tabIndex={0}
         >
           <ChevronDown 
-            className={`h-5 w-5 text-neutral-400 transition-transform duration-200 ${expanded ? "rotate-180" : ""}`} 
+            className={`h-6 w-6 text-neutral-600 transition-transform duration-200 ${expanded ? "rotate-180" : ""}`} 
           />
         </div>
         
