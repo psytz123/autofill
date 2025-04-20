@@ -14,19 +14,42 @@
     "assetBundlePatterns": ["**/*"],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.autofill.mobile"
+      "bundleIdentifier": "com.autofill.mobile",
+      "config": {
+        "googleMapsApiKey": "${VITE_GOOGLE_MAPS_API_KEY}"
+      },
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "AutoFill needs your location to find delivery locations nearby."
+      }
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.autofill.mobile"
+      "package": "com.autofill.mobile",
+      "config": {
+        "googleMaps": {
+          "apiKey": "${VITE_GOOGLE_MAPS_API_KEY}"
+        }
+      },
+      "permissions": [
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
     },
-    "plugins": ["expo-dev-client"],
+    "plugins": [
+      "expo-dev-client",
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Allow AutoFill to use your location to find nearby delivery locations."
+        }
+      ]
+    ],
     "extra": {
       "eas": {
         "projectId": "autofill-mobile"

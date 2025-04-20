@@ -628,11 +628,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
               stripeCustomerId: customerId,
             });
           } else {
-            return res
-              .status(400)
-              .json({
-                message: "Failed to create customer. Please try again.",
-              });
+            return res.status(400).json({
+              message: "Failed to create customer. Please try again.",
+            });
           }
         }
       }
@@ -718,11 +716,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       } catch (stripeError: any) {
         console.error("Stripe subscription creation error:", stripeError);
-        return res
-          .status(400)
-          .json({
-            message: "Failed to create subscription. Please try again.",
-          });
+        return res.status(400).json({
+          message: "Failed to create subscription. Please try again.",
+        });
       }
     } catch (error) {
       console.error("Error creating subscription:", error);
