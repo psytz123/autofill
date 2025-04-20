@@ -37,6 +37,7 @@ const importWithPriority = (path: string, priority: "low" | "high" = "low") => {
 const NotFound = lazy(() => import("@/pages/not-found"));
 const AuthPage = lazy(() => import("@/pages/auth-page"));
 const HomePage = lazy(() => import("@/pages/home-page"));
+const AdminLoginTest = lazy(() => import("@/pages/admin-login-test"));
 
 // Order feature bundle (loaded when needed)
 const OrderPage = lazy(() => import("@/pages/order-page"));
@@ -169,6 +170,10 @@ function CustomerRouter() {
         <SuspenseRoute
           path="/enhanced-fuel-selector-test"
           component={EnhancedFuelSelectorTest}
+        />
+        <SuspenseRoute
+          path="/admin-login-test"
+          component={AdminLoginTest}
         />
         <ProtectedRoute
           path="/test-points"
