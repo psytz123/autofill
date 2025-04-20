@@ -38,6 +38,44 @@ function isAuthenticated(req: Request, res: Response, next: Function) {
   res.status(401).json({ message: "Unauthorized" });
 }
 
+// Helper function to award points for completed orders
+async function awardPointsForOrder(order: any) {
+  try {
+    // Get the user's subscription plan to determine points multiplier
+    const subscriptionPlan = await storage.getUserSubscriptionPlan(order.userId);
+    
+    // Default multiplier for BASIC plan is 5 points per gallon
+    let pointsMultiplier = 5;
+    
+    // Adjust multiplier based on subscription type
+    if (subscriptionPlan) {
+      if (subscriptionPlan.type === 'PREMIUM') {
+        pointsMultiplier = 10; // 10 points per gallon for Premium
+      } else if (subscriptionPlan.type === 'UNLIMITED') {
+        pointsMultiplier = 20; // 20 points per gallon for Unlimited
+      }
+    }
+    
+    // Calculate points to award (rounded to nearest integer)
+    const pointsToAward = Math.round(order.amount * pointsMultiplier);
+    
+    if (pointsToAward > 0) {
+      // Create a points transaction
+      await storage.addPointsTransaction({
+        userId: order.userId,
+        orderId: order.id,
+        type: PointsTransactionType.PURCHASE,
+        amount: pointsToAward,
+        description: `Earned ${pointsToAward} points for purchasing ${order.amount} gallons of fuel`
+      });
+      
+      console.log(`[Points] Awarded ${pointsToAward} points to user ${order.userId} for order ${order.id}`);
+    }
+  } catch (error) {
+    console.error("[Points] Error awarding points for order:", error);
+  }
+}
+
 export async function registerRoutes(app: Express): Promise<Server> {
   // Register all routes before error handler middleware
   // Simple ping endpoint that also registers CSRF tokens
@@ -524,8 +562,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       if (minutesRemaining <= 0) {
         estimatedArrival = "Arrived";
+        
         // Mark order as completed when driver arrives
-        storage.updateOrderStatus(orderId, OrderStatus.COMPLETED);
+        storage.updateOrderStatus(orderId, OrderStatus.COMPLETED)
+          .then(completedOrder => {
+            // Award points for completed order
+            if (completedOrder) {
+              awardPointsForOrder(completedOrder)
+                .catch(error => {
+                  console.error("[Points] Error awarding points:", error);
+                });
+            }
+          })
+          .catch(error => {
+            console.error("[Driver] Error updating order status:", error);
+          });
+        
         clearInterval(interval);
       } else {
         estimatedArrival = `${minutesRemaining} minutes`;
