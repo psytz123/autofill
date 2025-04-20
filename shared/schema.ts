@@ -64,18 +64,21 @@ export const vehicles = pgTable("vehicles", {
   year: text("year").notNull(),
   licensePlate: text("license_plate").notNull(),
   fuelType: text("fuel_type").notNull(),
+  tankSize: integer("tank_size"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
 export const insertVehicleSchema = createInsertSchema(vehicles).extend({
   fuelType: z.nativeEnum(FuelType),
+  tankSize: z.number().min(1).optional(),
 });
 
 export type InsertVehicle = z.infer<typeof insertVehicleSchema>;
 export type Vehicle = typeof vehicles.$inferSelect & {
   fuelType: FuelType;
   fuelLevel?: number;
+  tankSize?: number;
 };
 
 // Orders

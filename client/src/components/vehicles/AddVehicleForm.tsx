@@ -37,28 +37,100 @@ const vehicleSchema = z.object({
 
 type VehicleFormValues = z.infer<typeof vehicleSchema>;
 
-// Mock data for selects
+// Expanded vehicle makes and models
 const makes = [
-  "Honda",
-  "Toyota",
-  "Ford",
-  "Chevrolet",
-  "BMW",
-  "Mercedes",
+  "Acura",
+  "Alfa Romeo",
+  "Aston Martin",
   "Audi",
+  "Bentley",
+  "BMW",
+  "Bugatti",
+  "Buick",
+  "Cadillac",
+  "Chevrolet",
+  "Chrysler",
+  "Dodge",
+  "Ferrari",
+  "Fiat",
+  "Ford",
+  "Genesis",
+  "GMC",
+  "Honda",
+  "Hyundai",
+  "Infiniti",
+  "Jaguar",
+  "Jeep",
+  "Kia",
+  "Lamborghini",
+  "Land Rover",
+  "Lexus",
+  "Lincoln",
+  "Maserati",
+  "Mazda",
+  "McLaren",
+  "Mercedes",
+  "Mini",
+  "Mitsubishi",
+  "Nissan",
+  "Porsche",
+  "Ram",
+  "Rivian",
+  "Rolls-Royce",
+  "Subaru",
   "Tesla",
+  "Toyota",
+  "Volkswagen",
+  "Volvo",
 ];
+
 const models = {
-  Honda: ["Civic", "Accord", "CR-V", "Pilot", "HR-V"],
-  Toyota: ["Camry", "Corolla", "RAV4", "Highlander", "Tacoma"],
-  Ford: ["F-150", "Mustang", "Explorer", "Escape", "Fusion"],
-  Chevrolet: ["Silverado", "Equinox", "Malibu", "Tahoe", "Trax"],
-  BMW: ["3 Series", "5 Series", "X3", "X5", "7 Series"],
-  Mercedes: ["C-Class", "E-Class", "S-Class", "GLC", "GLE"],
-  Audi: ["A4", "A6", "Q5", "Q7", "e-tron"],
-  Tesla: ["Model 3", "Model Y", "Model S", "Model X"],
+  Acura: ["ILX", "MDX", "NSX", "RDX", "TLX", "Integra"],
+  "Alfa Romeo": ["Giulia", "Stelvio", "Tonale", "4C"],
+  "Aston Martin": ["DB11", "DBX", "Vantage", "DBS Superleggera"],
+  Audi: ["A3", "A4", "A5", "A6", "A7", "A8", "Q3", "Q5", "Q7", "Q8", "e-tron", "R8", "TT", "RS6"],
+  Bentley: ["Bentayga", "Continental GT", "Flying Spur"],
+  BMW: ["2 Series", "3 Series", "4 Series", "5 Series", "7 Series", "8 Series", "X1", "X3", "X5", "X7", "Z4", "i4", "i7", "iX"],
+  Bugatti: ["Chiron", "Veyron"],
+  Buick: ["Enclave", "Encore", "Envision"],
+  Cadillac: ["CT4", "CT5", "Escalade", "XT4", "XT5", "XT6", "LYRIQ"],
+  Chevrolet: ["Blazer", "Bolt", "Camaro", "Colorado", "Corvette", "Equinox", "Malibu", "Silverado", "Suburban", "Tahoe", "Trailblazer", "Traverse"],
+  Chrysler: ["300", "Pacifica"],
+  Dodge: ["Challenger", "Charger", "Durango", "Hornet"],
+  Ferrari: ["296 GTB", "812", "F8", "Portofino", "Roma", "SF90"],
+  Fiat: ["500", "500X"],
+  Ford: ["Bronco", "Edge", "Escape", "Expedition", "Explorer", "F-150", "F-250", "Maverick", "Mustang", "Ranger", "Transit"],
+  Genesis: ["G70", "G80", "G90", "GV70", "GV80"],
+  GMC: ["Acadia", "Canyon", "Sierra", "Terrain", "Yukon"],
+  Honda: ["Accord", "Civic", "CR-V", "HR-V", "Odyssey", "Pilot", "Ridgeline"],
+  Hyundai: ["Elantra", "Ioniq", "Kona", "Palisade", "Santa Fe", "Sonata", "Tucson", "Venue"],
+  Infiniti: ["Q50", "Q60", "QX50", "QX55", "QX60", "QX80"],
+  Jaguar: ["E-Pace", "F-Pace", "F-Type", "I-Pace", "XE", "XF"],
+  Jeep: ["Cherokee", "Compass", "Gladiator", "Grand Cherokee", "Renegade", "Wagoneer", "Wrangler"],
+  Kia: ["Carnival", "EV6", "Forte", "K5", "Niro", "Rio", "Seltos", "Sorento", "Soul", "Sportage", "Stinger", "Telluride"],
+  Lamborghini: ["Aventador", "Huracan", "Urus"],
+  "Land Rover": ["Defender", "Discovery", "Range Rover", "Range Rover Evoque", "Range Rover Sport", "Range Rover Velar"],
+  Lexus: ["ES", "IS", "LC", "LS", "LX", "NX", "RX", "UX"],
+  Lincoln: ["Aviator", "Corsair", "Nautilus", "Navigator"],
+  Maserati: ["Ghibli", "Grecale", "Levante", "MC20", "Quattroporte"],
+  Mazda: ["CX-30", "CX-5", "CX-9", "CX-90", "Mazda3", "Mazda6", "MX-5 Miata"],
+  McLaren: ["720S", "Artura", "GT"],
+  Mercedes: ["A-Class", "C-Class", "E-Class", "S-Class", "EQE", "EQS", "GLA", "GLC", "GLE", "GLB", "GLS", "G-Class"],
+  Mini: ["Clubman", "Cooper", "Countryman"],
+  Mitsubishi: ["Eclipse Cross", "Mirage", "Outlander", "Outlander Sport"],
+  Nissan: ["Altima", "Ariya", "Armada", "Frontier", "Kicks", "Leaf", "Maxima", "Murano", "Pathfinder", "Rogue", "Sentra", "Titan", "Versa", "Z"],
+  Porsche: ["718", "911", "Cayenne", "Macan", "Panamera", "Taycan"],
+  Ram: ["1500", "2500", "3500", "ProMaster"],
+  Rivian: ["R1S", "R1T"],
+  "Rolls-Royce": ["Cullinan", "Dawn", "Ghost", "Phantom", "Wraith"],
+  Subaru: ["Ascent", "BRZ", "Crosstrek", "Forester", "Impreza", "Legacy", "Outback", "WRX"],
+  Tesla: ["Model 3", "Model S", "Model X", "Model Y", "Cybertruck"],
+  Toyota: ["4Runner", "Avalon", "Camry", "Corolla", "GR86", "Highlander", "Prius", "RAV4", "Sequoia", "Sienna", "Supra", "Tacoma", "Tundra", "Venza"],
+  Volkswagen: ["Atlas", "Golf", "ID.4", "Jetta", "Passat", "Taos", "Tiguan"],
+  Volvo: ["C40", "S60", "S90", "V60", "V90", "XC40", "XC60", "XC90"],
 };
-const years = Array.from({ length: 25 }, (_, i) => (2023 - i).toString());
+// Generate years from 2024 to 1980
+const years = Array.from({ length: 45 }, (_, i) => (2024 - i).toString());
 
 interface AddVehicleFormProps {
   vehicle?: Vehicle;
@@ -82,6 +154,7 @@ export default function AddVehicleForm({
       year: vehicle?.year || "",
       fuelType: vehicle?.fuelType || FuelType.REGULAR_UNLEADED,
       licensePlate: vehicle?.licensePlate || "",
+      tankSize: vehicle?.tankSize ? vehicle.tankSize.toString() : "",
     },
   });
 
@@ -162,9 +235,30 @@ export default function AddVehicleForm({
                           <SelectValue placeholder="Select Make" />
                         </SelectTrigger>
                       </FormControl>
-                      <SelectContent>
+                      <SelectContent className="max-h-[300px]">
+                        <div className="sticky top-0 p-2 bg-white">
+                          <input 
+                            className="w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground" 
+                            placeholder="Search vehicle make..." 
+                            onChange={(e) => {
+                              // Find all SelectItem elements
+                              const items = document.querySelectorAll('[data-vehicle-make-item]');
+                              const searchTerm = e.target.value.toLowerCase();
+                              
+                              // Hide/show based on search term
+                              items.forEach((item) => {
+                                const text = item.textContent?.toLowerCase() || '';
+                                if (text.includes(searchTerm)) {
+                                  (item as HTMLElement).style.display = '';
+                                } else {
+                                  (item as HTMLElement).style.display = 'none';
+                                }
+                              });
+                            }}
+                          />
+                        </div>
                         {makes.map((make) => (
-                          <SelectItem key={make} value={make}>
+                          <SelectItem key={make} value={make} data-vehicle-make-item>
                             {make}
                           </SelectItem>
                         ))}
@@ -267,19 +361,41 @@ export default function AddVehicleForm({
               />
             </div>
 
-            <FormField
-              control={form.control}
-              name="licensePlate"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>License Plate</FormLabel>
-                  <FormControl>
-                    <Input placeholder="ABC-123" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            <div className="grid grid-cols-2 gap-3">
+              <FormField
+                control={form.control}
+                name="licensePlate"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>License Plate</FormLabel>
+                    <FormControl>
+                      <Input placeholder="ABC-123" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="tankSize"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Gas Tank Size (gallons)</FormLabel>
+                    <FormControl>
+                      <Input 
+                        type="number" 
+                        placeholder="e.g. 14" 
+                        {...field} 
+                        min="1"
+                        max="100"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
 
             <div className="flex justify-end space-x-2 pt-2">
               <Button type="button" variant="outline" onClick={onCancel}>
