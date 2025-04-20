@@ -236,47 +236,47 @@ export default function DriverTrackingMap({ onAssignDriver }: DriverTrackingMapP
       if (!mounted) return;
       const directionsService = new google.maps.DirectionsService();
 
-    try {
-      directionsService.route(
-        {
-          origin: new google.maps.LatLng(driver.location.lat, driver.location.lng),
-          destination: new google.maps.LatLng(order.location.lat, order.location.lng),
-          travelMode: google.maps.TravelMode.DRIVING,
-        },
-        (result, status) => {
-          if (status === google.maps.DirectionsStatus.OK) {
-            setDirections(result);
-          } else if (status === google.maps.DirectionsStatus.OVER_QUERY_LIMIT) {
-            toast({
-              title: "Rate limit exceeded",
-              description: "Please try again in a few moments",
-              variant: "destructive",
-            });
-          } else if (status === google.maps.DirectionsStatus.OVER_QUERY_LIMIT && retryCount < maxRetries) {
-            retryCount++;
-            setTimeout(calculateWithRetry, retryDelay * retryCount);
-          } else {
-            toast({
-              title: "Directions error",
-              description: `Could not calculate directions: ${status}`,
-              variant: "destructive",
-            });
-            console.error("[MapError] Direction calculation failed:", status);
+      try {
+        directionsService.route(
+          {
+            origin: new google.maps.LatLng(driver.location.lat, driver.location.lng),
+            destination: new google.maps.LatLng(order.location.lat, order.location.lng),
+            travelMode: google.maps.TravelMode.DRIVING,
+          },
+          (result, status) => {
+            if (status === google.maps.DirectionsStatus.OK) {
+              setDirections(result);
+            } else if (status === google.maps.DirectionsStatus.OVER_QUERY_LIMIT) {
+              toast({
+                title: "Rate limit exceeded",
+                description: "Please try again in a few moments",
+                variant: "destructive",
+              });
+            } else if (status === google.maps.DirectionsStatus.OVER_QUERY_LIMIT && retryCount < maxRetries) {
+              retryCount++;
+              setTimeout(calculateWithRetry, retryDelay * retryCount);
+            } else {
+              toast({
+                title: "Directions error",
+                description: `Could not calculate directions: ${status}`,
+                variant: "destructive",
+              });
+              console.error("[MapError] Direction calculation failed:", status);
+            }
           }
-        }
-      );
+        );
+      } catch (error) {
+        console.error("[MapError] Direction service error:", error);
+        toast({
+          title: "Map service error",
+          description: "Failed to calculate route",
+          variant: "destructive",
+        });
+      }
     };
 
     calculateWithRetry();
-    } catch (error) {
-      console.error("[MapError] Direction service error:", error);
-      toast({
-        title: "Map service error",
-        description: "Failed to calculate route",
-        variant: "destructive",
-      });
-    }
-  }, [isLoaded, toast, map]);
+  }, [isLoaded, toast]);
 
   // Handle directions calculation and cleanup
   useEffect(() => {
