@@ -51,12 +51,14 @@ export class AdminStorage {
       .select()
       .from(orders)
       .orderBy(desc(orders.createdAt));
-    return allOrders.map((order) => ({
+    return allOrders.map((order: any) => ({
       ...order,
       fuelType: order.fuelType as FuelType,
       status: order.status as OrderStatus,
       // Convert totalPrice from cents (integer) to dollars (float)
       totalPrice: order.totalPrice / 100,
+      // Mark as emergency if payment_method_id is NULL
+      isEmergency: order.paymentMethodId === null
     }));
   }
 
@@ -69,7 +71,7 @@ export class AdminStorage {
       ORDER BY o.created_at DESC
     `);
 
-    return (result.rows as any[]).map((order) => ({
+    return (result.rows as any[]).map((order: any) => ({
       ...order,
       fuelType: order.fuelType as FuelType,
       status: order.status as OrderStatus,
@@ -94,7 +96,7 @@ export class AdminStorage {
     `);
 
     // Format totalPrice from cents to dollars for each order
-    return result.rows.map(order => ({
+    return result.rows.map((order: any) => ({
       ...order,
       totalPrice: order.totalPrice / 100,
       // Mark as emergency if payment_method_id is NULL
@@ -185,7 +187,11 @@ export class AdminStorage {
       OFFSET ${offset}
     `);
 
-    return result.rows;
+    // Convert total_spent from cents to dollars
+    return result.rows.map((customer: any) => ({
+      ...customer,
+      total_spent: customer.total_spent ? customer.total_spent / 100 : 0
+    }));
   }
 
   async getCustomerById(id: number) {
@@ -198,11 +204,19 @@ export class AdminStorage {
   }
 
   async getCustomerOrders(userId: number) {
-    return await db
+    const customerOrders = await db
       .select()
       .from(orders)
       .where(eq(orders.userId, userId))
       .orderBy(desc(orders.createdAt));
+    
+    // Convert totalPrice from cents to dollars
+    return customerOrders.map((order: any) => ({
+      ...order,
+      totalPrice: order.totalPrice / 100,
+      // Mark as emergency if payment_method_id is NULL
+      isEmergency: order.paymentMethodId === null
+    }));
   }
 
   async getCustomerPaymentMethods(userId: number) {
@@ -310,7 +324,11 @@ export class AdminStorage {
       ORDER BY time_period ASC
     `);
 
-    return result.rows;
+    // Convert revenue from cents to dollars
+    return result.rows.map((row: any) => ({
+      ...row,
+      revenue: row.revenue ? row.revenue / 100 : 0
+    }));
   }
 
   async getPopularLocations(limit = 10) {

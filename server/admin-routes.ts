@@ -49,7 +49,7 @@ export function registerAdminRoutes(app: Express) {
       // Get all drivers
       const allDrivers = await adminStorage.getAllDrivers();
 
-      // Calculate total revenue
+      // Calculate total revenue - totalPrice already converted from cents to dollars in getAllOrders
       const revenue = allOrders.reduce(
         (sum, order) => sum + order.totalPrice,
         0,
