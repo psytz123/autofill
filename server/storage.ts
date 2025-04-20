@@ -331,7 +331,10 @@ export class DatabaseStorage implements IStorage {
     };
 
     const fuelPrice = fuelPrices[insertOrder.fuelType] || 3.99;
-    const totalPrice = parseFloat((insertOrder.amount * fuelPrice).toFixed(2));
+    // Convert to integer cents (multiply by 100) to match DB schema
+    const totalPrice = Math.round((insertOrder.amount * fuelPrice) * 100);
+    
+    console.log("Creating order with totalPrice:", totalPrice, "from amount:", insertOrder.amount, "and price:", fuelPrice);
 
     const [order] = await db
       .insert(orders)

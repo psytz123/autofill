@@ -204,8 +204,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
           status: OrderStatus.CONFIRMED, // Use the CONFIRMED status for emergency orders
           fuelType: fuelType as FuelType,
           amount: Number(amount),
-          price: fuelPrice,
-          total,
           isEmergency: true, // Flag this as an emergency request for special handling
         };
 
@@ -233,8 +231,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
           status: OrderStatus.CONFIRMED,
           fuelType: fuelType as FuelType,
           amount: Number(amount),
-          price: defaultFuelPrice,
-          total,
           isEmergency: true,
         };
         
