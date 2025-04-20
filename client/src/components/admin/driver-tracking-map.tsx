@@ -265,6 +265,7 @@ export default function DriverTrackingMap({ onAssignDriver }: DriverTrackingMapP
 
   // Derived values from tracking data
   const allDrivers = trackingData?.drivers || [];
+
   const unassignedOrders = trackingData?.unassignedOrders || [];
   const assignedOrders = trackingData?.assignedOrders || [];
   
