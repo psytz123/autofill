@@ -116,8 +116,14 @@ class RouteOptimizer {
         response_format: { type: "json_object" },
       });
 
-      const result = JSON.parse(response.choices[0].message.content);
-      return result;
+      const content = response.choices[0].message.content;
+      if (content) {
+        const result = JSON.parse(content);
+        return result;
+      } else {
+        // If no content is returned, use fallback
+        return this.fallbackAssignment(availableDrivers, unassignedOrders);
+      }
     } catch (error) {
       console.error("Error in route optimization:", error);
       // Fallback to a simple assignment strategy if AI route optimization fails
@@ -162,7 +168,7 @@ class RouteOptimizer {
           driverId: closestDriver.id,
           driverName: closestDriver.name,
           orderId: order.id,
-          orderAddress: order.location.address || "Unknown address",
+          orderAddress: order.location.address ? order.location.address : "Unknown address",
           distanceKm: parseFloat(shortestDistance.toFixed(2)),
           estimatedTimeMinutes: Math.round(shortestDistance / 30 * 60), // Assuming 30 km/h
           reason: "Closest available driver"

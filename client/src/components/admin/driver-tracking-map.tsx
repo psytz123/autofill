@@ -569,11 +569,12 @@ export default function DriverTrackingMap({ onAssignDriver }: DriverTrackingMapP
                                 <Badge
                                   variant={
                                     driver.status === "AVAILABLE"
-                                      ? "success"
+                                      ? "outline"
                                       : driver.status === "BUSY"
                                       ? "secondary"
                                       : "outline"
                                   }
+                                  className={driver.status === "AVAILABLE" ? "bg-green-100 text-green-800 hover:bg-green-200" : ""}
                                 >
                                   {driver.status}
                                 </Badge>
@@ -602,11 +603,12 @@ export default function DriverTrackingMap({ onAssignDriver }: DriverTrackingMapP
                           <Badge
                             variant={
                               selectedDriver.status === "AVAILABLE"
-                                ? "success"
+                                ? "outline"
                                 : selectedDriver.status === "BUSY"
                                 ? "secondary"
                                 : "outline"
                             }
+                            className={selectedDriver.status === "AVAILABLE" ? "bg-green-100 text-green-800 hover:bg-green-200" : ""}
                           >
                             {selectedDriver.status}
                           </Badge>
