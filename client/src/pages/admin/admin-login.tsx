@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "wouter";
+import { useLocation } from "wouter";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -9,7 +9,7 @@ import { useAdminAuth } from "@/hooks/use-admin-auth";
 export default function AdminLoginPage() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const [, navigate] = useNavigate();
+  const [, setLocation] = useLocation();
   const { loginMutation } = useAdminAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -19,7 +19,7 @@ export default function AdminLoginPage() {
       { username, password },
       {
         onSuccess: () => {
-          navigate("/admin/dashboard");
+          setLocation("/admin/dashboard");
         }
       }
     );
