@@ -428,7 +428,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         // Create a mock order to test with
         const mockOrder = {
-          id: Date.now(),  // Just a unique ID for testing
+          id: Math.floor(Math.random() * 1000000),  // Random integer that fits in PostgreSQL integer range
           userId: req.user!.id,
           amount: amount,  // Gallons of fuel
           status: OrderStatus.COMPLETED
