@@ -36,7 +36,13 @@ export default function SimpleMapView({
 
   // Initialize the map
   const initializeMap = useCallback(async () => {
-    if (!mapRef.current || !window.google || !window.google.maps) {
+    if (!mapRef.current) {
+      console.log("[SimpleMap] Map container ref not available");
+      return;
+    }
+    
+    if (!window.google || !window.google.maps) {
+      console.log("[SimpleMap] Google Maps API not loaded yet");
       return;
     }
 
@@ -180,6 +186,7 @@ export default function SimpleMapView({
   useEffect(() => {
     // Skip if Google Maps script is already loaded
     if (window.google && window.google.maps) {
+      console.log("[SimpleMap] Google Maps already loaded, initializing map");
       initializeMap();
       return;
     }
@@ -191,27 +198,61 @@ export default function SimpleMapView({
       return;
     }
 
-    // Create the script element
-    const script = document.createElement("script");
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${googleMapsApiKey}&libraries=places,geometry`;
-    script.async = true;
-    script.defer = true;
+    // Check if script is already in the document
+    const scriptId = "google-maps-script";
+    let script = document.getElementById(scriptId) as HTMLScriptElement;
     
-    // Handle script load
-    script.onload = () => {
-      console.log("[SimpleMap] Google Maps script loaded");
-      initializeMap();
-    };
-    
-    // Handle script error
-    script.onerror = () => {
-      console.error("[SimpleMap] Failed to load Google Maps script");
-      setError("Failed to load Google Maps script");
-      setIsLoading(false);
-    };
-    
-    // Add the script to the document
-    document.head.appendChild(script);
+    if (!script) {
+      console.log("[SimpleMap] Creating new Google Maps script");
+      // Create the script element
+      script = document.createElement("script");
+      script.id = scriptId;
+      script.src = `https://maps.googleapis.com/maps/api/js?key=${googleMapsApiKey}&libraries=places,geometry`;
+      script.async = true;
+      script.defer = true;
+      
+      // Handle script load
+      script.onload = () => {
+        console.log("[SimpleMap] Google Maps script loaded");
+        initializeMap();
+      };
+      
+      // Handle script error
+      script.onerror = () => {
+        console.error("[SimpleMap] Failed to load Google Maps script");
+        setError("Failed to load Google Maps script");
+        setIsLoading(false);
+      };
+      
+      // Add the script to the document
+      document.head.appendChild(script);
+    } else {
+      console.log("[SimpleMap] Google Maps script already exists, waiting for load");
+      
+      // Add listener for script that's already in the document
+      const checkIfLoaded = setInterval(() => {
+        if (window.google && window.google.maps) {
+          console.log("[SimpleMap] Google Maps loaded via existing script");
+          clearInterval(checkIfLoaded);
+          initializeMap();
+        }
+      }, 100);
+      
+      // Clear interval after 10 seconds to avoid infinite checking
+      setTimeout(() => {
+        clearInterval(checkIfLoaded);
+        if (!window.google || !window.google.maps) {
+          console.error("[SimpleMap] Timeout waiting for Google Maps to load");
+          setError("Timeout loading Google Maps");
+          setIsLoading(false);
+        }
+      }, 10000);
+      
+      // Clean up interval on unmount
+      return () => {
+        clearInterval(checkIfLoaded);
+      };
+    }
     
     // Cleanup on unmount
     return () => {
@@ -224,8 +265,8 @@ export default function SimpleMapView({
       googleMapRef.current = null;
       geocoderRef.current = null;
       
-      // Remove the script if it was just added
-      document.head.removeChild(script);
+      // Note: We don't remove the script element on unmount anymore
+      // This ensures the script stays loaded for other map instances
     };
   }, [initializeMap]);
 
