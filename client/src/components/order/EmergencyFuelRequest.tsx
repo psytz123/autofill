@@ -38,8 +38,7 @@ export function EmergencyFuelRequest({ className = "" }: EmergencyFuelRequestPro
   const [locationError, setLocationError] = useState<string | null>(null);
   const [currentAddress, setCurrentAddress] = useState<string | null>(null);
   const [selectedVehicleId, setSelectedVehicleId] = useState<number | null>(null);
-  const [step, setStep] = useState<'location' | 'vehicle' | 'confirmation' | 'status'>('location');
-  const [orderId, setOrderId] = useState<number | null>(null);
+  const [step, setStep] = useState<'location' | 'vehicle' | 'confirmation'>('location');
 
   // Fetch user's saved locations
   const { data: savedLocations = [], isLoading: locationsLoading } = useQuery<Location[]>({
@@ -70,10 +69,10 @@ export function EmergencyFuelRequest({ className = "" }: EmergencyFuelRequestPro
       queryClient.invalidateQueries({ queryKey: ["/api/recent-orders"] });
       toast({
         title: "Emergency fuel request sent!",
-        description: "Your fuel is on the way to your current location.",
+        description: "Your request is now in progress. View it in your orders.",
       });
-      setOrderId(data.id);
-      setStep('status');
+      setIsDialogOpen(false);
+      navigate("/orders"); // Navigate directly to orders page
     },
     onError: (error: Error) => {
       toast({
@@ -271,7 +270,6 @@ export function EmergencyFuelRequest({ className = "" }: EmergencyFuelRequestPro
       setCurrentLocation(null);
       setCurrentAddress(null);
       setSelectedVehicleId(null);
-      setOrderId(null);
       setIsRequesting(false);
       
       // Get current location immediately when dialog opens
@@ -441,49 +439,7 @@ export function EmergencyFuelRequest({ className = "" }: EmergencyFuelRequestPro
     );
   };
 
-  const renderStatusStep = () => (
-    <>
-      <div className="flex flex-col items-center justify-center py-4">
-        <div className="bg-green-100 rounded-full p-3 mb-4">
-          <Check className="h-8 w-8 text-green-600" />
-        </div>
-        
-        <h3 className="text-lg font-bold mb-2">Emergency Request Confirmed!</h3>
-        <p className="text-sm text-center mb-4">
-          Your emergency fuel request has been received. A driver will be dispatched to your location immediately.
-        </p>
-        
-        <div className="w-full border rounded-md p-4 bg-slate-50 mb-4">
-          <p className="text-sm font-medium">Order ID: #{orderId}</p>
-          <p className="text-sm mt-2">Status: <span className="text-orange-600 font-medium">Processing</span></p>
-          <p className="text-sm mt-2">Estimated arrival: <span className="font-medium">15-30 minutes</span></p>
-          <p className="text-xs text-neutral-500 mt-3">You will receive updates on your order status</p>
-        </div>
-      </div>
-      
-      <div className="flex flex-col space-y-2">
-        <Button
-          className="w-full"
-          onClick={() => {
-            setIsDialogOpen(false);
-            if (orderId) {
-              navigate(`/orders/${orderId}`);
-            }
-          }}
-        >
-          View Order Details
-        </Button>
-        
-        <Button
-          variant="outline"
-          className="w-full"
-          onClick={() => setIsDialogOpen(false)}
-        >
-          Close
-        </Button>
-      </div>
-    </>
-  );
+  // Status step no longer needed as we redirect to orders page instead
 
   return (
     <>
@@ -507,7 +463,6 @@ export function EmergencyFuelRequest({ className = "" }: EmergencyFuelRequestPro
               {step === 'location' && "Share your location for emergency fuel delivery"}
               {step === 'vehicle' && "Select a vehicle for emergency fuel delivery"}
               {step === 'confirmation' && "Confirm your emergency fuel request details"}
-              {step === 'status' && "Your emergency fuel request has been processed"}
             </DialogDescription>
           </DialogHeader>
           
@@ -515,7 +470,6 @@ export function EmergencyFuelRequest({ className = "" }: EmergencyFuelRequestPro
             {step === 'location' && renderLocationStep()}
             {step === 'vehicle' && renderVehicleStep()}
             {step === 'confirmation' && renderConfirmationStep()}
-            {step === 'status' && renderStatusStep()}
           </div>
         </DialogContent>
       </Dialog>
