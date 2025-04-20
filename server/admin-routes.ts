@@ -12,6 +12,7 @@ import { z } from "zod";
 import { storage } from "./storage";
 import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
+import { routeOptimizer } from "./utils/route-optimizer";
 
 const scryptAsync = promisify(scrypt);
 
@@ -343,11 +344,7 @@ export function registerAdminRoutes(app: Express) {
     isAdminAuthenticated,
     async (req, res) => {
       try {
-        // Import the route optimizer
-        const { routeOptimizer } = await import("./utils/route-optimizer");
-        
-        // Import OrderStatus enum
-        const { OrderStatus } = await import("../shared/schema");
+        // OrderStatus is already imported at the top of the file
         
         // Get available drivers
         const availableDrivers = await adminStorage.getAvailableDrivers();

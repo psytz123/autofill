@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { Loader2, MapPin, Truck } from "lucide-react";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { Loader2, MapPin, Truck, Brain, RotateCcw } from "lucide-react";
 import { GoogleMap, useJsApiLoader, Marker, DirectionsRenderer } from "@react-google-maps/api";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,6 +9,10 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useToast } from "@/hooks/use-toast";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Separator } from "@/components/ui/separator";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 
 // Define types for drivers and orders
 interface AdminDriver {
@@ -58,6 +62,28 @@ interface DriverTrackingMapProps {
   onAssignDriver?: (orderId: number, driverId: number) => void;
 }
 
+// Type definition for auto-assignment result
+interface AssignmentResult {
+  orderId: number;
+  driverId: number;
+  driverName: string;
+  distanceKm: number;
+  estimatedTimeMinutes: number;
+  success: boolean;
+  error?: string;
+}
+
+interface AutoAssignmentResponse {
+  success: boolean;
+  totalAssigned: number;
+  totalUnassigned: number;
+  assignments: AssignmentResult[];
+  unassignedOrders: number[];
+  explanation: string;
+  message?: string;
+  error?: string;
+}
+
 export default function DriverTrackingMap({ onAssignDriver }: DriverTrackingMapProps) {
   const { toast } = useToast();
   const [selectedOrder, setSelectedOrder] = useState<AdminOrder | null>(null);
@@ -67,6 +93,8 @@ export default function DriverTrackingMap({ onAssignDriver }: DriverTrackingMapP
   const [assignLoading, setAssignLoading] = useState(false);
   const [mapCenter, setMapCenter] = useState(defaultCenter);
   const [locationRefreshing, setLocationRefreshing] = useState(false);
+  const [showResultsDialog, setShowResultsDialog] = useState(false);
+  const [assignmentResults, setAssignmentResults] = useState<AutoAssignmentResponse | null>(null);
 
   const { isLoaded, loadError } = useJsApiLoader({
     googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY || "",
@@ -108,6 +136,63 @@ export default function DriverTrackingMap({ onAssignDriver }: DriverTrackingMapP
     } finally {
       setLocationRefreshing(false);
     }
+  };
+
+  // Add mutation for auto-assignment
+  const autoAssignMutation = useMutation({
+    mutationFn: async () => {
+      const response = await apiRequest("POST", "/admin/api/orders/auto-assign");
+      return await response.json();
+    },
+    onSuccess: (data: AutoAssignmentResponse) => {
+      setAssignmentResults(data);
+      setShowResultsDialog(true);
+      
+      if (data.success) {
+        toast({
+          title: "Auto-assignment complete",
+          description: `Successfully assigned ${data.totalAssigned} orders to drivers.`,
+        });
+        // Refresh tracking data to show new assignments
+        refetchTrackingData();
+      } else {
+        toast({
+          title: "Auto-assignment failed",
+          description: data.message || "Failed to auto-assign orders to drivers.",
+          variant: "destructive",
+        });
+      }
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Auto-assignment error",
+        description: `Error: ${error.message}`,
+        variant: "destructive",
+      });
+    }
+  });
+
+  // Handle auto-assignment
+  const handleAutoAssign = () => {
+    if (filteredUnassignedOrders.length === 0) {
+      toast({
+        title: "No orders to assign",
+        description: "There are no unassigned orders with location data.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (driversWithLocation.length === 0) {
+      toast({
+        title: "No available drivers",
+        description: "There are no available drivers with location data.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    autoAssignMutation.mutate();
   };
 
   // Refresh data periodically (every 30 seconds)
@@ -231,20 +316,43 @@ export default function DriverTrackingMap({ onAssignDriver }: DriverTrackingMapP
           <h2 className="text-2xl font-bold">Driver Tracking Dashboard</h2>
           <p className="text-gray-500">Monitor driver locations and assign deliveries</p>
         </div>
-        <Button
-          variant="outline"
-          onClick={refreshLocations}
-          disabled={locationRefreshing}
-        >
-          {locationRefreshing ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Refreshing...
-            </>
-          ) : (
-            <>Refresh Locations</>
-          )}
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            variant="secondary"
+            className="flex items-center gap-2"
+            onClick={handleAutoAssign}
+            disabled={autoAssignMutation.isPending || locationRefreshing || driversWithLocation.length === 0 || filteredUnassignedOrders.length === 0}
+          >
+            {autoAssignMutation.isPending ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Assigning...
+              </>
+            ) : (
+              <>
+                <Brain className="h-4 w-4" />
+                Auto-Assign Orders
+              </>
+            )}
+          </Button>
+          <Button
+            variant="outline"
+            onClick={refreshLocations}
+            disabled={locationRefreshing}
+          >
+            {locationRefreshing ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Refreshing...
+              </>
+            ) : (
+              <>
+                <RotateCcw className="h-4 w-4 mr-2" />
+                Refresh
+              </>
+            )}
+          </Button>
+        </div>
       </div>
 
       {isLoading && (
@@ -716,6 +824,96 @@ export default function DriverTrackingMap({ onAssignDriver }: DriverTrackingMapP
           </Tabs>
         </div>
       </div>
+    </div>
+  
+      {/* Auto-assignment results dialog */}
+      <Dialog open={showResultsDialog} onOpenChange={setShowResultsDialog}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Brain className="h-5 w-5 text-primary" />
+              AI-Powered Order Assignment Results
+            </DialogTitle>
+            <DialogDescription>
+              {assignmentResults?.success 
+                ? `Successfully assigned ${assignmentResults?.totalAssigned} orders to drivers.`
+                : "The auto-assignment process encountered some issues."}
+            </DialogDescription>
+          </DialogHeader>
+          
+          {assignmentResults && (
+            <div className="space-y-4">
+              {/* Explanation */}
+              <div>
+                <h4 className="font-medium mb-2">Assignment Strategy:</h4>
+                <p className="text-gray-700 text-sm whitespace-pre-line">{assignmentResults.explanation}</p>
+              </div>
+              
+              <Separator />
+              
+              {/* Assignments */}
+              {assignmentResults.assignments.length > 0 && (
+                <div>
+                  <h4 className="font-medium mb-2">Successful Assignments:</h4>
+                  <ScrollArea className="h-[200px]">
+                    <div className="space-y-3">
+                      {assignmentResults.assignments.map((assignment) => (
+                        <div 
+                          key={`assign-${assignment.orderId}-${assignment.driverId}`}
+                          className="p-3 border rounded-md bg-green-50"
+                        >
+                          <div className="flex justify-between">
+                            <div>
+                              <p className="font-medium">Order #{assignment.orderId}</p>
+                              <div className="flex items-center text-sm text-gray-600">
+                                <Truck className="h-3.5 w-3.5 mr-1 text-gray-500" />
+                                <span>Assigned to: {assignment.driverName}</span>
+                              </div>
+                            </div>
+                            <div className="text-sm text-gray-600">
+                              <div className="text-right">{assignment.distanceKm.toFixed(1)} km away</div>
+                              <div className="text-right">ETA: {assignment.estimatedTimeMinutes} mins</div>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </ScrollArea>
+                </div>
+              )}
+              
+              {/* Unassigned orders */}
+              {assignmentResults.unassignedOrders.length > 0 && (
+                <div>
+                  <h4 className="font-medium mb-2">Unassigned Orders:</h4>
+                  <div className="flex flex-wrap gap-2">
+                    {assignmentResults.unassignedOrders.map((orderId) => (
+                      <Badge 
+                        key={`unassigned-${orderId}`} 
+                        variant="outline"
+                        className="bg-red-50"
+                      >
+                        Order #{orderId}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+          
+          <DialogFooter className="flex items-center justify-between">
+            <div>
+              {assignmentResults?.success && (
+                <span className="text-sm text-gray-500">
+                  Refreshing tracking data automatically...
+                </span>
+              )}
+            </div>
+            <Button onClick={() => setShowResultsDialog(false)}>Close</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
