@@ -113,7 +113,7 @@ export default function DriverTrackingMap({ onAssignDriver }: DriverTrackingMapP
     isLoading: trackingDataLoading,
     error: trackingDataError,
     refetch: refetchTrackingData,
-  } = useQuery({
+  } = useQuery<TrackingData>({
     queryKey: ["/api/admin/tracking-data"],
     staleTime: 1000 * 60, // 1 minute
   });
