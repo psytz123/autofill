@@ -98,6 +98,7 @@ export default function DriverTrackingMap({ onAssignDriver }: DriverTrackingMapP
   const [assignmentResults, setAssignmentResults] = useState<AutoAssignmentResponse | null>(null);
 
   const { isLoaded, loadError } = useJsApiLoader({
+    id: "google-map-script",
     googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY || "",
     libraries,
   });
